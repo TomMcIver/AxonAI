@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Dashboard - School Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-chalkboard-teacher me-2"></i>Teacher Dashboard</h2>
+            <span class="badge bg-success fs-6">Teacher</span>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">My Classes</h5>
+                        <h3>5</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chalkboard fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Total Students</h5>
+                        <h3>125</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-user-graduate fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Pending Grades</h5>
+                        <h3>8</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clipboard-list fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <h4 class="mb-3">Teacher Tools</h4>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="btn btn-outline-primary w-100 p-3" style="cursor: default;">
+            <i class="fas fa-users fa-2x d-block mb-2"></i>
+            <h6>My Students</h6>
+            <small class="text-muted">View student roster</small>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="btn btn-outline-success w-100 p-3" style="cursor: default;">
+            <i class="fas fa-book fa-2x d-block mb-2"></i>
+            <h6>Gradebook</h6>
+            <small class="text-muted">Manage grades and assignments</small>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="btn btn-outline-info w-100 p-3" style="cursor: default;">
+            <i class="fas fa-calendar-alt fa-2x d-block mb-2"></i>
+            <h6>Schedule</h6>
+            <small class="text-muted">View teaching schedule</small>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="btn btn-outline-warning w-100 p-3" style="cursor: default;">
+            <i class="fas fa-file-alt fa-2x d-block mb-2"></i>
+            <h6>Lesson Plans</h6>
+            <small class="text-muted">Create and manage lessons</small>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Math Quiz - Grade 10A</div>
+                            <small class="text-muted">Graded 25 submissions</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">Today</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Science Project - Grade 9B</div>
+                            <small class="text-muted">Assignment posted</small>
+                        </div>
+                        <span class="badge bg-success rounded-pill">Yesterday</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Parent-Teacher Conference</div>
+                            <small class="text-muted">Scheduled for next week</small>
+                        </div>
+                        <span class="badge bg-info rounded-pill">2 days ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Welcome Message -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Welcome, {{ user.get_full_name() }}!</h5>
+                <p class="card-text">
+                    Welcome to your teacher dashboard. Here you can manage your classes, view student progress, 
+                    and access teaching resources. Have a great day of teaching!
+                </p>
+                <p class="card-text">
+                    <small class="text-muted">Remember: Your next class starts at 10:00 AM</small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

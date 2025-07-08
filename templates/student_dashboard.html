@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - School Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-user-graduate me-2"></i>Student Dashboard</h2>
+            <span class="badge bg-info fs-6">Student</span>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">GPA</h5>
+                        <h3>3.75</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Enrolled</h5>
+                        <h3>6 Classes</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-book fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Assignments</h5>
+                        <h3>3 Due</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Attendance</h5>
+                        <h3>95%</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-check fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <h4 class="mb-3">Student Portal</h4>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="btn btn-outline-primary w-100 p-3" style="cursor: default;">
+            <i class="fas fa-book-open fa-2x d-block mb-2"></i>
+            <h6>My Courses</h6>
+            <small class="text-muted">View enrolled classes</small>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="btn btn-outline-success w-100 p-3" style="cursor: default;">
+            <i class="fas fa-clipboard-list fa-2x d-block mb-2"></i>
+            <h6>Assignments</h6>
+            <small class="text-muted">View and submit work</small>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="btn btn-outline-info w-100 p-3" style="cursor: default;">
+            <i class="fas fa-chart-bar fa-2x d-block mb-2"></i>
+            <h6>Grades</h6>
+            <small class="text-muted">Check your progress</small>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="btn btn-outline-warning w-100 p-3" style="cursor: default;">
+            <i class="fas fa-calendar-alt fa-2x d-block mb-2"></i>
+            <h6>Schedule</h6>
+            <small class="text-muted">View class timetable</small>
+        </div>
+    </div>
+</div>
+
+<!-- Upcoming Assignments -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Upcoming Assignments</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Math Homework</div>
+                            <small class="text-muted">Chapter 5 - Algebra</small>
+                        </div>
+                        <span class="badge bg-danger rounded-pill">Due Tomorrow</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">History Essay</div>
+                            <small class="text-muted">World War II Analysis</small>
+                        </div>
+                        <span class="badge bg-warning rounded-pill">Due Friday</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Science Lab Report</div>
+                            <small class="text-muted">Chemical Reactions</small>
+                        </div>
+                        <span class="badge bg-info rounded-pill">Due Next Week</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Grades -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-star me-2"></i>Recent Grades</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">English Quiz</div>
+                            <small class="text-muted">Literature Analysis</small>
+                        </div>
+                        <span class="badge bg-success rounded-pill">A-</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Math Test</div>
+                            <small class="text-muted">Quadratic Equations</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">B+</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Science Project</div>
+                            <small class="text-muted">Solar System Model</small>
+                        </div>
+                        <span class="badge bg-success rounded-pill">A</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Welcome Message -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Welcome back, {{ user.get_full_name() }}!</h5>
+                <p class="card-text">
+                    Great to see you in your student portal! You have 3 assignments due this week. 
+                    Keep up the excellent work - your current GPA of 3.75 shows your dedication to learning.
+                </p>
+                <p class="card-text">
+                    <small class="text-muted">Next class: Chemistry at 2:00 PM</small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit User' if user else 'Add User' }} - School Management System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-{{ 'user-edit' if user else 'user-plus' }} me-2"></i>
+                    {{ 'Edit User' if user else 'Add New User' }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <!-- First Name -->
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" 
+                                   value="{{ user.first_name if user else '' }}" required>
+                        </div>
+
+                        <!-- Last Name -->
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" 
+                                   value="{{ user.last_name if user else '' }}" required>
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               value="{{ user.email if user else '' }}" required>
+                    </div>
+
+                    <!-- Role -->
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <div class="row">
+                            {% for role in roles %}
+                            <div class="col-md-4">
+                                <input type="radio" class="btn-check" name="role" id="role_{{ role }}" 
+                                       value="{{ role }}" {% if user and user.role == role %}checked{% endif %} 
+                                       {% if not user and loop.first %}checked{% endif %} required>
+                                <label class="btn btn-outline-{{ 'primary' if role == 'admin' else 'success' if role == 'teacher' else 'info' }} w-100" 
+                                       for="role_{{ role }}">
+                                    <i class="fas fa-{{ 'user-shield' if role == 'admin' else 'chalkboard-teacher' if role == 'teacher' else 'user-graduate' }} d-block mb-1"></i>
+                                    {{ role.title() }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="mb-3">
+                        <label for="password" class="form-label">
+                            Password
+                            {% if user %}
+                                <small class="text-muted">(leave blank to keep current password)</small>
+                            {% endif %}
+                        </label>
+                        <input type="password" class="form-control" id="password" name="password" 
+                               {% if not user %}required{% endif %}>
+                        {% if not user %}
+                        <div class="form-text">
+                            Password must be at least 6 characters long.
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('manage_users') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-{{ 'primary' if user else 'success' }}">
+                            <i class="fas fa-{{ 'save' if user else 'user-plus' }} me-1"></i>
+                            {{ 'Update User' if user else 'Create User' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if user %}
+        <!-- User Info Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">User Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <strong>Created:</strong> 
+                        {{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'N/A' }}
+                    </div>
+                    <div class="col-sm-6">
+                        <strong>Status:</strong> 
+                        <span class="badge bg-{{ 'success' if user.is_active else 'danger' }}">
+                            {{ 'Active' if user.is_active else 'Inactive' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Simple password validation
+document.getElementById('password').addEventListener('input', function() {
+    const password = this.value;
+    const isNewUser = {{ 'true' if not user else 'false' }};
+    
+    if (isNewUser && password.length > 0 && password.length < 6) {
+        this.setCustomValidity('Password must be at least 6 characters long');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+</script>
+{% endblock %}
