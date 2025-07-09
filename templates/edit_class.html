@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Class' if class_obj else 'Add Class' }} - School Management System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-{{ 'edit' if class_obj else 'plus' }} me-2"></i>
+                    {{ 'Edit Class' if class_obj else 'Add New Class' }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <!-- Class Name -->
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Class Name</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="{{ class_obj.name if class_obj else '' }}" required>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">{{ class_obj.description if class_obj else '' }}</textarea>
+                    </div>
+
+                    <!-- Teacher Selection -->
+                    <div class="mb-3">
+                        <label for="teacher_id" class="form-label">Teacher</label>
+                        <select class="form-select" id="teacher_id" name="teacher_id" required>
+                            <option value="">Select a teacher...</option>
+                            {% for teacher in teachers %}
+                            <option value="{{ teacher.id }}" 
+                                    {% if class_obj and class_obj.teacher_id == teacher.id %}selected{% endif %}>
+                                {{ teacher.get_full_name() }} ({{ teacher.email }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('manage_classes') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-{{ 'primary' if class_obj else 'success' }}">
+                            <i class="fas fa-{{ 'save' if class_obj else 'plus' }} me-1"></i>
+                            {{ 'Update Class' if class_obj else 'Create Class' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if class_obj %}
+        <!-- Class Info Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">Class Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <strong>Students:</strong> {{ class_obj.get_student_count() }}
+                    </div>
+                    <div class="col-sm-6">
+                        <strong>Pass Rate:</strong> {{ "%.1f"|format(class_obj.get_pass_rate()) }}%
+                    </div>
+                    <div class="col-sm-6 mt-2">
+                        <strong>Created:</strong> 
+                        {{ class_obj.created_at.strftime('%B %d, %Y') if class_obj.created_at else 'N/A' }}
+                    </div>
+                    <div class="col-sm-6 mt-2">
+                        <strong>Status:</strong> 
+                        <span class="badge bg-{{ 'success' if class_obj.is_active else 'danger' }}">
+                            {{ 'Active' if class_obj.is_active else 'Inactive' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

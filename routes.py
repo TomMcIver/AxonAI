@@ -1,7 +1,10 @@
-from flask import render_template, request, redirect, url_for, flash, session
+from flask import render_template, request, redirect, url_for, flash, session, send_file
 from app import app, db
-from models import User
-from auth import hash_password, check_password, login_required, admin_required, get_current_user
+from models import User, Class, Assignment, AssignmentSubmission, Grade, ContentFile
+from auth import hash_password, check_password, login_required, admin_required, get_current_user, role_required
+import os
+from werkzeug.utils import secure_filename
+from datetime import datetime
 
 @app.route('/')
 def index():
@@ -52,11 +55,36 @@ def dashboard():
         return redirect(url_for('login'))
     
     if user.role == 'admin':
-        return render_template('admin_dashboard.html', user=user)
+        # Get statistics for admin dashboard
+        total_users = User.query.filter_by(is_active=True).count()
+        teacher_count = User.query.filter_by(role='teacher', is_active=True).count()
+        student_count = User.query.filter_by(role='student', is_active=True).count()
+        total_classes = Class.query.filter_by(is_active=True).count()
+        
+        return render_template('admin_dashboard.html', 
+                             user=user,
+                             user_count=total_users,
+                             teacher_count=teacher_count,
+                             student_count=student_count,
+                             total_classes=total_classes)
     elif user.role == 'teacher':
-        return render_template('teacher_dashboard.html', user=user)
+        # Get teacher's classes
+        teacher_classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
+        total_students = sum(cls.get_student_count() for cls in teacher_classes)
+        
+        return render_template('teacher_dashboard.html', 
+                             user=user,
+                             classes=teacher_classes,
+                             total_students=total_students)
     elif user.role == 'student':
-        return render_template('student_dashboard.html', user=user)
+        # Get student's classes and overall average
+        student_classes = user.classes
+        overall_average = user.get_average_grade()
+        
+        return render_template('student_dashboard.html', 
+                             user=user,
+                             classes=student_classes,
+                             overall_average=overall_average)
     else:
         flash('Invalid user role.', 'danger')
         return redirect(url_for('login'))
@@ -176,3 +204,336 @@ def delete_user(user_id):
         app.logger.error(f'Error deleting user: {e}')
     
     return redirect(url_for('manage_users'))
+
+# === CLASS MANAGEMENT ROUTES ===
+
+@app.route('/manage-classes')
+@admin_required
+def manage_classes():
+    """Admin page to manage classes"""
+    classes = Class.query.filter_by(is_active=True).all()
+    return render_template('manage_classes.html', classes=classes)
+
+@app.route('/add-class', methods=['GET', 'POST'])
+@admin_required
+def add_class():
+    """Admin page to add new classes"""
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        teacher_id = request.form.get('teacher_id')
+        
+        if not all([name, teacher_id]):
+            flash('Please fill in all required fields.', 'danger')
+            teachers = User.query.filter_by(role='teacher', is_active=True).all()
+            return render_template('edit_class.html', class_obj=None, teachers=teachers)
+        
+        # Check if class already exists
+        existing_class = Class.query.filter_by(name=name).first()
+        if existing_class:
+            flash('A class with this name already exists.', 'danger')
+            teachers = User.query.filter_by(role='teacher', is_active=True).all()
+            return render_template('edit_class.html', class_obj=None, teachers=teachers)
+        
+        # Create new class
+        new_class = Class(
+            name=name,
+            description=description,
+            teacher_id=teacher_id
+        )
+        
+        try:
+            db.session.add(new_class)
+            db.session.commit()
+            flash(f'Class "{name}" has been created successfully.', 'success')
+            return redirect(url_for('manage_classes'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while creating the class.', 'danger')
+            app.logger.error(f'Error creating class: {e}')
+    
+    teachers = User.query.filter_by(role='teacher', is_active=True).all()
+    return render_template('edit_class.html', class_obj=None, teachers=teachers)
+
+@app.route('/edit-class/<int:class_id>', methods=['GET', 'POST'])
+@admin_required
+def edit_class(class_id):
+    """Admin page to edit existing classes"""
+    class_obj = Class.query.get_or_404(class_id)
+    
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        teacher_id = request.form.get('teacher_id')
+        
+        if not all([name, teacher_id]):
+            flash('Please fill in all required fields.', 'danger')
+            teachers = User.query.filter_by(role='teacher', is_active=True).all()
+            return render_template('edit_class.html', class_obj=class_obj, teachers=teachers)
+        
+        # Check if name is taken by another class
+        existing_class = Class.query.filter_by(name=name).first()
+        if existing_class and existing_class.id != class_obj.id:
+            flash('A class with this name already exists.', 'danger')
+            teachers = User.query.filter_by(role='teacher', is_active=True).all()
+            return render_template('edit_class.html', class_obj=class_obj, teachers=teachers)
+        
+        # Update class
+        class_obj.name = name
+        class_obj.description = description
+        class_obj.teacher_id = teacher_id
+        
+        try:
+            db.session.commit()
+            flash(f'Class "{name}" has been updated successfully.', 'success')
+            return redirect(url_for('manage_classes'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while updating the class.', 'danger')
+            app.logger.error(f'Error updating class: {e}')
+    
+    teachers = User.query.filter_by(role='teacher', is_active=True).all()
+    return render_template('edit_class.html', class_obj=class_obj, teachers=teachers)
+
+@app.route('/delete-class/<int:class_id>', methods=['POST'])
+@admin_required
+def delete_class(class_id):
+    """Admin function to delete classes"""
+    class_obj = Class.query.get_or_404(class_id)
+    
+    try:
+        class_obj.is_active = False  # Soft delete
+        db.session.commit()
+        flash(f'Class "{class_obj.name}" has been deleted successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while deleting the class.', 'danger')
+        app.logger.error(f'Error deleting class: {e}')
+    
+    return redirect(url_for('manage_classes'))
+
+# === TEACHER ROUTES ===
+
+@app.route('/teacher/classes')
+@role_required(['teacher'])
+def teacher_classes():
+    """Teacher page to view their classes"""
+    user = get_current_user()
+    teacher_classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
+    return render_template('teacher_classes.html', classes=teacher_classes)
+
+@app.route('/teacher/class/<int:class_id>')
+@role_required(['teacher'])
+def teacher_class_detail(class_id):
+    """Teacher page to view class details"""
+    user = get_current_user()
+    class_obj = Class.query.get_or_404(class_id)
+    
+    # Check if teacher owns this class
+    if class_obj.teacher_id != user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('teacher_classes'))
+    
+    students = class_obj.get_students()
+    assignments = Assignment.query.filter_by(class_id=class_id, is_active=True).all()
+    
+    return render_template('teacher_class_detail.html', 
+                         class_obj=class_obj, 
+                         students=students, 
+                         assignments=assignments)
+
+@app.route('/teacher/class/<int:class_id>/create-assignment', methods=['GET', 'POST'])
+@role_required(['teacher'])
+def create_assignment(class_id):
+    """Teacher page to create assignments"""
+    user = get_current_user()
+    class_obj = Class.query.get_or_404(class_id)
+    
+    # Check if teacher owns this class
+    if class_obj.teacher_id != user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('teacher_classes'))
+    
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+        due_date_str = request.form.get('due_date')
+        max_points = request.form.get('max_points', 100)
+        
+        if not all([title, description]):
+            flash('Please fill in all required fields.', 'danger')
+            return render_template('create_assignment.html', class_obj=class_obj)
+        
+        due_date = None
+        if due_date_str:
+            try:
+                due_date = datetime.strptime(due_date_str, '%Y-%m-%d')
+            except ValueError:
+                flash('Invalid date format.', 'danger')
+                return render_template('create_assignment.html', class_obj=class_obj)
+        
+        # Create assignment
+        assignment = Assignment(
+            title=title,
+            description=description,
+            class_id=class_id,
+            due_date=due_date,
+            max_points=int(max_points)
+        )
+        
+        try:
+            db.session.add(assignment)
+            db.session.commit()
+            flash(f'Assignment "{title}" has been created successfully.', 'success')
+            return redirect(url_for('teacher_class_detail', class_id=class_id))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while creating the assignment.', 'danger')
+            app.logger.error(f'Error creating assignment: {e}')
+    
+    return render_template('create_assignment.html', class_obj=class_obj)
+
+@app.route('/teacher/grade-submission/<int:submission_id>', methods=['GET', 'POST'])
+@role_required(['teacher'])
+def grade_submission(submission_id):
+    """Teacher page to grade assignments"""
+    user = get_current_user()
+    submission = AssignmentSubmission.query.get_or_404(submission_id)
+    
+    # Check if teacher owns this class
+    if submission.assignment.class_obj.teacher_id != user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('teacher_classes'))
+    
+    if request.method == 'POST':
+        grade_value = request.form.get('grade')
+        feedback = request.form.get('feedback')
+        
+        if not grade_value:
+            flash('Please enter a grade.', 'danger')
+            return render_template('grade_submission.html', submission=submission)
+        
+        try:
+            grade_value = float(grade_value)
+        except ValueError:
+            flash('Invalid grade value.', 'danger')
+            return render_template('grade_submission.html', submission=submission)
+        
+        # Check if grade already exists
+        existing_grade = Grade.query.filter_by(
+            assignment_id=submission.assignment_id,
+            student_id=submission.student_id
+        ).first()
+        
+        if existing_grade:
+            existing_grade.grade = grade_value
+            existing_grade.feedback = feedback
+            existing_grade.graded_at = datetime.utcnow()
+            existing_grade.graded_by = user.id
+        else:
+            grade = Grade(
+                assignment_id=submission.assignment_id,
+                student_id=submission.student_id,
+                submission_id=submission_id,
+                grade=grade_value,
+                feedback=feedback,
+                graded_by=user.id
+            )
+            db.session.add(grade)
+        
+        try:
+            db.session.commit()
+            flash('Grade has been saved successfully.', 'success')
+            return redirect(url_for('teacher_class_detail', class_id=submission.assignment.class_id))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while saving the grade.', 'danger')
+            app.logger.error(f'Error saving grade: {e}')
+    
+    return render_template('grade_submission.html', submission=submission)
+
+# === STUDENT ROUTES ===
+
+@app.route('/student/classes')
+@role_required(['student'])
+def student_classes():
+    """Student page to view their classes"""
+    user = get_current_user()
+    student_classes = user.classes
+    return render_template('student_classes.html', classes=student_classes, user=user)
+
+@app.route('/student/class/<int:class_id>')
+@role_required(['student'])
+def student_class_detail(class_id):
+    """Student page to view class details"""
+    user = get_current_user()
+    class_obj = Class.query.get_or_404(class_id)
+    
+    # Check if student is enrolled in this class
+    if class_obj not in user.classes:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('student_classes'))
+    
+    assignments = Assignment.query.filter_by(class_id=class_id, is_active=True).all()
+    
+    # Get submissions and grades for this student
+    assignment_data = []
+    for assignment in assignments:
+        submission = assignment.get_submission_by_student(user.id)
+        grade = Grade.query.filter_by(assignment_id=assignment.id, student_id=user.id).first()
+        assignment_data.append({
+            'assignment': assignment,
+            'submission': submission,
+            'grade': grade
+        })
+    
+    return render_template('student_class_detail.html', 
+                         class_obj=class_obj, 
+                         assignment_data=assignment_data,
+                         user=user)
+
+@app.route('/student/submit-assignment/<int:assignment_id>', methods=['GET', 'POST'])
+@role_required(['student'])
+def submit_assignment(assignment_id):
+    """Student page to submit assignments"""
+    user = get_current_user()
+    assignment = Assignment.query.get_or_404(assignment_id)
+    
+    # Check if student is enrolled in this class
+    if assignment.class_obj not in user.classes:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('student_classes'))
+    
+    # Check if already submitted
+    existing_submission = assignment.get_submission_by_student(user.id)
+    
+    if request.method == 'POST':
+        content = request.form.get('content')
+        
+        if not content:
+            flash('Please provide submission content.', 'danger')
+            return render_template('submit_assignment.html', assignment=assignment, submission=existing_submission)
+        
+        if existing_submission:
+            # Update existing submission
+            existing_submission.content = content
+            existing_submission.submitted_at = datetime.utcnow()
+        else:
+            # Create new submission
+            submission = AssignmentSubmission(
+                assignment_id=assignment_id,
+                student_id=user.id,
+                content=content
+            )
+            db.session.add(submission)
+        
+        try:
+            db.session.commit()
+            flash('Assignment submitted successfully.', 'success')
+            return redirect(url_for('student_class_detail', class_id=assignment.class_id))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while submitting the assignment.', 'danger')
+            app.logger.error(f'Error submitting assignment: {e}')
+    
+    return render_template('submit_assignment.html', assignment=assignment, submission=existing_submission)

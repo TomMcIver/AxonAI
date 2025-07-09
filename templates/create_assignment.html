@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Create Assignment - {{ class_obj.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>Create Assignment for {{ class_obj.name }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <!-- Assignment Title -->
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Assignment Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="5" required></textarea>
+                    </div>
+
+                    <!-- Due Date -->
+                    <div class="mb-3">
+                        <label for="due_date" class="form-label">Due Date (Optional)</label>
+                        <input type="date" class="form-control" id="due_date" name="due_date">
+                    </div>
+
+                    <!-- Max Points -->
+                    <div class="mb-3">
+                        <label for="max_points" class="form-label">Maximum Points</label>
+                        <input type="number" class="form-control" id="max_points" name="max_points" value="100" min="1" required>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('teacher_class_detail', class_id=class_obj.id) }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-plus me-1"></i>Create Assignment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

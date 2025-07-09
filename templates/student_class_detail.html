@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}{{ class_obj.name }} - School Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="fas fa-book me-2"></i>{{ class_obj.name }}</h2>
+                <p class="text-muted">{{ class_obj.description or 'No description available' }}</p>
+                <p class="text-muted">
+                    <i class="fas fa-chalkboard-teacher me-1"></i>
+                    Teacher: {{ class_obj.teacher.get_full_name() }}
+                </p>
+            </div>
+            <div class="text-end">
+                {% set class_avg = user.get_class_average(class_obj.id) %}
+                {% if class_avg %}
+                <div>
+                    <span class="text-muted">Your Average:</span>
+                    <span class="badge bg-{{ 'success' if class_avg >= 70 else 'warning' if class_avg >= 50 else 'danger' }} fs-6">
+                        {{ "%.1f"|format(class_avg) }}%
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Class Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-tasks fa-2x mb-2"></i>
+                <h3>{{ assignment_data|length }}</h3>
+                <p>Assignments</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-check fa-2x mb-2"></i>
+                <h3>{{ assignment_data|selectattr('submission')|list|length }}</h3>
+                <p>Submitted</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-star fa-2x mb-2"></i>
+                <h3>{{ assignment_data|selectattr('grade')|list|length }}</h3>
+                <p>Graded</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-2x mb-2"></i>
+                <h3>{{ assignment_data|rejectattr('submission')|list|length }}</h3>
+                <p>Pending</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assignments -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Assignments</h5>
+            </div>
+            <div class="card-body">
+                {% if assignment_data %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Assignment</th>
+                                <th>Due Date</th>
+                                <th>Points</th>
+                                <th>Status</th>
+                                <th>Grade</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in assignment_data %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        <strong>{{ item.assignment.title }}</strong>
+                                        <br><small class="text-muted">{{ item.assignment.description[:50] }}...</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if item.assignment.due_date %}
+                                    <span class="badge bg-warning">
+                                        {{ item.assignment.due_date.strftime('%m/%d/%Y') }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">No Due Date</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.assignment.max_points }} pts</td>
+                                <td>
+                                    {% if item.submission %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Submitted
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times me-1"></i>Not Submitted
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.grade %}
+                                    <span class="badge bg-{{ 'success' if item.grade.grade >= 70 else 'warning' if item.grade.grade >= 50 else 'danger' }}">
+                                        {{ item.grade.grade }}/{{ item.assignment.max_points }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Not Graded</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('submit_assignment', assignment_id=item.assignment.id) }}" 
+                                       class="btn btn-sm btn-{{ 'outline-primary' if item.submission else 'primary' }}">
+                                        <i class="fas fa-{{ 'edit' if item.submission else 'upload' }}"></i>
+                                        {{ 'Edit' if item.submission else 'Submit' }}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                    <h4>No Assignments Yet</h4>
+                    <p class="text-muted">Your teacher hasn't created any assignments for this class yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Grades -->
+{% if assignment_data|selectattr('grade')|list %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-star me-2"></i>Recent Grades</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for item in assignment_data|selectattr('grade')|list %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ item.assignment.title }}</h6>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="h4 text-{{ 'success' if item.grade.grade >= 70 else 'warning' if item.grade.grade >= 50 else 'danger' }}">
+                                            {{ item.grade.grade }}/{{ item.assignment.max_points }}
+                                        </span>
+                                        <span class="text-muted">
+                                            ({{ "%.1f"|format((item.grade.grade/item.assignment.max_points)*100) }}%)
+                                        </span>
+                                    </div>
+                                    <span class="badge bg-{{ 'success' if item.grade.grade >= 70 else 'warning' if item.grade.grade >= 50 else 'danger' }}">
+                                        {{ "%.1f"|format((item.grade.grade/item.assignment.max_points)*100) }}%
+                                    </span>
+                                </div>
+                                {% if item.grade.feedback %}
+                                <div class="mt-2">
+                                    <small class="text-muted">Feedback:</small>
+                                    <p class="small">{{ item.grade.feedback }}</p>
+                                </div>
+                                {% endif %}
+                                <small class="text-muted">
+                                    Graded: {{ item.grade.graded_at.strftime('%m/%d/%Y') }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -28,12 +28,14 @@ with app.app_context():
     import models
     import routes
     
-    # Create all tables
+    # Drop and recreate all tables to handle schema changes
+    db.drop_all()
     db.create_all()
     
-    # Initialize dummy users if they don't exist
-    from init_db import init_dummy_users
+    # Initialize dummy users and classes
+    from init_db import init_dummy_users, init_dummy_classes
     init_dummy_users()
+    init_dummy_classes()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

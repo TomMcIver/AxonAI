@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Classes - School Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-school me-2"></i>Manage Classes</h2>
+            <a href="{{ url_for('add_class') }}" class="btn btn-success">
+                <i class="fas fa-plus me-1"></i>Add New Class
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Classes Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">All Classes</h5>
+            </div>
+            <div class="card-body">
+                {% if classes %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Class Name</th>
+                                <th>Teacher</th>
+                                <th>Students</th>
+                                <th>Pass Rate</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for class in classes %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-book text-primary me-2"></i>
+                                        <div>
+                                            <strong>{{ class.name }}</strong>
+                                            {% if class.description %}
+                                            <br><small class="text-muted">{{ class.description }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-chalkboard-teacher text-success me-2"></i>
+                                        {{ class.teacher.get_full_name() }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ class.get_student_count() }} students</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if class.get_pass_rate() >= 70 else 'warning' if class.get_pass_rate() >= 50 else 'danger' }}">
+                                        {{ "%.1f"|format(class.get_pass_rate()) }}%
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ class.created_at.strftime('%Y-%m-%d') if class.created_at else 'N/A' }}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('edit_class', class_id=class.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal{{ class.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- Delete Confirmation Modal -->
+                            <div class="modal fade" id="deleteModal{{ class.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Confirm Delete</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Are you sure you want to delete class <strong>{{ class.name }}</strong>?</p>
+                                            <p class="text-muted">This action cannot be undone and will affect all students and assignments in this class.</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <form method="POST" action="{{ url_for('delete_class', class_id=class.id) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-danger">
+                                                    <i class="fas fa-trash me-1"></i>Delete
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-school fa-3x text-muted mb-3"></i>
+                    <h5>No classes found</h5>
+                    <p class="text-muted">Start by adding your first class.</p>
+                    <a href="{{ url_for('add_class') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Add Class
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
