@@ -357,6 +357,7 @@ def create_assignment(class_id):
     if request.method == 'POST':
         title = request.form.get('title')
         description = request.form.get('description')
+        assignment_files = request.form.get('assignment_files')
         due_date_str = request.form.get('due_date')
         max_points = request.form.get('max_points', 100)
         
@@ -372,10 +373,15 @@ def create_assignment(class_id):
                 flash('Invalid date format.', 'danger')
                 return render_template('create_assignment.html', class_obj=class_obj)
         
+        # Add assignment files to description if provided
+        full_description = description
+        if assignment_files:
+            full_description += f"\n\n--- Assignment Materials ---\n{assignment_files}"
+        
         # Create assignment
         assignment = Assignment(
             title=title,
-            description=description,
+            description=full_description,
             class_id=class_id,
             due_date=due_date,
             max_points=int(max_points)
@@ -537,3 +543,127 @@ def submit_assignment(assignment_id):
             app.logger.error(f'Error submitting assignment: {e}')
     
     return render_template('submit_assignment.html', assignment=assignment, submission=existing_submission)
+
+# === ADDITIONAL STUDENT ROUTES ===
+
+@app.route('/student/grades')
+@role_required(['student'])
+def student_grades():
+    """Student page to view all grades"""
+    user = get_current_user()
+    grades = Grade.query.filter_by(student_id=user.id).all()
+    return render_template('student_grades.html', grades=grades, user=user)
+
+@app.route('/student/schedule')
+@role_required(['student'])
+def student_schedule():
+    """Student page to view class schedule"""
+    user = get_current_user()
+    return render_template('student_schedule.html', user=user)
+
+# === ADDITIONAL TEACHER ROUTES ===
+
+@app.route('/teacher/students')
+@role_required(['teacher'])
+def teacher_students():
+    """Teacher page to view all students"""
+    user = get_current_user()
+    classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
+    all_students = []
+    for class_obj in classes:
+        students = class_obj.get_students()
+        for student in students:
+            student.class_name = class_obj.name
+            all_students.append(student)
+    return render_template('teacher_students.html', students=all_students, user=user)
+
+@app.route('/teacher/gradebook')
+@role_required(['teacher'])
+def teacher_gradebook():
+    """Teacher page to view gradebook"""
+    user = get_current_user()
+    classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
+    return render_template('teacher_gradebook.html', classes=classes, user=user)
+
+@app.route('/teacher/content')
+@role_required(['teacher'])
+def teacher_content():
+    """Teacher page to manage content files"""
+    user = get_current_user()
+    classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
+    return render_template('teacher_content.html', classes=classes, user=user)
+
+@app.route('/teacher/upload-content/<int:class_id>', methods=['GET', 'POST'])
+@role_required(['teacher'])
+def upload_content(class_id):
+    """Teacher page to upload content files"""
+    user = get_current_user()
+    class_obj = Class.query.get_or_404(class_id)
+    
+    # Check if teacher owns this class
+    if class_obj.teacher_id != user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('teacher_content'))
+    
+    if request.method == 'POST':
+        name = request.form.get('name')
+        content = request.form.get('content')
+        file_type = request.form.get('file_type', 'txt')
+        
+        if not all([name, content]):
+            flash('Please fill in all required fields.', 'danger')
+            return render_template('upload_content.html', class_obj=class_obj)
+        
+        # For now, store content as text (in the future, we could add actual file uploads)
+        content_file = ContentFile(
+            class_id=class_id,
+            name=name,
+            file_path=f'content_{class_id}_{name}.{file_type}',
+            file_type=file_type,
+            uploaded_by=user.id
+        )
+        
+        try:
+            db.session.add(content_file)
+            db.session.commit()
+            flash(f'Content "{name}" has been uploaded successfully.', 'success')
+            return redirect(url_for('teacher_content'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while uploading the content.', 'danger')
+            app.logger.error(f'Error uploading content: {e}')
+    
+    return render_template('upload_content.html', class_obj=class_obj)
+
+@app.route('/teacher/student-profile/<int:student_id>')
+@role_required(['teacher'])
+def student_profile(student_id):
+    """Teacher page to view student profile"""
+    user = get_current_user()
+    student = User.query.get_or_404(student_id)
+    
+    # Check if teacher has access to this student (through classes)
+    teacher_classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
+    has_access = False
+    for class_obj in teacher_classes:
+        if student in class_obj.users:
+            has_access = True
+            break
+    
+    if not has_access:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('teacher_students'))
+    
+    # Get student's grades in teacher's classes
+    student_grades = []
+    for class_obj in teacher_classes:
+        if student in class_obj.users:
+            assignments = Assignment.query.filter_by(class_id=class_obj.id, is_active=True).all()
+            for assignment in assignments:
+                grade = Grade.query.filter_by(assignment_id=assignment.id, student_id=student_id).first()
+                if grade:
+                    grade.class_name = class_obj.name
+                    grade.assignment_title = assignment.title
+                    student_grades.append(grade)
+    
+    return render_template('student_profile.html', student=student, grades=student_grades, user=user)

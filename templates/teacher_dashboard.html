@@ -69,32 +69,32 @@
         <h4 class="mb-3">Teacher Tools</h4>
     </div>
     <div class="col-md-6 col-lg-3 mb-3">
-        <div class="btn btn-outline-primary w-100 p-3" style="cursor: default;">
+        <a href="{{ url_for('teacher_students') }}" class="btn btn-outline-primary w-100 p-3 text-decoration-none">
             <i class="fas fa-users fa-2x d-block mb-2"></i>
             <h6>My Students</h6>
             <small class="text-muted">View student roster</small>
-        </div>
+        </a>
     </div>
     <div class="col-md-6 col-lg-3 mb-3">
-        <div class="btn btn-outline-success w-100 p-3" style="cursor: default;">
+        <a href="{{ url_for('teacher_gradebook') }}" class="btn btn-outline-success w-100 p-3 text-decoration-none">
             <i class="fas fa-book fa-2x d-block mb-2"></i>
             <h6>Gradebook</h6>
             <small class="text-muted">Manage grades and assignments</small>
-        </div>
+        </a>
     </div>
     <div class="col-md-6 col-lg-3 mb-3">
-        <div class="btn btn-outline-info w-100 p-3" style="cursor: default;">
+        <a href="{{ url_for('teacher_classes') }}" class="btn btn-outline-info w-100 p-3 text-decoration-none">
             <i class="fas fa-calendar-alt fa-2x d-block mb-2"></i>
-            <h6>Schedule</h6>
+            <h6>My Classes</h6>
             <small class="text-muted">View teaching schedule</small>
-        </div>
+        </a>
     </div>
     <div class="col-md-6 col-lg-3 mb-3">
-        <div class="btn btn-outline-warning w-100 p-3" style="cursor: default;">
+        <a href="{{ url_for('teacher_content') }}" class="btn btn-outline-warning w-100 p-3 text-decoration-none">
             <i class="fas fa-file-alt fa-2x d-block mb-2"></i>
-            <h6>Lesson Plans</h6>
-            <small class="text-muted">Create and manage lessons</small>
-        </div>
+            <h6>Course Content</h6>
+            <small class="text-muted">Upload and manage materials</small>
+        </a>
     </div>
 </div>
 

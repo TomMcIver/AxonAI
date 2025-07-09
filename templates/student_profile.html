@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.get_full_name() }} - Student Profile{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-user me-2"></i>Student Profile</h2>
+            <a href="{{ url_for('teacher_students') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Students
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Student Info -->
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center mx-auto mb-3" 
+                     style="width: 80px; height: 80px;">
+                    <i class="fas fa-user fa-2x text-white"></i>
+                </div>
+                <h5 class="card-title">{{ student.get_full_name() }}</h5>
+                <p class="card-text">
+                    <small class="text-muted">Student ID: {{ student.id }}</small><br>
+                    <small class="text-muted">{{ student.email }}</small>
+                </p>
+                <div class="mb-3">
+                    <span class="badge bg-{{ 'success' if student.is_active else 'danger' }} fs-6">
+                        {{ 'Active' if student.is_active else 'Inactive' }}
+                    </span>
+                </div>
+                
+                <!-- Overall Statistics -->
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h6 class="text-muted">Overall Average</h6>
+                        {% set overall_avg = student.get_average_grade() %}
+                        {% if overall_avg %}
+                        <h4 class="text-{{ 'success' if overall_avg >= 70 else 'warning' if overall_avg >= 50 else 'danger' }}">
+                            {{ "%.1f"|format(overall_avg) }}%
+                        </h4>
+                        {% else %}
+                        <h4 class="text-muted">No Grades</h4>
+                        {% endif %}
+                    </div>
+                    <div class="col-6">
+                        <h6 class="text-muted">Classes</h6>
+                        <h4 class="text-info">{{ student.classes|length }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="sendMessage()">
+                        <i class="fas fa-envelope me-1"></i>Send Message
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="scheduleConference()">
+                        <i class="fas fa-calendar me-1"></i>Schedule Conference
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm" onclick="viewAttendance()">
+                        <i class="fas fa-calendar-check me-1"></i>View Attendance
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grades and Performance -->
+    <div class="col-md-8">
+        <!-- Grade Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Grade Summary</h5>
+            </div>
+            <div class="card-body">
+                {% if grades %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Assignment</th>
+                                <th>Class</th>
+                                <th>Grade</th>
+                                <th>Percentage</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for grade in grades %}
+                            <tr>
+                                <td>
+                                    <strong>{{ grade.assignment_title }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ grade.class_name }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if grade.grade >= 70 else 'warning' if grade.grade >= 50 else 'danger' }}">
+                                        {{ grade.grade }}/{{ grade.assignment.max_points }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong class="text-{{ 'success' if (grade.grade/grade.assignment.max_points)*100 >= 70 else 'warning' if (grade.grade/grade.assignment.max_points)*100 >= 50 else 'danger' }}">
+                                        {{ "%.1f"|format((grade.grade/grade.assignment.max_points)*100) }}%
+                                    </strong>
+                                </td>
+                                <td>{{ grade.graded_at.strftime('%m/%d/%Y') }}</td>
+                                <td>
+                                    {% if grade.submission %}
+                                    <a href="{{ url_for('grade_submission', submission_id=grade.submission_id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i> Edit Grade
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-star fa-3x text-muted mb-3"></i>
+                    <h6>No Grades Yet</h6>
+                    <p class="text-muted">This student hasn't received any grades in your classes yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Performance Analytics -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Performance Analytics</h5>
+            </div>
+            <div class="card-body">
+                {% if grades %}
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <i class="fas fa-trophy fa-2x mb-2"></i>
+                                <h4>{{ grades|selectattr('grade', 'ge', 90)|list|length }}</h4>
+                                <p>A Grades</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <i class="fas fa-thumbs-up fa-2x mb-2"></i>
+                                <h4>{{ grades|selectattr('grade', 'ge', 80)|list|length - grades|selectattr('grade', 'ge', 90)|list|length }}</h4>
+                                <p>B Grades</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <i class="fas fa-check fa-2x mb-2"></i>
+                                <h4>{{ grades|selectattr('grade', 'ge', 70)|list|length - grades|selectattr('grade', 'ge', 80)|list|length }}</h4>
+                                <p>C Grades</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                                <h4>{{ grades|selectattr('grade', 'lt', 70)|list|length }}</h4>
+                                <p>Below C</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grade Trend -->
+                <div class="mt-4">
+                    <h6>Grade Trend</h6>
+                    <div class="alert alert-info">
+                        <i class="fas fa-chart-line me-2"></i>
+                        {% if grades|length >= 3 %}
+                        {% set recent_grades = grades[-3:] %}
+                        {% set trend_up = recent_grades[-1].grade > recent_grades[0].grade %}
+                        Student performance is 
+                        <strong class="text-{{ 'success' if trend_up else 'warning' }}">
+                            {{ 'improving' if trend_up else 'declining' }}
+                        </strong> 
+                        over the last 3 assignments.
+                        {% else %}
+                        Not enough data to show trend (need at least 3 grades).
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No performance data available yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function sendMessage() {
+    alert('Message functionality would open an email client or internal messaging system.');
+}
+
+function scheduleConference() {
+    alert('Conference scheduling would integrate with a calendar system.');
+}
+
+function viewAttendance() {
+    alert('Attendance tracking would show detailed attendance records.');
+}
+</script>
+{% endblock %}

@@ -12,7 +12,7 @@
                 </h4>
             </div>
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     <!-- Assignment Title -->
                     <div class="mb-3">
                         <label for="title" class="form-label">Assignment Title</label>
@@ -23,6 +23,33 @@
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
                         <textarea class="form-control" id="description" name="description" rows="5" required></textarea>
+                    </div>
+
+                    <!-- Assignment Files -->
+                    <div class="mb-3">
+                        <label for="assignment_files" class="form-label">Assignment Files (Optional)</label>
+                        <textarea class="form-control" id="assignment_files" name="assignment_files" rows="3" 
+                                  placeholder="Upload assignment instructions, worksheets, or reference materials..."></textarea>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Add any additional assignment materials, instructions, or files that students will need.
+                        </div>
+                    </div>
+
+                    <!-- Quick Fill Buttons -->
+                    <div class="mb-3">
+                        <label class="form-label">Quick Fill Sample Assignments:</label>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadSampleAssignment('essay')">
+                                Essay Assignment
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadSampleAssignment('math')">
+                                Math Problem Set
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadSampleAssignment('research')">
+                                Research Project
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Due Date -->
@@ -51,4 +78,131 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadSampleAssignment(type) {
+    const titleField = document.getElementById('title');
+    const descriptionField = document.getElementById('description');
+    const filesField = document.getElementById('assignment_files');
+    
+    switch(type) {
+        case 'essay':
+            titleField.value = 'Argumentative Essay Assignment';
+            descriptionField.value = 'Write a 5-paragraph argumentative essay on a topic of your choice from the provided list. Your essay should include a clear thesis statement, supporting evidence, and a strong conclusion.';
+            filesField.value = `Essay Assignment Instructions:
+
+REQUIREMENTS:
+- 5 paragraphs minimum (introduction, 3 body paragraphs, conclusion)
+- 750-1000 words
+- MLA format required
+- Minimum 3 credible sources
+- Due: [Insert Date]
+
+TOPIC OPTIONS:
+1. Should social media platforms regulate content?
+2. Is renewable energy the solution to climate change?
+3. Should college education be free for everyone?
+4. Are electric vehicles better for the environment?
+5. Should artificial intelligence be regulated?
+
+GRADING RUBRIC:
+- Thesis and argument clarity (25 points)
+- Evidence and research (25 points)
+- Organization and structure (25 points)
+- Grammar and mechanics (25 points)
+
+SUBMISSION: Upload to course portal as PDF or Word document.`;
+            break;
+            
+        case 'math':
+            titleField.value = 'Algebra Problem Set Chapter 5';
+            descriptionField.value = 'Complete the following algebra problems focusing on quadratic equations and factoring. Show all work for full credit.';
+            filesField.value = `Math Problem Set - Chapter 5: Quadratic Equations
+
+INSTRUCTIONS:
+- Show all work clearly
+- Circle or box final answers
+- Use proper mathematical notation
+- Check your answers when possible
+
+PROBLEMS:
+
+1. Solve by factoring:
+   a) x² + 7x + 12 = 0
+   b) 2x² - 8x + 6 = 0
+   c) x² - 25 = 0
+
+2. Use the quadratic formula to solve:
+   a) x² + 4x - 5 = 0
+   b) 2x² + 3x - 1 = 0
+   c) x² - 6x + 9 = 0
+
+3. Word Problems:
+   a) A projectile is fired upward with initial velocity 64 ft/s. 
+      Height equation: h = -16t² + 64t
+      When will it hit the ground?
+   
+   b) A rectangular garden has area 48 sq ft. 
+      Length is 2 ft more than width.
+      Find the dimensions.
+
+4. Graph the following parabolas:
+   a) y = x² - 4x + 3
+   b) y = -2x² + 8x - 6
+
+BONUS (5 extra points):
+Solve: x⁴ - 13x² + 36 = 0`;
+            break;
+            
+        case 'research':
+            titleField.value = 'Independent Research Project';
+            descriptionField.value = 'Conduct an independent research project on a current issue in your field of interest. Present your findings in both written and presentation format.';
+            filesField.value = `Research Project Guidelines:
+
+PROJECT OVERVIEW:
+Choose a current issue or development in your field of interest and conduct thorough research to understand different perspectives and implications.
+
+DELIVERABLES:
+1. Written Report (5-7 pages)
+2. Presentation (10-15 minutes)
+3. Annotated Bibliography (minimum 8 sources)
+
+TIMELINE:
+Week 1: Topic selection and approval
+Week 2: Research and source gathering  
+Week 3: First draft of written report
+Week 4: Final report and presentation preparation
+Week 5: Presentations
+
+RESEARCH REQUIREMENTS:
+- Minimum 8 credible sources
+- Mix of academic articles, news sources, and expert opinions
+- At least 2 recent sources (within last 2 years)
+- Proper APA citation format
+
+WRITTEN REPORT STRUCTURE:
+1. Introduction and thesis statement
+2. Background and context
+3. Current perspectives and debates
+4. Analysis and evaluation
+5. Conclusion and implications
+6. References
+
+PRESENTATION REQUIREMENTS:
+- Visual aids (PowerPoint, Prezi, etc.)
+- Clear organization and flow
+- Engagement with audience
+- Time management (10-15 minutes)
+- Q&A preparation
+
+GRADING:
+- Written report: 60%
+- Presentation: 30%
+- Bibliography: 10%`;
+            break;
+    }
+}
+</script>
 {% endblock %}
