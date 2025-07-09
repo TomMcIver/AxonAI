@@ -124,7 +124,14 @@
                         <div class="card bg-danger text-white">
                             <div class="card-body text-center">
                                 <h6>Pending Grades</h6>
-                                <h4>{{ students|length * assignments|length - assignments|sum(attribute='grades')|length }}</h4>
+                                {% set total_possible = students|length * assignments|length %}
+                                {% set graded_list = [] %}
+                                {% for assignment in assignments %}
+                                    {% for grade in assignment.grades %}
+                                        {% set _ = graded_list.append(grade) %}
+                                    {% endfor %}
+                                {% endfor %}
+                                <h4>{{ total_possible - graded_list|length }}</h4>
                             </div>
                         </div>
                     </div>
