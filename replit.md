@@ -13,7 +13,7 @@ Preferred communication style: Simple, everyday language.
 ### Backend Architecture
 - **Framework**: Flask web framework
 - **Database ORM**: SQLAlchemy with declarative base model
-- **Database**: SQLite (development) - configurable for production databases
+- **Database**: PostgreSQL (production-ready database with connection pooling)
 - **Authentication**: Session-based with bcrypt password hashing
 - **Authorization**: Role-based access control (admin, teacher, student)
 
@@ -117,6 +117,18 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Schema
 - **Users Table**: id, email, password_hash, role, first_name, last_name, created_at, is_active
-- **Relationships**: Currently single-table design, expandable for classes, assignments, grades
+- **Classes Table**: id, name, description, teacher_id, created_at, is_active
+- **Assignments Table**: id, title, description, class_id, due_date, max_points, created_at, is_active
+- **Assignment Submissions Table**: id, assignment_id, student_id, content, file_path, submitted_at
+- **Grades Table**: id, assignment_id, student_id, submission_id, grade, feedback, graded_at, graded_by
+- **Content Files Table**: id, class_id, name, file_path, file_type, uploaded_by, uploaded_at
+- **Class Users Table**: Many-to-many relationship table for class enrollment
+
+### Recent Changes (January 2025)
+- **Database Migration**: Successfully migrated from SQLite to PostgreSQL for production readiness
+- **Complete Feature Set**: Full school management functionality implemented with role-based access control
+- **Class Management**: Admin can create and manage classes, assign teachers
+- **Assignment System**: Teachers can create assignments, students can submit, teachers can grade
+- **Enrollment System**: Many-to-many relationships between students and classes
 
 The application follows a traditional MVC pattern with clear separation of concerns and implements security best practices for educational institution management.
