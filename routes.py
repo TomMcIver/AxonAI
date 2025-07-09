@@ -357,7 +357,8 @@ def create_assignment(class_id):
     if request.method == 'POST':
         title = request.form.get('title')
         description = request.form.get('description')
-        assignment_files = request.form.get('assignment_files')
+        materials_text = request.form.get('materials_text', '')
+        uploaded_files = request.files.getlist('assignment_files')
         due_date_str = request.form.get('due_date')
         max_points = request.form.get('max_points', 100)
         
@@ -373,10 +374,15 @@ def create_assignment(class_id):
                 flash('Invalid date format.', 'danger')
                 return render_template('create_assignment.html', class_obj=class_obj)
         
-        # Add assignment files to description if provided
+        # Build full description with materials and file info
         full_description = description
-        if assignment_files:
-            full_description += f"\n\n--- Assignment Materials ---\n{assignment_files}"
+        
+        if materials_text:
+            full_description += f"\n\n--- Assignment Materials ---\n{materials_text}"
+        
+        if uploaded_files and any(file.filename for file in uploaded_files):
+            file_list = [file.filename for file in uploaded_files if file.filename]
+            full_description += f"\n\n--- Attached Files ---\n" + "\n".join(f"• {filename}" for filename in file_list)
         
         # Create assignment
         assignment = Assignment(
@@ -514,22 +520,38 @@ def submit_assignment(assignment_id):
     existing_submission = assignment.get_submission_by_student(user.id)
     
     if request.method == 'POST':
-        content = request.form.get('content')
+        content = request.form.get('content', '')
+        uploaded_file = request.files.get('submission_file')
         
-        if not content:
-            flash('Please provide submission content.', 'danger')
+        if not content and not (uploaded_file and uploaded_file.filename):
+            flash('Please provide either written content or upload a file.', 'danger')
             return render_template('submit_assignment.html', assignment=assignment, submission=existing_submission)
+        
+        # Handle file upload
+        file_path = None
+        file_name = None
+        submission_content = content
+        
+        if uploaded_file and uploaded_file.filename:
+            file_name = uploaded_file.filename
+            file_path = f'uploads/assignments/{assignment_id}_{user.id}_{file_name}'
+            # Add file info to content
+            submission_content = f"Submitted file: {file_name}\n\n{content}" if content else f"Submitted file: {file_name}"
         
         if existing_submission:
             # Update existing submission
-            existing_submission.content = content
+            existing_submission.content = submission_content
+            existing_submission.file_path = file_path
+            existing_submission.file_name = file_name
             existing_submission.submitted_at = datetime.utcnow()
         else:
             # Create new submission
             submission = AssignmentSubmission(
                 assignment_id=assignment_id,
                 student_id=user.id,
-                content=content
+                content=submission_content,
+                file_path=file_path,
+                file_name=file_name
             )
             db.session.add(submission)
         
@@ -591,7 +613,30 @@ def teacher_content():
     """Teacher page to manage content files"""
     user = get_current_user()
     classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
-    return render_template('teacher_content.html', classes=classes, user=user)
+    
+    # Calculate file statistics
+    total_files = 0
+    pdf_count = 0
+    slides_count = 0
+    txt_count = 0
+    
+    for class_obj in classes:
+        for file in class_obj.content_files:
+            total_files += 1
+            if file.file_type == 'pdf':
+                pdf_count += 1
+            elif file.file_type == 'slides':
+                slides_count += 1
+            elif file.file_type == 'txt':
+                txt_count += 1
+    
+    return render_template('teacher_content.html', 
+                         classes=classes, 
+                         user=user,
+                         total_files=total_files,
+                         pdf_count=pdf_count,
+                         slides_count=slides_count,
+                         txt_count=txt_count)
 
 @app.route('/teacher/upload-content/<int:class_id>', methods=['GET', 'POST'])
 @role_required(['teacher'])
@@ -607,18 +652,36 @@ def upload_content(class_id):
     
     if request.method == 'POST':
         name = request.form.get('name')
-        content = request.form.get('content')
+        content = request.form.get('content', '')
         file_type = request.form.get('file_type', 'txt')
+        uploaded_file = request.files.get('content_file')
         
-        if not all([name, content]):
-            flash('Please fill in all required fields.', 'danger')
+        if not name:
+            flash('Please provide a content name.', 'danger')
             return render_template('upload_content.html', class_obj=class_obj)
         
-        # For now, store content as text (in the future, we could add actual file uploads)
+        # Handle file upload
+        file_path = f'content_{class_id}_{name}.{file_type}'
+        file_content = content
+        
+        if uploaded_file and uploaded_file.filename:
+            # Get file extension and update file type accordingly
+            file_extension = uploaded_file.filename.rsplit('.', 1)[1].lower() if '.' in uploaded_file.filename else 'txt'
+            if file_extension in ['pdf', 'doc', 'docx']:
+                file_type = 'pdf'
+            elif file_extension in ['ppt', 'pptx']:
+                file_type = 'slides'
+            else:
+                file_type = 'txt'
+            
+            file_path = f'uploads/content_{class_id}_{uploaded_file.filename}'
+            # For demo purposes, we'll store file info and add content description
+            file_content = f"Uploaded file: {uploaded_file.filename}\n\n{content}" if content else f"Uploaded file: {uploaded_file.filename}"
+        
         content_file = ContentFile(
             class_id=class_id,
             name=name,
-            file_path=f'content_{class_id}_{name}.{file_type}',
+            file_path=file_path,
             file_type=file_type,
             uploaded_by=user.id
         )

@@ -54,19 +54,35 @@
                 {% endif %}
 
                 <!-- Submission Form -->
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     <div class="mb-3">
-                        <label for="content" class="form-label">Your Submission</label>
-                        <textarea class="form-control" id="content" name="content" rows="10" 
-                                  placeholder="Enter your assignment submission here..." required>{{ submission.content if submission else '' }}</textarea>
+                        <label for="content" class="form-label">Written Submission</label>
+                        <textarea class="form-control" id="content" name="content" rows="8" 
+                                  placeholder="Enter your assignment submission here...">{{ submission.content if submission else '' }}</textarea>
+                        <div class="form-text">
+                            Include your written work, answers, or explanations here.
+                        </div>
                     </div>
 
-                    <!-- File Upload Info -->
-                    <div class="alert alert-secondary">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Note:</strong> Currently, only text submissions are supported. 
-                        If you need to submit files, please include links or paste the content directly.
+                    <!-- File Upload -->
+                    <div class="mb-3">
+                        <label for="submission_file" class="form-label">Upload Files (Optional)</label>
+                        <input type="file" class="form-control" id="submission_file" name="submission_file" 
+                               accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.zip" multiple>
+                        <div class="form-text">
+                            <i class="fas fa-upload me-1"></i>
+                            Upload PDFs, Word documents, images, presentations, or other assignment files. Multiple files supported.
+                        </div>
                     </div>
+
+                    <!-- Current File Info -->
+                    {% if submission and submission.file_name %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-file me-2"></i>
+                        <strong>Previously Uploaded:</strong> {{ submission.file_name }}
+                        <br><small class="text-muted">Upload new files to replace existing ones</small>
+                    </div>
+                    {% endif %}
 
                     <!-- Buttons -->
                     <div class="d-flex justify-content-between">

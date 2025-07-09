@@ -28,12 +28,19 @@
                     <!-- Assignment Files -->
                     <div class="mb-3">
                         <label for="assignment_files" class="form-label">Assignment Files (Optional)</label>
-                        <textarea class="form-control" id="assignment_files" name="assignment_files" rows="3" 
-                                  placeholder="Upload assignment instructions, worksheets, or reference materials..."></textarea>
+                        <input type="file" class="form-control" id="assignment_files" name="assignment_files" 
+                               accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" multiple>
                         <div class="form-text">
                             <i class="fas fa-info-circle me-1"></i>
-                            Add any additional assignment materials, instructions, or files that students will need.
+                            Upload PDFs, Word docs, PowerPoint slides, images, or text files. Multiple files supported.
                         </div>
+                    </div>
+                    
+                    <!-- Assignment Materials Text -->
+                    <div class="mb-3">
+                        <label for="materials_text" class="form-label">Additional Instructions/Materials</label>
+                        <textarea class="form-control" id="materials_text" name="materials_text" rows="3" 
+                                  placeholder="Add any additional written instructions or reference materials..."></textarea>
                     </div>
 
                     <!-- Quick Fill Buttons -->

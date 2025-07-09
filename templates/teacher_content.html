@@ -101,7 +101,7 @@
         <div class="card bg-primary text-white">
             <div class="card-body text-center">
                 <i class="fas fa-file fa-2x mb-2"></i>
-                <h3>{{ classes|sum(attribute='content_files')|length }}</h3>
+                <h3>{{ total_files }}</h3>
                 <p>Total Files</p>
             </div>
         </div>
@@ -110,7 +110,7 @@
         <div class="card bg-success text-white">
             <div class="card-body text-center">
                 <i class="fas fa-file-pdf fa-2x mb-2"></i>
-                <h3>{{ classes|sum(attribute='content_files')|selectattr('file_type', 'equalto', 'pdf')|list|length }}</h3>
+                <h3>{{ pdf_count }}</h3>
                 <p>PDF Documents</p>
             </div>
         </div>
@@ -119,7 +119,7 @@
         <div class="card bg-info text-white">
             <div class="card-body text-center">
                 <i class="fas fa-file-powerpoint fa-2x mb-2"></i>
-                <h3>{{ classes|sum(attribute='content_files')|selectattr('file_type', 'equalto', 'slides')|list|length }}</h3>
+                <h3>{{ slides_count }}</h3>
                 <p>Presentations</p>
             </div>
         </div>
@@ -128,7 +128,7 @@
         <div class="card bg-warning text-white">
             <div class="card-body text-center">
                 <i class="fas fa-file-alt fa-2x mb-2"></i>
-                <h3>{{ classes|sum(attribute='content_files')|selectattr('file_type', 'equalto', 'txt')|list|length }}</h3>
+                <h3>{{ txt_count }}</h3>
                 <p>Text Files</p>
             </div>
         </div>

@@ -12,7 +12,7 @@
                 </h4>
             </div>
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     <!-- Content Name -->
                     <div class="mb-3">
                         <label for="name" class="form-label">Content Name</label>
@@ -30,15 +30,24 @@
                         </select>
                     </div>
 
-                    <!-- Content -->
+                    <!-- File Upload -->
                     <div class="mb-3">
-                        <label for="content" class="form-label">Content</label>
-                        <textarea class="form-control" id="content" name="content" rows="10" 
-                                  placeholder="Enter your content here..." required></textarea>
+                        <label for="content_file" class="form-label">Upload File</label>
+                        <input type="file" class="form-control" id="content_file" name="content_file" 
+                               accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png">
                         <div class="form-text">
-                            <strong>Text Documents:</strong> Enter plain text content<br>
-                            <strong>PDF Documents:</strong> Paste text content or document summary<br>
-                            <strong>Presentation Slides:</strong> Enter slide content or outline
+                            <i class="fas fa-upload me-1"></i>
+                            Upload PDFs, Word documents, PowerPoint presentations, images, or text files.
+                        </div>
+                    </div>
+
+                    <!-- Additional Text Content -->
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Additional Description (Optional)</label>
+                        <textarea class="form-control" id="content" name="content" rows="5" 
+                                  placeholder="Add description, notes, or additional content..."></textarea>
+                        <div class="form-text">
+                            Use this for additional notes, descriptions, or text content alongside your uploaded file.
                         </div>
                     </div>
 
