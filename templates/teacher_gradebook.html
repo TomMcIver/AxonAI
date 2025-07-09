@@ -59,10 +59,15 @@
                                         {{ grade.grade }}
                                     </span>
                                     {% else %}
-                                    <a href="{{ url_for('grade_submission', submission_id=assignment.get_submission_by_student(student.id).id) }}" 
+                                    {% set submission = assignment.get_submission_by_student(student.id) %}
+                                    {% if submission %}
+                                    <a href="{{ url_for('grade_submission', submission_id=submission.id) }}" 
                                        class="btn btn-sm btn-outline-secondary">
-                                        <i class="fas fa-plus"></i>
+                                        <i class="fas fa-edit"></i>
                                     </a>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
                                     {% endif %}
                                 </td>
                                 {% endfor %}
@@ -96,7 +101,14 @@
                         <div class="card bg-success text-white">
                             <div class="card-body text-center">
                                 <h6>Passing Students</h6>
-                                <h4>{{ students|selectattr('get_class_average', 'ge', 60)|list|length }}</h4>
+                                {% set passing_students = [] %}
+                                {% for student in students %}
+                                    {% set avg = student.get_class_average(class.id) %}
+                                    {% if avg and avg >= 60 %}
+                                        {% set _ = passing_students.append(student) %}
+                                    {% endif %}
+                                {% endfor %}
+                                <h4>{{ passing_students|length }}</h4>
                             </div>
                         </div>
                     </div>
@@ -112,7 +124,7 @@
                         <div class="card bg-danger text-white">
                             <div class="card-body text-center">
                                 <h6>Pending Grades</h6>
-                                <h4>{{ assignments|sum(attribute='submissions')|length - assignments|sum(attribute='grades')|length }}</h4>
+                                <h4>{{ students|length * assignments|length - assignments|sum(attribute='grades')|length }}</h4>
                             </div>
                         </div>
                     </div>

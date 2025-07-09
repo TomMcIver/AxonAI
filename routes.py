@@ -591,13 +591,31 @@ def teacher_students():
     """Teacher page to view all students"""
     user = get_current_user()
     classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
-    all_students = []
+    student_data = []
+    
     for class_obj in classes:
         students = class_obj.get_students()
         for student in students:
-            student.class_name = class_obj.name
-            all_students.append(student)
-    return render_template('teacher_students.html', students=all_students, user=user)
+            # Create a student data dict to avoid modifying the actual student object
+            student_info = {
+                'id': student.id,
+                'first_name': student.first_name,
+                'last_name': student.last_name,
+                'email': student.email,
+                'is_active': student.is_active,
+                'created_at': student.created_at,
+                'class_name': class_obj.name,
+                'class_id': class_obj.id,
+                'get_full_name': student.get_full_name,
+                'get_average_grade': student.get_average_grade,
+                'get_class_average': student.get_class_average,
+                'student_obj': student  # Keep reference to original student object
+            }
+            # Avoid duplicates
+            if not any(s['id'] == student.id and s['class_id'] == class_obj.id for s in student_data):
+                student_data.append(student_info)
+    
+    return render_template('teacher_students.html', students=student_data, user=user)
 
 @app.route('/teacher/gradebook')
 @role_required(['teacher'])
