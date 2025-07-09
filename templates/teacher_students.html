@@ -52,7 +52,7 @@
                                 </td>
                                 <td>{{ student.email }}</td>
                                 <td>
-                                    {% set avg_grade = student.get_average_grade() %}
+                                    {% set avg_grade = student.student_obj.get_average_grade() %}
                                     {% if avg_grade %}
                                     <span class="badge bg-{{ 'success' if avg_grade >= 70 else 'warning' if avg_grade >= 50 else 'danger' }}">
                                         {{ "%.1f"|format(avg_grade) }}%
@@ -106,7 +106,14 @@
         <div class="card bg-warning text-white">
             <div class="card-body text-center">
                 <i class="fas fa-star fa-2x mb-2"></i>
-                <h3>{{ students|selectattr('get_average_grade', 'ge', 90)|list|length }}</h3>
+                {% set high_performers = [] %}
+                {% for student in students %}
+                    {% set avg = student.student_obj.get_average_grade() %}
+                    {% if avg and avg >= 90 %}
+                        {% set _ = high_performers.append(student) %}
+                    {% endif %}
+                {% endfor %}
+                <h3>{{ high_performers|length }}</h3>
                 <p>High Performers (90+)</p>
             </div>
         </div>
@@ -115,7 +122,14 @@
         <div class="card bg-danger text-white">
             <div class="card-body text-center">
                 <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                <h3>{{ students|selectattr('get_average_grade', 'lt', 60)|list|length }}</h3>
+                {% set need_support = [] %}
+                {% for student in students %}
+                    {% set avg = student.student_obj.get_average_grade() %}
+                    {% if avg and avg < 60 %}
+                        {% set _ = need_support.append(student) %}
+                    {% endif %}
+                {% endfor %}
+                <h3>{{ need_support|length }}</h3>
                 <p>Need Support (<60%)</p>
             </div>
         </div>
