@@ -1,0 +1,177 @@
+/* Custom styles for the School Management System */
+
+.App {
+  min-height: 100vh;
+  background-color: var(--bs-body-bg);
+}
+
+/* Login page styles */
+.login-card {
+  backdrop-filter: blur(10px);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.btn-login {
+  border-radius: 0.75rem;
+  font-weight: 600;
+}
+
+/* Dashboard card styles */
+.dashboard-card {
+  transition: all 0.3s ease;
+  border-radius: 1rem;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.admin-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.teacher-card {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.student-card {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+/* File upload styles */
+.file-drop-zone {
+  border: 2px dashed var(--bs-border-color);
+  border-radius: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.file-drop-zone:hover {
+  border-color: var(--bs-primary);
+  background-color: var(--bs-light);
+}
+
+/* Table styles */
+.table-responsive {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Navigation styles */
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+/* Card hover effects */
+.card {
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+/* Progress bar styles */
+.progress {
+  border-radius: 1rem;
+}
+
+/* Badge styles */
+.badge {
+  font-weight: 600;
+}
+
+/* Button styles */
+.btn {
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+.btn-sm {
+  font-size: 0.8rem;
+}
+
+/* Custom spacing */
+.min-vh-100 {
+  min-height: 100vh;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .dashboard-card {
+    margin-bottom: 1rem;
+  }
+  
+  .file-drop-zone {
+    padding: 2rem 1rem;
+  }
+  
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+}
+
+/* Dark theme adjustments */
+[data-bs-theme="dark"] .file-drop-zone:hover {
+  background-color: var(--bs-dark);
+}
+
+[data-bs-theme="dark"] .bg-light {
+  background-color: var(--bs-gray-800) !important;
+}
+
+/* Print styles */
+@media print {
+  .navbar,
+  .btn,
+  .file-drop-zone {
+    display: none !important;
+  }
+  
+  .container-fluid {
+    padding: 0 !important;
+  }
+}
+
+/* Loading spinner */
+.spinner-border {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.125em;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bs-light);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bs-secondary);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bs-primary);
+}
