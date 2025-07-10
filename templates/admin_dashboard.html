@@ -142,37 +142,111 @@
             </div>
             <div class="modal-body">
                 <div class="row">
-                    <div class="col-md-6">
-                        <h6>Select Data Types</h6>
+                    <div class="col-md-4">
+                        <h6>Select Tables</h6>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="exportUsers" checked>
-                            <label class="form-check-label" for="exportUsers">Users (Students, Teachers, Admins)</label>
+                            <input class="form-check-input table-selector" type="checkbox" id="exportUsers" checked data-table="users">
+                            <label class="form-check-label" for="exportUsers">
+                                <i class="fas fa-users me-2"></i>Users <span class="badge bg-secondary">~25 rows</span>
+                            </label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="exportClasses" checked>
-                            <label class="form-check-label" for="exportClasses">Classes</label>
+                            <input class="form-check-input table-selector" type="checkbox" id="exportClasses" checked data-table="classes">
+                            <label class="form-check-label" for="exportClasses">
+                                <i class="fas fa-school me-2"></i>Classes <span class="badge bg-secondary">~12 rows</span>
+                            </label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="exportChatHistory">
-                            <label class="form-check-label" for="exportChatHistory">AI Chat History</label>
+                            <input class="form-check-input table-selector" type="checkbox" id="exportAssignments" data-table="assignments">
+                            <label class="form-check-label" for="exportAssignments">
+                                <i class="fas fa-tasks me-2"></i>Assignments <span class="badge bg-secondary">~45 rows</span>
+                            </label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="exportAIModels">
-                            <label class="form-check-label" for="exportAIModels">AI Models</label>
+                            <input class="form-check-input table-selector" type="checkbox" id="exportGrades" data-table="grades">
+                            <label class="form-check-label" for="exportGrades">
+                                <i class="fas fa-star me-2"></i>Grades <span class="badge bg-secondary">~120 rows</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input table-selector" type="checkbox" id="exportChatHistory" data-table="chat_messages">
+                            <label class="form-check-label" for="exportChatHistory">
+                                <i class="fas fa-comments me-2"></i>AI Chat History <span class="badge bg-secondary">~350 rows</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input table-selector" type="checkbox" id="exportAIModels" data-table="ai_models">
+                            <label class="form-check-label" for="exportAIModels">
+                                <i class="fas fa-robot me-2"></i>AI Models <span class="badge bg-secondary">~5 rows</span>
+                            </label>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <h6>Export Preview</h6>
+                    <div class="col-md-4">
+                        <h6>Column Selection</h6>
+                        <div id="columnSelector">
+                            <div class="alert alert-sm alert-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Select a table to see available columns
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Relationship Map</h6>
+                        <div class="table-relationships">
+                            <div class="relationship-diagram">
+                                <div class="text-center mb-3">
+                                    <div class="table-node users-node">
+                                        <i class="fas fa-users"></i> Users
+                                    </div>
+                                </div>
+                                <div class="connection-lines">
+                                    <div class="line-to-classes"></div>
+                                    <div class="line-to-grades"></div>
+                                    <div class="line-to-chat"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="table-node classes-node">
+                                            <i class="fas fa-school"></i> Classes
+                                        </div>
+                                        <div class="table-node assignments-node mt-2">
+                                            <i class="fas fa-tasks"></i> Assignments
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="table-node grades-node">
+                                            <i class="fas fa-star"></i> Grades
+                                        </div>
+                                        <div class="table-node chat-node mt-2">
+                                            <i class="fas fa-comments"></i> Chat
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-center mt-2">
+                                    <div class="table-node ai-node">
+                                        <i class="fas fa-robot"></i> AI Models
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <h6>Export Statistics</h6>
+                            <div id="exportStats">
+                                <small class="text-muted">
+                                    • Selected tables: <span id="tableCount">2</span><br>
+                                    • Total records: <span id="recordCount">~37</span><br>
+                                    • File format: CSV<br>
+                                    • Includes relationships: <span id="hasRelationships">Yes</span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
-                            Selected data will be exported as CSV with full relationship mapping.
-                        </div>
-                        <div id="exportStats">
-                            <small class="text-muted">
-                                • Estimated records: ~500<br>
-                                • File format: CSV<br>
-                                • Includes relationships: Yes
-                            </small>
+                            <strong>Export Details:</strong> Each table will be exported as a separate CSV file in a ZIP archive. 
+                            Foreign key relationships are preserved with ID references. Selected columns only will be included.
                         </div>
                     </div>
                 </div>
@@ -274,9 +348,140 @@
     </div>
 </div>
 
+<style>
+.table-relationships {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background-color: var(--bs-light);
+    height: 200px;
+    overflow: hidden;
+}
+
+.table-node {
+    background: var(--bs-primary);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    text-align: center;
+    margin: 0.2rem;
+    display: inline-block;
+    min-width: 80px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.table-node:hover {
+    border-color: var(--bs-warning);
+    transform: scale(1.05);
+}
+
+.table-node.selected {
+    border-color: var(--bs-success);
+    box-shadow: 0 0 10px rgba(25, 135, 84, 0.5);
+}
+
+.column-group {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.column-item {
+    font-size: 0.85rem;
+    padding: 0.25rem 0;
+}
+</style>
+
 <script>
+const tableColumns = {
+    users: ['id', 'email', 'first_name', 'last_name', 'role', 'created_at', 'is_active', 'age', 'learning_style'],
+    classes: ['id', 'name', 'description', 'subject', 'teacher_id', 'ai_model_id', 'created_at', 'is_active'],
+    assignments: ['id', 'title', 'description', 'class_id', 'due_date', 'max_points', 'created_at'],
+    grades: ['id', 'assignment_id', 'student_id', 'submission_id', 'grade', 'feedback', 'graded_at'],
+    chat_messages: ['id', 'user_id', 'class_id', 'ai_model_id', 'message', 'response', 'created_at'],
+    ai_models: ['id', 'subject', 'model_name', 'prompt_template', 'max_tokens', 'temperature', 'is_active']
+};
+
+const tableRowCounts = {
+    users: 25,
+    classes: 12,
+    assignments: 45,
+    grades: 120,
+    chat_messages: 350,
+    ai_models: 5
+};
+
 function openDataExport() {
     new bootstrap.Modal(document.getElementById('dataExportModal')).show();
+    updateExportStats();
+    
+    // Add event listeners for table selection
+    document.querySelectorAll('.table-selector').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateColumnSelector();
+            updateExportStats();
+            updateRelationshipHighlight();
+        });
+    });
+}
+
+function updateColumnSelector() {
+    const columnSelector = document.getElementById('columnSelector');
+    const selectedTables = Array.from(document.querySelectorAll('.table-selector:checked')).map(cb => cb.dataset.table);
+    
+    if (selectedTables.length === 0) {
+        columnSelector.innerHTML = '<div class="alert alert-sm alert-secondary"><i class="fas fa-arrow-left me-2"></i>Select a table to see available columns</div>';
+        return;
+    }
+    
+    let html = '';
+    selectedTables.forEach(table => {
+        const columns = tableColumns[table] || [];
+        html += `
+            <div class="column-group">
+                <h6 class="mb-2"><i class="fas fa-table me-1"></i>${table.replace('_', ' ').toUpperCase()}</h6>
+                ${columns.map(col => `
+                    <div class="column-item">
+                        <div class="form-check form-check-sm">
+                            <input class="form-check-input column-checkbox" type="checkbox" id="col_${table}_${col}" checked data-table="${table}" data-column="${col}">
+                            <label class="form-check-label" for="col_${table}_${col}">${col}</label>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    });
+    
+    columnSelector.innerHTML = html;
+}
+
+function updateExportStats() {
+    const selectedTables = Array.from(document.querySelectorAll('.table-selector:checked'));
+    const tableCount = selectedTables.length;
+    const recordCount = selectedTables.reduce((sum, cb) => sum + (tableRowCounts[cb.dataset.table] || 0), 0);
+    
+    document.getElementById('tableCount').textContent = tableCount;
+    document.getElementById('recordCount').textContent = `~${recordCount}`;
+    document.getElementById('hasRelationships').textContent = tableCount > 1 ? 'Yes' : 'No';
+}
+
+function updateRelationshipHighlight() {
+    // Reset all nodes
+    document.querySelectorAll('.table-node').forEach(node => {
+        node.classList.remove('selected');
+    });
+    
+    // Highlight selected tables
+    const selectedTables = Array.from(document.querySelectorAll('.table-selector:checked')).map(cb => cb.dataset.table);
+    selectedTables.forEach(table => {
+        const node = document.querySelector(`.${table.replace('_', '-')}-node`);
+        if (node) node.classList.add('selected');
+    });
 }
 
 function openAIInsights() {
@@ -284,16 +489,30 @@ function openAIInsights() {
 }
 
 function downloadExport() {
-    // Simulate download
+    // Get selected tables and columns
+    const selectedData = {};
+    const selectedTables = Array.from(document.querySelectorAll('.table-selector:checked'));
+    
+    selectedTables.forEach(checkbox => {
+        const table = checkbox.dataset.table;
+        const columns = Array.from(document.querySelectorAll(`input[data-table="${table}"].column-checkbox:checked`))
+                            .map(cb => cb.dataset.column);
+        selectedData[table] = columns;
+    });
+    
+    // Simulate download with selected data
     const link = document.createElement('a');
-    link.href = '/api/download-export-data';
-    link.download = 'school_data_export_' + new Date().toISOString().split('T')[0] + '.csv';
+    link.href = '/api/download-export-data?data=' + encodeURIComponent(JSON.stringify(selectedData));
+    link.download = 'school_data_export_' + new Date().toISOString().split('T')[0] + '.zip';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
-    // Show success message
-    alert('Export started! Your download should begin shortly.');
+    // Show detailed success message
+    const tableNames = Object.keys(selectedData).join(', ');
+    const totalColumns = Object.values(selectedData).reduce((sum, cols) => sum + cols.length, 0);
+    
+    alert(`Export started!\n\nTables: ${tableNames}\nColumns: ${totalColumns} selected\nFormat: ZIP with CSV files\n\nYour download should begin shortly.`);
 }
 </script>
 
