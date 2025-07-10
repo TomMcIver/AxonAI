@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+import json
 
 # Association table for many-to-many relationship between users and classes
 class_users = db.Table('class_users',
@@ -18,10 +19,18 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     
+    # Student profile fields for AI personalization
+    age = db.Column(db.Integer, nullable=True)
+    learning_style = db.Column(db.String(50), nullable=True)  # visual, auditory, kinesthetic, reading
+    interests = db.Column(db.Text, nullable=True)  # JSON string of interests
+    academic_goals = db.Column(db.Text, nullable=True)
+    preferred_difficulty = db.Column(db.String(20), nullable=True)  # beginner, intermediate, advanced
+    
     # Relationships
     classes = db.relationship('Class', secondary=class_users, back_populates='users')
     submitted_assignments = db.relationship('AssignmentSubmission', back_populates='student')
     grades = db.relationship('Grade', foreign_keys='Grade.student_id', back_populates='student')
+    chat_messages = db.relationship('ChatMessage', back_populates='user')
 
     def __repr__(self):
         return f'<User {self.email}>'
@@ -49,6 +58,31 @@ class User(db.Model):
             return None
         return sum(class_grades) / len(class_grades)
 
+    def get_interests_list(self):
+        """Get interests as a list"""
+        if not self.interests:
+            return []
+        try:
+            return json.loads(self.interests)
+        except:
+            return []
+    
+    def set_interests_list(self, interests_list):
+        """Set interests from a list"""
+        self.interests = json.dumps(interests_list)
+    
+    def get_chat_summary(self, class_id=None):
+        """Get a summary of chat interactions for AI context"""
+        messages = self.chat_messages
+        if class_id:
+            messages = [msg for msg in messages if msg.class_id == class_id]
+        
+        return {
+            'total_messages': len(messages),
+            'recent_topics': [msg.message[:50] for msg in messages[-5:]] if messages else [],
+            'engagement_level': 'high' if len(messages) > 20 else 'medium' if len(messages) > 5 else 'low'
+        }
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -57,6 +91,11 @@ class User(db.Model):
             'first_name': self.first_name,
             'last_name': self.last_name,
             'photo_url': self.photo_url,
+            'age': self.age,
+            'learning_style': self.learning_style,
+            'interests': self.get_interests_list(),
+            'academic_goals': self.academic_goals,
+            'preferred_difficulty': self.preferred_difficulty,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'is_active': self.is_active
         }
@@ -65,7 +104,9 @@ class Class(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    subject = db.Column(db.String(50), nullable=True)  # math, science, english, etc.
     teacher_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    ai_model_id = db.Column(db.Integer, db.ForeignKey('ai_model.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     
@@ -74,6 +115,8 @@ class Class(db.Model):
     users = db.relationship('User', secondary=class_users, back_populates='classes')
     assignments = db.relationship('Assignment', back_populates='class_obj')
     content_files = db.relationship('ContentFile', back_populates='class_obj')
+    ai_model = db.relationship('AIModel', back_populates='classes')
+    chat_messages = db.relationship('ChatMessage', back_populates='class_obj')
 
     def __repr__(self):
         return f'<Class {self.name}>'
@@ -176,3 +219,83 @@ class ContentFile(db.Model):
 
     def __repr__(self):
         return f'<ContentFile {self.name}>'
+
+# AI Chatbot Models
+class AIModel(db.Model):
+    """Fine-tuned AI models for each class subject"""
+    id = db.Column(db.Integer, primary_key=True)
+    subject = db.Column(db.String(100), nullable=False)  # math, science, english, etc.
+    model_name = db.Column(db.String(200), nullable=False)  # OpenAI model identifier
+    fine_tuned_id = db.Column(db.String(200), nullable=True)  # Fine-tuned model ID
+    prompt_template = db.Column(db.Text, nullable=True)  # System prompt template
+    max_tokens = db.Column(db.Integer, default=1000)
+    temperature = db.Column(db.Float, default=0.7)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    classes = db.relationship('Class', back_populates='ai_model')
+    chat_messages = db.relationship('ChatMessage', back_populates='ai_model')
+    
+    def __repr__(self):
+        return f'<AIModel {self.subject}>'
+
+class ChatMessage(db.Model):
+    """Chat history between students and AI models"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
+    ai_model_id = db.Column(db.Integer, db.ForeignKey('ai_model.id'), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    response = db.Column(db.Text, nullable=False)
+    message_type = db.Column(db.String(20), nullable=False)  # student, teacher, system
+    context_data = db.Column(db.Text, nullable=True)  # JSON string of additional context
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', back_populates='chat_messages')
+    class_obj = db.relationship('Class', back_populates='chat_messages')
+    ai_model = db.relationship('AIModel', back_populates='chat_messages')
+    
+    def __repr__(self):
+        return f'<ChatMessage {self.id}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'class_id': self.class_id,
+            'ai_model_id': self.ai_model_id,
+            'message': self.message,
+            'response': self.response,
+            'message_type': self.message_type,
+            'context_data': json.loads(self.context_data) if self.context_data else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class StudentProfile(db.Model):
+    """Extended student profile for AI personalization"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    learning_preferences = db.Column(db.Text, nullable=True)  # JSON string
+    study_patterns = db.Column(db.Text, nullable=True)  # JSON string
+    performance_metrics = db.Column(db.Text, nullable=True)  # JSON string
+    ai_interaction_history = db.Column(db.Text, nullable=True)  # JSON string
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='student_profile')
+    
+    def __repr__(self):
+        return f'<StudentProfile {self.user_id}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'learning_preferences': json.loads(self.learning_preferences) if self.learning_preferences else None,
+            'study_patterns': json.loads(self.study_patterns) if self.study_patterns else None,
+            'performance_metrics': json.loads(self.performance_metrics) if self.performance_metrics else None,
+            'ai_interaction_history': json.loads(self.ai_interaction_history) if self.ai_interaction_history else None,
+            'last_updated': self.last_updated.isoformat() if self.last_updated else None
+        }

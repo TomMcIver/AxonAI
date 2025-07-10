@@ -159,7 +159,47 @@ class ApiService {
 
   // Dashboard stats
   getDashboardStats() {
-    return api.get('/dashboard/stats');
+    return api.get('/api/dashboard/stats');
+  }
+
+  // AI Chatbot Methods
+  sendChatMessage(classId, message) {
+    return api.post('/api/chat/send', {
+      class_id: classId,
+      message: message
+    });
+  }
+
+  getChatHistory(classId) {
+    return api.get(`/api/chat/history/${classId}`);
+  }
+
+  getTeacherInsights(classId) {
+    return api.get(`/api/teacher/insights/${classId}`);
+  }
+
+  // Admin Data Export Methods
+  previewExportData(selections) {
+    return api.post('/api/admin/export/preview', {
+      selections: selections
+    });
+  }
+
+  downloadExportData(selections) {
+    return api.post('/api/admin/export/download', {
+      selections: selections
+    }, {
+      responseType: 'blob'
+    });
+  }
+
+  // Enhanced class and student methods with AI features
+  getClassesWithAI() {
+    return api.get('/api/classes');
+  }
+
+  getStudentsWithProfiles() {
+    return api.get('/api/students');
   }
 }
 

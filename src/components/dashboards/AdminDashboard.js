@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Modal, Nav } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faChalkboardTeacher, faUserGraduate, faClipboardList } from '@fortawesome/free-solid-svg-icons';
+import { faUsers, faChalkboardTeacher, faUserGraduate, faClipboardList, faDownload, faRobot, faComments } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import ApiService from '../../services/ApiService';
+import DataExport from '../admin/DataExport';
 
 function AdminDashboard({ user }) {
   const navigate = useNavigate();
@@ -11,9 +12,12 @@ function AdminDashboard({ user }) {
     totalUsers: 0,
     totalTeachers: 0,
     totalStudents: 0,
-    totalClasses: 0
+    totalClasses: 0,
+    totalChatMessages: 0,
+    activeAiModels: 0
   });
   const [loading, setLoading] = useState(true);
+  const [showDataExport, setShowDataExport] = useState(false);
 
   useEffect(() => {
     fetchDashboardStats();
@@ -30,7 +34,9 @@ function AdminDashboard({ user }) {
         totalUsers: 15,
         totalTeachers: 5,
         totalStudents: 8,
-        totalClasses: 12
+        totalClasses: 12,
+        totalChatMessages: 45,
+        activeAiModels: 4
       });
     } finally {
       setLoading(false);
@@ -69,6 +75,22 @@ function AdminDashboard({ user }) {
       color: 'info',
       value: stats.totalStudents,
       path: '/admin/users?role=student'
+    },
+    {
+      title: 'AI Chat Data',
+      description: 'View and export AI chat interactions',
+      icon: faComments,
+      color: 'secondary',
+      value: stats.totalChatMessages,
+      path: '/admin/ai-insights'
+    },
+    {
+      title: 'Data Export',
+      description: 'Export comprehensive school data',
+      icon: faDownload,
+      color: 'warning',
+      value: 'Export',
+      action: () => setShowDataExport(true)
     }
   ];
 
@@ -98,7 +120,7 @@ function AdminDashboard({ user }) {
           <Col key={index} xs={12} sm={6} lg={3}>
             <Card 
               className={`dashboard-card admin-card h-100 border-0 text-white`}
-              onClick={() => navigate(card.path)}
+              onClick={() => card.action ? card.action() : navigate(card.path)}
               style={{ cursor: 'pointer' }}
             >
               <Card.Body className="d-flex flex-column align-items-center text-center">
@@ -111,10 +133,10 @@ function AdminDashboard({ user }) {
                   className="mt-auto"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(card.path);
+                    card.action ? card.action() : navigate(card.path);
                   }}
                 >
-                  View Details
+                  {card.action ? 'Open' : 'View Details'}
                 </Button>
               </Card.Body>
             </Card>
@@ -168,6 +190,23 @@ function AdminDashboard({ user }) {
           </Card>
         </Col>
       </Row>
+
+      {/* Data Export Modal */}
+      <Modal 
+        show={showDataExport} 
+        onHide={() => setShowDataExport(false)}
+        size="xl"
+        centered
+      >
+        <Modal.Body className="p-0">
+          <DataExport />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDataExport(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 }

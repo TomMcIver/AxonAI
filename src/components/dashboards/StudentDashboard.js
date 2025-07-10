@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, ListGroup, ProgressBar } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, ListGroup, ProgressBar, Modal } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBookOpen, faClipboardList, faTrophy, faCalendarAlt, faTasks, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faBookOpen, faClipboardList, faTrophy, faCalendarAlt, faTasks, faExclamationTriangle, faRobot, faComments } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import ApiService from '../../services/ApiService';
+import ChatBot from '../shared/ChatBot';
 
 function StudentDashboard({ user }) {
   const navigate = useNavigate();
@@ -11,9 +12,13 @@ function StudentDashboard({ user }) {
     totalClasses: 0,
     overallGrade: 0,
     pendingAssignments: 0,
-    upcomingDeadlines: []
+    upcomingDeadlines: [],
+    chatInteractions: 0
   });
   const [loading, setLoading] = useState(true);
+  const [classes, setClasses] = useState([]);
+  const [showChatBot, setShowChatBot] = useState(false);
+  const [selectedClass, setSelectedClass] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -21,34 +26,39 @@ function StudentDashboard({ user }) {
 
   const fetchDashboardData = async () => {
     try {
-      const [classesResponse, gradesResponse] = await Promise.all([
-        ApiService.getStudentClasses(),
-        ApiService.getStudentGrades()
+      const [classesResponse, gradesResponse, dashboardResponse] = await Promise.all([
+        ApiService.getClassesWithAI(),
+        ApiService.getStudentGrades(),
+        ApiService.getDashboardStats()
       ]);
 
-      const classes = classesResponse.data || [];
+      const classesData = classesResponse.data?.classes || [];
       const grades = gradesResponse.data || [];
+      const dashboardStats = dashboardResponse.data || {};
+      
+      setClasses(classesData);
       
       // Calculate stats
-      const pendingAssignments = classes.reduce((total, cls) => 
+      const pendingAssignments = classesData.reduce((total, cls) => 
         total + (cls.assignments?.filter(a => !a.submitted).length || 0), 0
       );
       
       const overallGrade = grades.length > 0 
         ? grades.reduce((sum, grade) => sum + grade.grade, 0) / grades.length 
-        : 85.5;
+        : dashboardStats.average_grade || 85.5;
 
-      const upcomingDeadlines = classes
+      const upcomingDeadlines = classesData
         .flatMap(cls => cls.assignments || [])
         .filter(a => !a.submitted && new Date(a.due_date) > new Date())
         .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
         .slice(0, 5);
 
       setStats({
-        totalClasses: classes.length || 4,
+        totalClasses: classesData.length || dashboardStats.enrolled_classes || 4,
         overallGrade: Math.round(overallGrade * 10) / 10,
         pendingAssignments: pendingAssignments || 3,
-        upcomingDeadlines: upcomingDeadlines
+        upcomingDeadlines: upcomingDeadlines,
+        chatInteractions: dashboardStats.chat_interactions || 0
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -61,8 +71,17 @@ function StudentDashboard({ user }) {
           { id: 1, title: 'Math Quiz Chapter 5', class_name: 'Mathematics 101', due_date: '2025-01-15' },
           { id: 2, title: 'Essay on Climate Change', class_name: 'Environmental Science', due_date: '2025-01-18' },
           { id: 3, title: 'Programming Project 1', class_name: 'Computer Science', due_date: '2025-01-20' }
-        ]
+        ],
+        chatInteractions: 0
       });
+      
+      // Set demo classes for AI chatbot
+      setClasses([
+        { id: 1, name: 'Mathematics 101', subject: 'mathematics', has_ai_model: true },
+        { id: 2, name: 'Environmental Science', subject: 'science', has_ai_model: true },
+        { id: 3, name: 'Computer Science', subject: 'science', has_ai_model: true },
+        { id: 4, name: 'English Literature', subject: 'english', has_ai_model: true }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -73,6 +92,21 @@ function StudentDashboard({ user }) {
     if (grade >= 80) return 'info';
     if (grade >= 70) return 'warning';
     return 'danger';
+  };
+
+  const handleOpenChatBot = () => {
+    if (classes.filter(cls => cls.has_ai_model).length === 1) {
+      // If only one class has AI, open directly
+      setSelectedClass(classes.find(cls => cls.has_ai_model));
+      setShowChatBot(true);
+    } else {
+      // Show class selection modal
+      setShowChatBot(true);
+    }
+  };
+
+  const handleSelectClass = (classData) => {
+    setSelectedClass(classData);
   };
 
   const dashboardCards = [
@@ -101,12 +135,12 @@ function StudentDashboard({ user }) {
       path: '/student/classes'
     },
     {
-      title: 'View Grades',
-      description: 'Check all your grades and feedback',
-      icon: faClipboardList,
+      title: 'AI Tutor',
+      description: 'Get personalized help with your studies',
+      icon: faRobot,
       color: 'info',
-      value: 'View All',
-      path: '/student/grades'
+      value: `${stats.chatInteractions} chats`,
+      action: handleOpenChatBot
     }
   ];
 
@@ -136,7 +170,7 @@ function StudentDashboard({ user }) {
           <Col key={index} xs={12} sm={6} lg={3}>
             <Card 
               className="dashboard-card student-card h-100 border-0 text-white"
-              onClick={() => navigate(card.path)}
+              onClick={() => card.action ? card.action() : navigate(card.path)}
               style={{ cursor: 'pointer' }}
             >
               <Card.Body className="d-flex flex-column align-items-center text-center">
@@ -149,10 +183,10 @@ function StudentDashboard({ user }) {
                   className="mt-auto"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(card.path);
+                    card.action ? card.action() : navigate(card.path);
                   }}
                 >
-                  View Details
+                  {card.action ? 'Open Chat' : 'View Details'}
                 </Button>
               </Card.Body>
             </Card>
@@ -295,6 +329,60 @@ function StudentDashboard({ user }) {
           </Card>
         </Col>
       </Row>
+
+      {/* AI Chatbot Modal */}
+      <Modal 
+        show={showChatBot} 
+        onHide={() => setShowChatBot(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <FontAwesomeIcon icon={faRobot} className="me-2" />
+            AI Learning Assistant
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-0">
+          {!selectedClass ? (
+            <div className="p-4">
+              <h6 className="mb-3">Select a class to get AI assistance:</h6>
+              <div className="d-grid gap-2">
+                {classes.filter(cls => cls.has_ai_model).map(cls => (
+                  <Button
+                    key={cls.id}
+                    variant="outline-primary"
+                    onClick={() => handleSelectClass(cls)}
+                    className="text-start"
+                  >
+                    <FontAwesomeIcon icon={faBookOpen} className="me-2" />
+                    {cls.name}
+                    <small className="text-muted d-block">{cls.subject} tutor</small>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div style={{ height: '500px' }}>
+              <ChatBot 
+                classId={selectedClass.id}
+                className={selectedClass.name}
+                user={user}
+              />
+            </div>
+          )}
+        </Modal.Body>
+        {selectedClass && (
+          <Modal.Footer>
+            <Button 
+              variant="secondary" 
+              onClick={() => setSelectedClass(null)}
+            >
+              Change Class
+            </Button>
+          </Modal.Footer>
+        )}
+      </Modal>
     </Container>
   );
 }

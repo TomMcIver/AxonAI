@@ -135,12 +135,42 @@ Preferred communication style: Simple, everyday language.
 - **File Upload Support**: React components for PDF, doc, presentation, and image uploads
 - **Modern React Features**: Uses React Router, hooks, Bootstrap components, and FontAwesome icons
 - **Cross-Platform Compatible**: Works on desktop, tablet, and mobile devices
+- **AI Chatbot System**: Comprehensive AI integration with multi-provider support and personalized tutoring
+- **Advanced Data Export**: Admin dashboard with selective CSV export and relationship visualization
+- **Multi-Provider AI**: Support for OpenAI, AWS-hosted, and local AI models with easy configuration switching
+
+### AI Enhancement Features (January 2025)
+- **Multi-Provider Support**: Configurable AI providers (OpenAI GPT-4o, AWS-hosted models, local Ollama)
+- **Subject-Specific Tutors**: Fine-tuned AI models for mathematics, science, English, history, and art
+- **Personalized Learning**: AI responses based on student learning style, grade performance, and academic goals
+- **Chat History Storage**: Complete conversation tracking with context preservation for AI training
+- **Student Profiles**: Extended profiles with learning preferences, study patterns, and performance metrics
+- **Teacher Insights**: AI-generated analytics about student engagement and learning patterns
+- **Demo Mode**: Intelligent fallback responses when AI services are unavailable
+- **Configuration System**: Simple variable switching between AI providers with comprehensive setup instructions
+
+### Data Management Features
+- **Advanced Export System**: Selective data export with relationship visualization
+- **Export Tree Preview**: Interactive preview showing exact data structure and record counts
+- **CSV Generation**: Comprehensive data export including users, classes, chat history, and AI interactions
+- **Admin Dashboard Integration**: Seamless access to data export tools with modal interface
+- **Real-time Statistics**: Live dashboard stats including AI chat interactions and model usage
 
 ### Technology Stack Update
 - **Frontend**: React 19.1.0, React Router, React-Bootstrap, FontAwesome
-- **Backend API**: Flask RESTful API endpoints (maintained for data access)
+- **Backend API**: Flask RESTful API endpoints with AI integration
+- **AI Integration**: OpenAI GPT-4o, requests library for custom endpoints, multi-provider architecture
+- **Database**: PostgreSQL with extended schema for AI features (ChatMessage, AIModel, StudentProfile)
 - **Styling**: Bootstrap 5 dark theme, responsive design, custom CSS
 - **Authentication**: Session-based auth with bcrypt, JWT token support
 - **File Handling**: Multi-format upload support with progress indicators
+- **Configuration**: Environment-based AI provider switching with validation
 
-The application now provides a modern, responsive web experience while maintaining all educational management functionality.
+### AI Configuration Guide
+To switch between AI providers, modify the `AI_PROVIDER` environment variable or update `ai_config.py`:
+- **OpenAI**: Set `AI_PROVIDER=openai` and provide `OPENAI_API_KEY`
+- **AWS Hosted**: Set `AI_PROVIDER=aws` and configure `AWS_AI_ENDPOINT` and `AWS_AI_API_KEY`
+- **Local Models**: Set `AI_PROVIDER=local` and configure `LOCAL_AI_ENDPOINT` (default: Ollama)
+- **Demo Mode**: Automatically activated when no AI service is available
+
+The application now provides intelligent, personalized AI tutoring integrated seamlessly with the school management system.
