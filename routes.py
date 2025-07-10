@@ -8,12 +8,10 @@ from datetime import datetime
 
 @app.route('/')
 def index():
-    """Redirect to login if not authenticated, otherwise to dashboard"""
-    if 'user_id' in session:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    """Serve the React frontend"""
+    return render_template('spa_loader.html')
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/legacy-login', methods=['GET', 'POST'])
 def login():
     """Login page with user type selection"""
     if request.method == 'POST':

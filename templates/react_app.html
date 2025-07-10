@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="/public/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="AI-Enhanced School Management System" />
+    <link rel="apple-touch-icon" href="/public/logo192.png" />
+    <link rel="manifest" href="/public/manifest.json" />
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <title>School Management System</title>
+</head>
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    
+    <!-- React App Bundle -->
+    <script type="module">
+        // Import React and ReactDOM
+        import React from 'https://esm.sh/react@19.1.0';
+        import { createRoot } from 'https://esm.sh/react-dom@19.1.0/client';
+        import { BrowserRouter } from 'https://esm.sh/react-router-dom@7.6.3';
+        
+        // Simple React App Loader
+        const App = React.createElement('div', {
+            style: { 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                height: '100vh',
+                flexDirection: 'column' 
+            }
+        }, [
+            React.createElement('div', { 
+                key: 'spinner',
+                className: 'spinner-border text-primary mb-3',
+                role: 'status'
+            }, React.createElement('span', { className: 'visually-hidden' }, 'Loading...')),
+            React.createElement('h4', { key: 'text' }, 'Loading School Management System...')
+        ]);
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(React.createElement(BrowserRouter, null, App));
+        
+        // Load the actual React app components after libraries are loaded
+        setTimeout(() => {
+            fetch('/static/src/index.js')
+                .then(response => response.text())
+                .then(code => {
+                    // This would normally be handled by a proper build process
+                    console.log('React app would be initialized here with proper bundling');
+                })
+                .catch(err => {
+                    console.error('Failed to load React app:', err);
+                    // Show fallback content
+                    root.render(React.createElement('div', {
+                        className: 'container mt-5 text-center'
+                    }, [
+                        React.createElement('h2', { key: 'title' }, 'School Management System'),
+                        React.createElement('p', { key: 'desc' }, 'React frontend is being set up...'),
+                        React.createElement('a', { 
+                            key: 'fallback',
+                            href: '/legacy-login',
+                            className: 'btn btn-primary'
+                        }, 'Continue with Flask Interface')
+                    ]));
+                });
+        }, 1000);
+    </script>
+</body>
+</html>

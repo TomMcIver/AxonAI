@@ -98,6 +98,31 @@
   font-weight: 600;
 }
 
+/* AI-specific cards styling */
+.ai-chat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border: 2px solid #5a67d8 !important;
+  color: white !important;
+}
+
+.ai-chat-card:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%) !important;
+  transform: translateY(-8px);
+  box-shadow: 0 12px 35px rgba(90, 103, 216, 0.3) !important;
+}
+
+.ai-insights-card {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+  border: 2px solid #38a169 !important;
+  color: white !important;
+}
+
+.ai-insights-card:hover {
+  background: linear-gradient(135deg, #0f7c6c 0%, #2dd45a 100%) !important;
+  transform: translateY(-8px);
+  box-shadow: 0 12px 35px rgba(56, 161, 105, 0.3) !important;
+}
+
 /* Button styles */
 .btn {
   border-radius: 0.5rem;

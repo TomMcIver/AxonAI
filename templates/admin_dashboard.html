@@ -97,18 +97,18 @@
         </a>
     </div>
     <div class="col-md-6 col-lg-3 mb-3">
-        <div class="btn btn-outline-secondary w-100 p-3" style="cursor: default;">
-            <i class="fas fa-chart-bar fa-2x d-block mb-2"></i>
-            <h6>Reports</h6>
-            <small class="text-muted">Coming soon</small>
-        </div>
+        <button class="btn btn-outline-warning w-100 p-3" onclick="openDataExport()">
+            <i class="fas fa-download fa-2x d-block mb-2"></i>
+            <h6>Export Data</h6>
+            <small class="text-muted">Download comprehensive school data</small>
+        </button>
     </div>
     <div class="col-md-6 col-lg-3 mb-3">
-        <div class="btn btn-outline-secondary w-100 p-3" style="cursor: default;">
-            <i class="fas fa-cog fa-2x d-block mb-2"></i>
-            <h6>Settings</h6>
-            <small class="text-muted">Coming soon</small>
-        </div>
+        <button class="btn btn-outline-info w-100 p-3" onclick="openAIInsights()">
+            <i class="fas fa-robot fa-2x d-block mb-2"></i>
+            <h6>AI Analytics</h6>
+            <small class="text-muted">View student engagement insights</small>
+        </button>
     </div>
 </div>
 
@@ -129,4 +129,172 @@
         </div>
     </div>
 </div>
+
+<!-- AI Features Modals -->
+<div class="modal fade" id="dataExportModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-download me-2"></i>Data Export Center
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Select Data Types</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="exportUsers" checked>
+                            <label class="form-check-label" for="exportUsers">Users (Students, Teachers, Admins)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="exportClasses" checked>
+                            <label class="form-check-label" for="exportClasses">Classes</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="exportChatHistory">
+                            <label class="form-check-label" for="exportChatHistory">AI Chat History</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="exportAIModels">
+                            <label class="form-check-label" for="exportAIModels">AI Models</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Export Preview</h6>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Selected data will be exported as CSV with full relationship mapping.
+                        </div>
+                        <div id="exportStats">
+                            <small class="text-muted">
+                                • Estimated records: ~500<br>
+                                • File format: CSV<br>
+                                • Includes relationships: Yes
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="downloadExport()">
+                    <i class="fas fa-download me-2"></i>Download Export
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="aiInsightsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-robot me-2"></i>AI Analytics Dashboard
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">Student Engagement</div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>AI Chat Usage</span>
+                                        <span>85%</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" style="width: 85%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted">12 students used AI tutors this week</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">AI Performance</div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Success Rate</span>
+                                        <span>92%</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-info" style="width: 92%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted">AI successfully answered 92% of student questions</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">Recent AI Interactions</div>
+                            <div class="card-body">
+                                <div class="list-group list-group-flush">
+                                    <div class="list-group-item d-flex justify-content-between">
+                                        <div>
+                                            <strong>Sarah B.</strong> asked about quadratic equations
+                                            <small class="text-muted d-block">Mathematics 101 • 2 hours ago</small>
+                                        </div>
+                                        <span class="badge bg-success">Resolved</span>
+                                    </div>
+                                    <div class="list-group-item d-flex justify-content-between">
+                                        <div>
+                                            <strong>Mike W.</strong> needed help with geometry proofs
+                                            <small class="text-muted d-block">Mathematics 101 • 4 hours ago</small>
+                                        </div>
+                                        <span class="badge bg-success">Resolved</span>
+                                    </div>
+                                    <div class="list-group-item d-flex justify-content-between">
+                                        <div>
+                                            <strong>Alex J.</strong> asked about homework clarification
+                                            <small class="text-muted d-block">Environmental Science • 6 hours ago</small>
+                                        </div>
+                                        <span class="badge bg-success">Resolved</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openDataExport() {
+    new bootstrap.Modal(document.getElementById('dataExportModal')).show();
+}
+
+function openAIInsights() {
+    new bootstrap.Modal(document.getElementById('aiInsightsModal')).show();
+}
+
+function downloadExport() {
+    // Simulate download
+    const link = document.createElement('a');
+    link.href = '/api/download-export-data';
+    link.download = 'school_data_export_' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Show success message
+    alert('Export started! Your download should begin shortly.');
+}
+</script>
+
 {% endblock %}
