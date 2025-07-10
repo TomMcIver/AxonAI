@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Button, Badge, Tab, Tabs } from 'react-bootstrap';
+import { Container, Row, Col, Card, Table, Button, Badge, Tab, Tabs, Modal } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChalkboardTeacher, faUsers, faTasks, faPlus, faEdit, faDownload, faCalendarAlt } from '@fortawesome/free-solid-svg-icons';
+import { faChalkboardTeacher, faUsers, faTasks, faPlus, faEdit, faDownload, faCalendarAlt, faRobot, faComments, faChartLine } from '@fortawesome/free-solid-svg-icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import ApiService from '../../services/ApiService';
+import ChatBot from '../shared/ChatBot';
 
 function TeacherClassDetail({ user }) {
   const { classId } = useParams();
@@ -12,6 +13,8 @@ function TeacherClassDetail({ user }) {
   const [assignments, setAssignments] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showChatBot, setShowChatBot] = useState(false);
+  const [showAIInsights, setShowAIInsights] = useState(false);
 
   useEffect(() => {
     fetchClassData();
@@ -167,6 +170,54 @@ function TeacherClassDetail({ user }) {
         </Col>
       </Row>
 
+      {/* AI Features Row */}
+      <Row className="g-4 mb-4">
+        <Col xs={12} sm={6} lg={3}>
+          <Card 
+            className="text-center border-0 shadow-sm ai-chat-card" 
+            style={{ cursor: 'pointer' }}
+            onClick={() => setShowChatBot(true)}
+          >
+            <Card.Body>
+              <FontAwesomeIcon icon={faRobot} size="2x" className="text-info mb-2" />
+              <h6 className="mb-0">AI Class Tutor</h6>
+              <small className="text-muted">Test the AI tutor for this class</small>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xs={12} sm={6} lg={3}>
+          <Card 
+            className="text-center border-0 shadow-sm ai-insights-card" 
+            style={{ cursor: 'pointer' }}
+            onClick={() => setShowAIInsights(true)}
+          >
+            <Card.Body>
+              <FontAwesomeIcon icon={faChartLine} size="2x" className="text-success mb-2" />
+              <h6 className="mb-0">AI Insights</h6>
+              <small className="text-muted">Student engagement analytics</small>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xs={12} sm={6} lg={3}>
+          <Card className="text-center border-0 shadow-sm">
+            <Card.Body>
+              <FontAwesomeIcon icon={faComments} size="2x" className="text-warning mb-2" />
+              <h6 className="mb-0">Chat Activity</h6>
+              <small className="text-muted">Student AI interactions</small>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xs={12} sm={6} lg={3}>
+          <Card className="text-center border-0 shadow-sm">
+            <Card.Body>
+              <FontAwesomeIcon icon={faDownload} size="2x" className="text-secondary mb-2" />
+              <h6 className="mb-0">Export Data</h6>
+              <small className="text-muted">Download class analytics</small>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
       {/* Tabs for different views */}
       <Tabs defaultActiveKey="assignments" className="mb-4">
         <Tab eventKey="assignments" title="Assignments">
@@ -282,6 +333,130 @@ function TeacherClassDetail({ user }) {
           </Card>
         </Tab>
       </Tabs>
+
+      {/* AI Chatbot Modal */}
+      <Modal 
+        show={showChatBot} 
+        onHide={() => setShowChatBot(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <FontAwesomeIcon icon={faRobot} className="me-2" />
+            AI Tutor for {classData.name}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-0">
+          <div style={{ height: '500px' }}>
+            <ChatBot 
+              classId={classData.id}
+              className={classData.name}
+              user={user}
+            />
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* AI Insights Modal */}
+      <Modal 
+        show={showAIInsights} 
+        onHide={() => setShowAIInsights(false)}
+        size="xl"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <FontAwesomeIcon icon={faChartLine} className="me-2" />
+            AI Insights for {classData.name}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Row className="mb-4">
+            <Col md={6}>
+              <Card className="border-0 shadow-sm">
+                <Card.Header className="bg-transparent">
+                  <h6 className="mb-0">Student Engagement</h6>
+                </Card.Header>
+                <Card.Body>
+                  <div className="mb-3">
+                    <div className="d-flex justify-content-between mb-1">
+                      <span>AI Chat Usage</span>
+                      <span>85%</span>
+                    </div>
+                    <div className="progress">
+                      <div className="progress-bar bg-success" style={{ width: '85%' }}></div>
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="d-flex justify-content-between mb-1">
+                      <span>Help Requests</span>
+                      <span>12 this week</span>
+                    </div>
+                    <small className="text-muted">Most common: algebra problems</small>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col md={6}>
+              <Card className="border-0 shadow-sm">
+                <Card.Header className="bg-transparent">
+                  <h6 className="mb-0">Learning Patterns</h6>
+                </Card.Header>
+                <Card.Body>
+                  <div className="mb-3">
+                    <div className="d-flex justify-content-between mb-1">
+                      <span>Peak Activity</span>
+                      <span>7-9 PM</span>
+                    </div>
+                    <small className="text-muted">Students most active during evening study hours</small>
+                  </div>
+                  <div className="mb-3">
+                    <div className="d-flex justify-content-between mb-1">
+                      <span>Success Rate</span>
+                      <span>92%</span>
+                    </div>
+                    <small className="text-muted">AI successfully answered student questions</small>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+          <Card className="border-0 shadow-sm">
+            <Card.Header className="bg-transparent">
+              <h6 className="mb-0">Recent AI Interactions</h6>
+            </Card.Header>
+            <Card.Body>
+              <div className="list-group list-group-flush">
+                <div className="list-group-item d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6 className="mb-1">Sarah B. asked about quadratic equations</h6>
+                    <p className="mb-1 text-muted">AI provided step-by-step solution for factoring</p>
+                    <small>2 hours ago</small>
+                  </div>
+                  <Badge bg="success">Resolved</Badge>
+                </div>
+                <div className="list-group-item d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6 className="mb-1">Mike W. needed help with geometry proofs</h6>
+                    <p className="mb-1 text-muted">AI guided through proof construction process</p>
+                    <small>4 hours ago</small>
+                  </div>
+                  <Badge bg="success">Resolved</Badge>
+                </div>
+                <div className="list-group-item d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6 className="mb-1">Alex J. asked about homework assignment clarification</h6>
+                    <p className="mb-1 text-muted">AI provided additional examples and hints</p>
+                    <small>6 hours ago</small>
+                  </div>
+                  <Badge bg="success">Resolved</Badge>
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Modal.Body>
+      </Modal>
     </Container>
   );
 }

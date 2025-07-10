@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Button, Badge, Tab, Tabs, ListGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Table, Button, Badge, Tab, Tabs, ListGroup, Modal } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBookOpen, faTasks, faUpload, faDownload, faCalendarAlt, faUser, faFilePdf, faFileWord, faFileImage } from '@fortawesome/free-solid-svg-icons';
+import { faBookOpen, faTasks, faUpload, faDownload, faCalendarAlt, faUser, faFilePdf, faFileWord, faFileImage, faRobot, faComments } from '@fortawesome/free-solid-svg-icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import ApiService from '../../services/ApiService';
+import ChatBot from '../shared/ChatBot';
 
 function StudentClassDetail({ user }) {
   const { classId } = useParams();
@@ -12,6 +13,7 @@ function StudentClassDetail({ user }) {
   const [assignments, setAssignments] = useState([]);
   const [contentFiles, setContentFiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showChatBot, setShowChatBot] = useState(false);
 
   useEffect(() => {
     fetchClassData();
@@ -209,6 +211,28 @@ function StudentClassDetail({ user }) {
         <Col xs={12} sm={6} lg={3}>
           <Card className="text-center border-0 shadow-sm">
             <Card.Body>
+              <FontAwesomeIcon icon={faCalendarAlt} size="2x" className="text-warning mb-2" />
+              <h3 className="mb-0">{assignments.filter(a => !a.submitted).length}</h3>
+              <small className="text-muted">Pending</small>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xs={12} sm={6} lg={3}>
+          <Card 
+            className="text-center border-0 shadow-sm ai-chat-card" 
+            style={{ cursor: 'pointer' }}
+            onClick={() => setShowChatBot(true)}
+          >
+            <Card.Body>
+              <FontAwesomeIcon icon={faRobot} size="2x" className="text-info mb-2" />
+              <h6 className="mb-0">AI Tutor</h6>
+              <small className="text-muted">Get help with this class</small>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xs={12} sm={6} lg={3}>
+          <Card className="text-center border-0 shadow-sm">
+            <Card.Body>
               <FontAwesomeIcon icon={faTasks} size="2x" className="text-warning mb-2" />
               <h3 className="mb-0">{assignments.filter(a => !a.submitted).length}</h3>
               <small className="text-muted">Pending</small>
@@ -379,6 +403,30 @@ function StudentClassDetail({ user }) {
           </Card>
         </Tab>
       </Tabs>
+
+      {/* AI Chatbot Modal */}
+      <Modal 
+        show={showChatBot} 
+        onHide={() => setShowChatBot(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <FontAwesomeIcon icon={faRobot} className="me-2" />
+            AI Tutor for {classData.name}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-0">
+          <div style={{ height: '500px' }}>
+            <ChatBot 
+              classId={classData.id}
+              className={classData.name}
+              user={user}
+            />
+          </div>
+        </Modal.Body>
+      </Modal>
     </Container>
   );
 }
