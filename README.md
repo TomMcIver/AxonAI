@@ -58,22 +58,65 @@ A comprehensive Flask-based school management web application with advanced AI t
 
 - Python 3.11 or higher
 - PostgreSQL 16 or higher
-- Node.js 18+ (for frontend dependencies)
 - Git for version control
 
 ## ⚡ Quick Start
 
-### 1. Clone and Setup
-```bash
+Choose your operating system for specific instructions:
+
+### 🖥️ Windows Setup
+
+#### 1. Clone and Setup
+```powershell
 git clone <repository-url>
 cd school-management-system
 ```
 
-### 2. Environment Configuration
+#### 2. Install Python Dependencies
+```powershell
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+.\venv\Scripts\Activate.ps1
+
+# Install dependencies
+pip install -r requirements-windows.txt
+```
+
+#### 3. Install PostgreSQL
+Download and install PostgreSQL from [postgresql.org](https://www.postgresql.org/download/windows/)
+
+During installation:
+- Set password for 'postgres' user
+- Note the port (default: 5432)
+- Install pgAdmin 4 (recommended)
+
+#### 4. Create Database (Windows)
+```powershell
+# Open Command Prompt as Administrator
+# Navigate to PostgreSQL bin directory
+cd "C:\Program Files\PostgreSQL\16\bin"
+
+# Create database and user
+.\createdb.exe -U postgres school_management
+.\createuser.exe -U postgres -P your_username
+
+# Connect to PostgreSQL and grant privileges
+.\psql.exe -U postgres
+```
+
+In PostgreSQL shell:
+```sql
+GRANT ALL PRIVILEGES ON DATABASE school_management TO your_username;
+\q
+```
+
+#### 5. Environment Configuration (Windows)
 Create a `.env` file in the root directory:
 ```env
 # Database Configuration
-DATABASE_URL=postgresql://username:password@localhost/school_management
+DATABASE_URL=postgresql://your_username:your_password@localhost:5432/school_management
 PGHOST=localhost
 PGPORT=5432
 PGUSER=your_username
@@ -97,11 +140,54 @@ AWS_AI_API_KEY=your-aws-api-key
 LOCAL_AI_ENDPOINT=http://localhost:11434  # Default Ollama endpoint
 ```
 
-### 3. Database Setup
+#### 6. Initialize Database (Windows)
+```powershell
+# Make sure virtual environment is activated
+.\venv\Scripts\Activate.ps1
+
+# Initialize database
+python init_db.py
+```
+
+#### 7. Run Application (Windows)
+```powershell
+# Development mode
+python main.py
+
+# Production mode (install waitress for Windows)
+pip install waitress
+waitress-serve --host=0.0.0.0 --port=5000 main:app
+```
+
+### 🐧 Linux/macOS Setup
+
+#### 1. Clone and Setup
+```bash
+git clone <repository-url>
+cd school-management-system
+```
+
+#### 2. Install Dependencies
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Install Python dependencies
+pip install -r requirements-windows.txt
+```
+
+#### 3. Database Setup (Linux/macOS)
 ```bash
 # Install PostgreSQL (Ubuntu/Debian)
 sudo apt update
 sudo apt install postgresql postgresql-contrib
+
+# Install PostgreSQL (macOS with Homebrew)
+brew install postgresql
+brew services start postgresql
 
 # Create database
 sudo -u postgres createdb school_management
@@ -111,21 +197,15 @@ sudo -u postgres createuser -P your_username
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE school_management TO your_username;"
 ```
 
-### 4. Install Dependencies
-```bash
-# Install Python dependencies
-pip install -r requirements.txt
+#### 4. Environment Configuration
+Create a `.env` file in the root directory (same as Windows section above)
 
-# Install Node.js dependencies (if needed)
-npm install
-```
-
-### 5. Initialize Database
+#### 5. Initialize Database
 ```bash
 python init_db.py
 ```
 
-### 6. Run Application
+#### 6. Run Application
 ```bash
 python main.py
 # or
@@ -153,13 +233,37 @@ Open your browser and navigate to `http://localhost:5000`
 3. Ensure your endpoint supports OpenAI-compatible API format
 
 ### Local Models (Ollama)
+
+#### Windows Installation
+1. **Download and Install Ollama**:
+   - Visit [ollama.ai/download](https://ollama.ai/download)
+   - Download the Windows installer
+   - Run the installer as Administrator
+   - Ollama will be added to your system PATH
+
+2. **Start Ollama Service** (Windows):
+   ```powershell
+   # Open PowerShell as Administrator
+   ollama serve
+   
+   # Or start as a service (recommended)
+   # Ollama should start automatically after installation
+   ```
+
+3. **Download Models** (Windows):
+   ```powershell
+   # Open a new PowerShell window
+   # Download recommended models for different subjects
+   ollama pull llama2:7b          # General purpose
+   ollama pull codellama:7b       # Mathematics/Programming
+   ollama pull mistral:7b         # Science/Technical
+   ollama pull neural-chat:7b     # English/Literature
+   ```
+
+#### Linux/macOS Installation
 1. **Install Ollama**:
    ```bash
-   # Linux/macOS
    curl -fsSL https://ollama.ai/install.sh | sh
-   
-   # Windows
-   # Download from https://ollama.ai/download
    ```
 
 2. **Start Ollama Service**:
@@ -176,11 +280,11 @@ Open your browser and navigate to `http://localhost:5000`
    ollama pull neural-chat:7b     # English/Literature
    ```
 
-4. **Configure Environment**:
-   ```env
-   AI_PROVIDER=local
-   LOCAL_AI_ENDPOINT=http://localhost:11434
-   ```
+#### Configure Environment (All Platforms)
+```env
+AI_PROVIDER=local
+LOCAL_AI_ENDPOINT=http://localhost:11434
+```
 
 5. **Model Selection by Subject**:
    Edit `ai_config.py` to specify which local model to use for each subject:
@@ -502,6 +606,46 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 ### Setting Up Development Environment
 
+#### Windows Development Setup
+1. **Clone Repository**:
+   ```powershell
+   git clone <repository-url>
+   cd school-management-system
+   ```
+
+2. **Create Virtual Environment**:
+   ```powershell
+   python -m venv venv
+   .\venv\Scripts\Activate.ps1
+   ```
+
+3. **Install Dependencies**:
+   ```powershell
+   pip install -r requirements-windows.txt
+   ```
+
+4. **Set Environment Variables** (Windows):
+   ```powershell
+   # Using PowerShell
+   $env:FLASK_ENV="development"
+   $env:FLASK_DEBUG="True"
+   $env:DATABASE_URL="sqlite:///school_management.db"
+   $env:SESSION_SECRET="dev-secret-key"
+   
+   # Or create a .env file (recommended)
+   ```
+
+5. **Initialize Database**:
+   ```powershell
+   python init_db.py
+   ```
+
+6. **Run Development Server**:
+   ```powershell
+   python main.py
+   ```
+
+#### Linux/macOS Development Setup
 1. **Clone Repository**:
    ```bash
    git clone <repository-url>
@@ -510,15 +654,13 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 2. **Create Virtual Environment**:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # Linux/macOS
-   # or
-   venv\Scripts\activate     # Windows
+   python3 -m venv venv
+   source venv/bin/activate
    ```
 
 3. **Install Dependencies**:
    ```bash
-   pip install -r requirements.txt
+   pip install -r requirements-windows.txt
    ```
 
 4. **Set Environment Variables**:
@@ -639,6 +781,20 @@ python -c "from app import app, db; app.app_context().push(); db.create_all()"
 ### Common Issues
 
 #### Database Connection Issues
+
+**Windows:**
+```powershell
+# Check PostgreSQL service status
+Get-Service postgresql*
+
+# Start PostgreSQL service
+Start-Service postgresql-x64-16
+
+# Check connection
+& "C:\Program Files\PostgreSQL\16\bin\psql.exe" -h localhost -U username -d school_management
+```
+
+**Linux/macOS:**
 ```bash
 # Check PostgreSQL status
 sudo systemctl status postgresql
@@ -657,9 +813,30 @@ psql -h localhost -U username -d school_management
    - Ensure proper internet connectivity
 
 2. **Local Model Issues**:
-   - Verify Ollama is running: `ollama list`
-   - Check model availability: `ollama pull model-name`
-   - Verify endpoint accessibility: `curl http://localhost:11434/api/tags`
+   
+   **Windows:**
+   ```powershell
+   # Verify Ollama is running
+   ollama list
+   
+   # Check model availability
+   ollama pull model-name
+   
+   # Verify endpoint accessibility
+   Invoke-RestMethod -Uri "http://localhost:11434/api/tags"
+   ```
+   
+   **Linux/macOS:**
+   ```bash
+   # Verify Ollama is running
+   ollama list
+   
+   # Check model availability
+   ollama pull model-name
+   
+   # Verify endpoint accessibility
+   curl http://localhost:11434/api/tags
+   ```
 
 3. **AWS Model Issues**:
    - Verify endpoint URL and API key
