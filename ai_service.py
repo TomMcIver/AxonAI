@@ -109,10 +109,24 @@ class AIService:
         try:
             # Get class AI model
             class_obj = Class.query.get(class_id)
-            if not class_obj or not class_obj.ai_model:
-                return "I'm sorry, but AI assistance is not available for this class."
+            if not class_obj:
+                return "Class not found."
             
             ai_model = class_obj.ai_model
+            if not ai_model:
+                # Get default AI model for this subject
+                ai_model = AIModel.query.filter_by(subject=class_obj.subject).first()
+                if not ai_model:
+                    # Create a default model if none exists
+                    ai_model = AIModel(
+                        subject=class_obj.subject or 'general',
+                        model_name='gpt-4o-mini',
+                        prompt_template=f'You are an AI tutor for {class_obj.subject or "general"} ONLY.',
+                        max_tokens=800,
+                        temperature=0.7
+                    )
+                    db.session.add(ai_model)
+                    db.session.commit()
             context = self.get_student_context(student_id, class_id)
             
             # Build optimized system prompt with subject constraints
@@ -146,17 +160,23 @@ Provide personalized {subject} help based on this student's learning style, curr
                 ai_response = self._generate_local_response(system_prompt, message, ai_model)
             
             # Store chat message
-            chat_message = ChatMessage(
-                user_id=student_id,
-                class_id=class_id,
-                ai_model_id=ai_model.id,
-                message=message,
-                response=ai_response,
-                message_type='student',
-                context_data=json.dumps(context)
-            )
-            db.session.add(chat_message)
-            db.session.commit()
+            try:
+                chat_message = ChatMessage(
+                    user_id=student_id,
+                    class_id=class_id,
+                    ai_model_id=ai_model.id if ai_model else 1,  # Default AI model ID
+                    message=message,
+                    response=ai_response,
+                    message_type='student',
+                    context_data=json.dumps(context) if context else '{}'
+                )
+                db.session.add(chat_message)
+                db.session.commit()
+                print(f"Successfully saved chat message to database")
+            except Exception as db_error:
+                print(f"Database error saving chat: {db_error}")
+                db.session.rollback()
+                # Continue anyway, just log the error
             
             return ai_response
             
