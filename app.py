@@ -28,12 +28,25 @@ app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-prod
 print(f"DATABASE_URL from env: {os.environ.get('DATABASE_URL')}")
 print(f"SESSION_SECRET from env: {os.environ.get('SESSION_SECRET')}")
 
-# Configure the database
+# Configure the database with automatic fallback
 database_url = os.environ.get("DATABASE_URL")
 if not database_url:
     # Fallback to SQLite for development if no DATABASE_URL is set
     database_url = "sqlite:///school_management.db"
     print("Warning: DATABASE_URL not set. Using SQLite fallback: sqlite:///school_management.db")
+else:
+    # Test PostgreSQL connection and fallback to SQLite if it fails
+    if database_url.startswith('postgresql://'):
+        try:
+            import psycopg2
+            # Test the connection
+            test_conn = psycopg2.connect(database_url)
+            test_conn.close()
+            print("PostgreSQL connection successful")
+        except Exception as e:
+            print(f"PostgreSQL connection failed: {e}")
+            print("Falling back to SQLite for development")
+            database_url = "sqlite:///school_management.db"
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {

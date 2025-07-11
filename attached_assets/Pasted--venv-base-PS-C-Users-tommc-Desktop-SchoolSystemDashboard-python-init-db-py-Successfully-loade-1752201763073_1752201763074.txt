@@ -1,0 +1,131 @@
+(venv) (base) PS C:\Users\tommc\Desktop\SchoolSystemDashboard> python init_db.py
+Successfully loaded .env file
+DATABASE_URL from env: postgresql://schooluser:Tvo28122333!@localhost:5432/school_management
+SESSION_SECRET from env: test_session_secret
+Final DATABASE_URI: postgresql://schooluser:Tvo28122333!@localhost:5432/school_management
+Traceback (most recent call last):
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 3292, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 452, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 1269, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 716, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\impl.py", line 169, in _do_get
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\impl.py", line 167, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 393, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 678, in __init__
+    self.__connect()
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 902, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 898, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)        
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^        
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\create.py", line 637, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 616, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync) 
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 
+5432 failed: FATAL:  password authentication failed for user "schooluser"  
+
+
+The above exception was the direct cause of the following exception:       
+
+Traceback (most recent call last):
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\init_db.py", line 545, in <module>
+    db.create_all()
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\flask_sqlalchemy\extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\flask_sqlalchemy\extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\sql\schema.py", line 5828, in create_all
+    bind._run_ddl_visitor(
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 3242, in _run_ddl_visitor
+    with self.begin() as conn:
+         ^^^^^^^^^^^^
+  File "C:\ProgramData\anaconda3\Lib\contextlib.py", line 137, in __enter__    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 3232, in begin
+    with self.connect() as conn:
+         ^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 3268, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 147, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2430, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 3292, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 452, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 1269, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 716, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\impl.py", line 169, in _do_get
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\impl.py", line 167, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 393, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 678, in __init__
+    self.__connect()
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 902, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 898, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)        
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^        
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\create.py", line 637, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 616, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tommc\Desktop\SchoolSystemDashboard\venv\Lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync) 
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to 
+server at "localhost" (::1), port 5432 failed: FATAL:  password authentication failed for user "schooluser"
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+(venv) (base) PS C:\Users\tommc\Desktop\SchoolSystemDashboard> 
