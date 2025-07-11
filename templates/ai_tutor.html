@@ -64,6 +64,26 @@
             border-color: #28a745;
             background: rgba(40, 167, 69, 0.1);
         }
+
+        /* Math and formatting styles */
+        .math-inline {
+            font-family: 'Courier New', monospace;
+            font-style: italic;
+        }
+        
+        .math-symbol {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        
+        .math-fraction {
+            font-family: 'Times New Roman', serif;
+            font-size: 1.1em;
+        }
+        
+        code {
+            font-family: 'Courier New', monospace;
+        }
     </style>
 </head>
 <body>
@@ -305,8 +325,9 @@
                 const now = new Date();
                 const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 
+                const formattedMessage = sender === 'ai' ? formatMarkdown(message) : message;
                 messageDiv.innerHTML = `
-                    <div class="message-bubble">${message}</div>
+                    <div class="message-bubble">${formattedMessage}</div>
                     <small class="text-muted d-block mt-1">${sender === 'user' ? timeString : 'AI Tutor'}</small>
                 `;
                 
@@ -316,9 +337,39 @@
             }
         }
         
+        function formatMarkdown(text) {
+            // Format markdown-style text for better display
+            let formatted = text;
+            
+            // Bold text (**text** -> <strong>text</strong>)
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Italic text (*text* -> <em>text</em>)
+            formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Code blocks (```code``` -> <code>code</code>)
+            formatted = formatted.replace(/```(.*?)```/gs, '<code class="bg-dark text-light p-2 rounded d-block my-2">$1</code>');
+            
+            // Inline code (`code` -> <code>code</code>)
+            formatted = formatted.replace(/`(.*?)`/g, '<code class="bg-secondary text-light px-1 rounded">$1</code>');
+            
+            // Line breaks
+            formatted = formatted.replace(/\n/g, '<br>');
+            
+            // Math expressions (\\(...\\) for inline math)
+            formatted = formatted.replace(/\\\((.*?)\\\)/g, '<span class="math-inline bg-info bg-opacity-10 px-1 rounded">$1</span>');
+            
+            // LaTeX-style fractions and integrals
+            formatted = formatted.replace(/\\int_\{(.*?)\}\^\{(.*?)\}/g, '<span class="math-symbol">∫<sub>$1</sub><sup>$2</sup></span>');
+            formatted = formatted.replace(/\\frac\{(.*?)\}\{(.*?)\}/g, '<span class="math-fraction"><sup>$1</sup>⁄<sub>$2</sub></span>');
+            
+            return formatted;
+        }
+
         function typeMessage(text, element) {
             let index = 0;
-            const words = text.split(' ');
+            const formattedText = formatMarkdown(text);
+            const words = formattedText.split(' ');
             
             function typeWord() {
                 if (index < words.length) {
