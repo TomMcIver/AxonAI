@@ -13,7 +13,7 @@ Preferred communication style: Simple, everyday language.
 ### Backend Architecture
 - **Framework**: Flask web framework
 - **Database ORM**: SQLAlchemy with declarative base model
-- **Database**: PostgreSQL (production-ready database with connection pooling)
+- **Database**: PostgreSQL 17 (production-ready database with connection pooling)
 - **Authentication**: Session-based with bcrypt password hashing
 - **Authorization**: Role-based access control (admin, teacher, student)
 
@@ -140,6 +140,7 @@ Preferred communication style: Simple, everyday language.
 - **Windows Compatibility**: Added Windows-specific setup instructions with PowerShell commands
 - **Cross-Platform Support**: Created requirements-windows.txt and WINDOWS_SETUP.md for Windows users
 - **Enhanced Troubleshooting**: Platform-specific troubleshooting guides for Windows, Linux, and macOS
+- **PostgreSQL 17 Support**: Updated all configuration and setup instructions for PostgreSQL version 17
 
 ### AI Enhancement Features (January 2025)
 - **Multi-Provider Support**: Configurable AI providers (OpenAI GPT-4o, AWS-hosted models, local Ollama)

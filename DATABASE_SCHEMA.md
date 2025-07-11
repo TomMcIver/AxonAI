@@ -2,7 +2,7 @@
 
 ## Overview
 
-The School Management System uses a PostgreSQL database with a comprehensive relational schema designed for educational data management and AI integration.
+The School Management System uses a PostgreSQL 17 database with a comprehensive relational schema designed for educational data management and AI integration.
 
 ## 🏗️ Entity Relationship Diagram
 

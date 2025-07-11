@@ -31,7 +31,7 @@ Complete setup guide for running the AI-Enhanced School Management System on Win
 
 ### 3. Install PostgreSQL
 
-1. Download PostgreSQL 16 from [postgresql.org](https://www.postgresql.org/download/windows/)
+1. Download PostgreSQL 17 from [postgresql.org](https://www.postgresql.org/download/windows/)
 2. Run the installer as Administrator
 3. During installation:
    - Set a password for the 'postgres' user (remember this!)
@@ -72,7 +72,7 @@ pip install -r requirements-windows.txt
 #### Method 1: Using Command Line
 ```powershell
 # Navigate to PostgreSQL bin directory
-cd "C:\Program Files\PostgreSQL\16\bin"
+cd "C:\Program Files\PostgreSQL\17\bin"
 
 # Create database
 .\createdb.exe -U postgres school_management
@@ -204,7 +204,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 Get-Service postgresql*
 
 # Start service
-Start-Service postgresql-x64-16
+Start-Service postgresql-x64-17
 ```
 
 ### Python Not Found
@@ -232,7 +232,7 @@ python main.py --port 5001
 3. Verify credentials in `.env` file
 4. Test connection:
    ```powershell
-   & "C:\Program Files\PostgreSQL\16\bin\psql.exe" -h localhost -U schooluser -d school_management
+   & "C:\Program Files\PostgreSQL\17\bin\psql.exe" -h localhost -U schooluser -d school_management
    ```
 
 ## Production Deployment on Windows
@@ -288,7 +288,7 @@ If accessing from other machines on the network:
 ### Database Backup
 ```powershell
 # Navigate to PostgreSQL bin directory
-cd "C:\Program Files\PostgreSQL\16\bin"
+cd "C:\Program Files\PostgreSQL\17\bin"
 
 # Create backup
 .\pg_dump.exe -h localhost -U schooluser -d school_management > backup_$(Get-Date -Format 'yyyyMMdd').sql
@@ -300,7 +300,7 @@ Create `backup.ps1`:
 $date = Get-Date -Format "yyyyMMdd_HHmmss"
 $backupPath = "C:\Backups\school_management_$date.sql"
 
-& "C:\Program Files\PostgreSQL\16\bin\pg_dump.exe" -h localhost -U schooluser -d school_management > $backupPath
+& "C:\Program Files\PostgreSQL\17\bin\pg_dump.exe" -h localhost -U schooluser -d school_management > $backupPath
 
 Write-Host "Backup created: $backupPath"
 ```

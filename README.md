@@ -57,7 +57,7 @@ A comprehensive Flask-based school management web application with advanced AI t
 ## 📋 Prerequisites
 
 - Python 3.11 or higher
-- PostgreSQL 16 or higher
+- PostgreSQL 17 or higher
 - Git for version control
 
 ## ⚡ Quick Start
@@ -85,7 +85,7 @@ pip install -r requirements-windows.txt
 ```
 
 #### 3. Install PostgreSQL
-Download and install PostgreSQL from [postgresql.org](https://www.postgresql.org/download/windows/)
+Download and install PostgreSQL 17 from [postgresql.org](https://www.postgresql.org/download/windows/)
 
 During installation:
 - Set password for 'postgres' user
@@ -96,7 +96,7 @@ During installation:
 ```powershell
 # Open Command Prompt as Administrator
 # Navigate to PostgreSQL bin directory
-cd "C:\Program Files\PostgreSQL\16\bin"
+cd "C:\Program Files\PostgreSQL\17\bin"
 
 # Create database and user
 .\createdb.exe -U postgres school_management
@@ -788,10 +788,10 @@ python -c "from app import app, db; app.app_context().push(); db.create_all()"
 Get-Service postgresql*
 
 # Start PostgreSQL service
-Start-Service postgresql-x64-16
+Start-Service postgresql-x64-17
 
 # Check connection
-& "C:\Program Files\PostgreSQL\16\bin\psql.exe" -h localhost -U username -d school_management
+& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -h localhost -U username -d school_management
 ```
 
 **Linux/macOS:**
