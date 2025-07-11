@@ -162,7 +162,9 @@ Provide personalized {subject} help based on this student's learning style, curr
             
         except Exception as e:
             print(f"Error generating AI response: {e}")
-            return "I'm sorry, but I'm having trouble processing your request right now. Please try again later."
+            import traceback
+            traceback.print_exc()
+            return "Sorry, I encountered an error. Please try again."
     
     def _create_student_summary(self, context):
         """Create a concise student summary to optimize token usage"""
@@ -213,7 +215,9 @@ Goals: {student_info.get('academic_goals', 'General improvement')[:100]}..."""
             return response.choices[0].message.content
         except Exception as e:
             print(f"OpenAI API error: {e}")
-            return f"OpenAI service temporarily unavailable. Error: {str(e)}"
+            import traceback
+            traceback.print_exc()
+            return f"Sorry, I encountered an error. Please try again."
     
     def _generate_aws_response(self, system_prompt, message, ai_model):
         """Generate response using AWS-hosted model"""
