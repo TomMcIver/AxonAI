@@ -15,12 +15,12 @@ To switch providers, change the AI_PROVIDER environment variable or modify the d
 import os
 
 # Primary Configuration
-AI_PROVIDER = os.environ.get("AI_PROVIDER", "local")  # Change this to switch providers
+AI_PROVIDER = os.environ.get("AI_PROVIDER", "openai")  # Change this to switch providers
 
 # OpenAI Configuration
 OPENAI_CONFIG = {
     "api_key": os.environ.get("OPENAI_API_KEY", "your-openai-api-key-here"),
-    "default_model": "gpt-4o",  # or gpt-3.5-turbo for lower costs
+    "default_model": "gpt-4o-mini",  # Most cost-effective GPT-4 model
     "max_tokens": 1000,
     "temperature": 0.7
 }

@@ -10,7 +10,7 @@ from app import db
 # "openai" - Use OpenAI GPT models
 # "aws" - Use AWS-hosted custom models
 # "local" - Use locally hosted models
-AI_PROVIDER = os.environ.get("AI_PROVIDER", "local")  # Default to local for demos
+AI_PROVIDER = "openai"  # Force OpenAI provider for this implementation
 
 class AIService:
     """Service for handling AI chatbot interactions with multiple providers"""
@@ -25,9 +25,8 @@ class AIService:
             try:
                 from openai import OpenAI
                 self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", "demo-key"))
-                # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-                # do not change this unless explicitly requested by the user
-                self.default_model = "gpt-4o"
+                # Using gpt-4o-mini for cost optimization as requested by user
+                self.default_model = "gpt-4o-mini"
                 print("Using OpenAI provider")
             except Exception as e:
                 print(f"OpenAI setup failed: {e}")
@@ -116,27 +115,27 @@ class AIService:
             ai_model = class_obj.ai_model
             context = self.get_student_context(student_id, class_id)
             
-            # Build system prompt with context
-            system_prompt = f"""
-            {ai_model.prompt_template}
+            # Build optimized system prompt with subject constraints
+            subject = context.get('class_info', {}).get('subject', 'Unknown')
+            student_summary = self._create_student_summary(context)
+            chat_summary = self._summarize_recent_chats(student_id, class_id)
             
-            Student Context:
-            - Name: {context.get('student_info', {}).get('name', 'Student')}
-            - Age: {context.get('student_info', {}).get('age', 'Unknown')}
-            - Learning Style: {context.get('student_info', {}).get('learning_style', 'Unknown')}
-            - Interests: {', '.join(context.get('student_info', {}).get('interests', []))}
-            - Academic Goals: {context.get('student_info', {}).get('academic_goals', 'Not specified')}
-            - Preferred Difficulty: {context.get('student_info', {}).get('preferred_difficulty', 'intermediate')}
-            - Current Grade Average: {context.get('student_info', {}).get('average_grade', 'No grades yet')}
-            - Grade Trend: {context.get('student_info', {}).get('grade_trend', 'stable')}
-            
-            Class Context:
-            - Subject: {context.get('class_info', {}).get('subject', 'Unknown')}
-            - Class: {context.get('class_info', {}).get('name', 'Unknown')}
-            - Available Materials: {', '.join([item['name'] for item in context.get('class_info', {}).get('available_content', [])])}
-            
-            Please provide a helpful, personalized response that considers this student's learning style, current performance, and academic goals.
-            """
+            system_prompt = f"""You are an AI tutor for {subject} ONLY. You must ONLY help with {subject}-related topics and refuse any questions outside this subject.
+
+STRICT RULES:
+1. ONLY answer questions about {subject}
+2. If asked about other subjects, politely redirect: "I can only help with {subject}. Please ask your teacher about other subjects."
+3. Stay focused on this specific class: {context.get('class_info', {}).get('name', 'Unknown')}
+
+STUDENT PROFILE:
+{student_summary}
+
+RECENT LEARNING CONTEXT:
+{chat_summary}
+
+AVAILABLE MATERIALS: {', '.join([item['name'] for item in context.get('class_info', {}).get('available_content', [])])}
+
+Provide personalized {subject} help based on this student's learning style, current performance, and goals. Keep responses concise and educational."""
             
             # Generate response based on provider
             if self.provider == "openai":
@@ -165,17 +164,51 @@ class AIService:
             print(f"Error generating AI response: {e}")
             return "I'm sorry, but I'm having trouble processing your request right now. Please try again later."
     
+    def _create_student_summary(self, context):
+        """Create a concise student summary to optimize token usage"""
+        student_info = context.get('student_info', {})
+        return f"""Student: {student_info.get('name', 'Student')} (Age {student_info.get('age', 'Unknown')})
+Learning: {student_info.get('learning_style', 'Mixed')} learner, {student_info.get('preferred_difficulty', 'intermediate')} level
+Performance: Grade average {student_info.get('average_grade', 'N/A')}, trend {student_info.get('grade_trend', 'stable')}
+Goals: {student_info.get('academic_goals', 'General improvement')[:100]}..."""
+    
+    def _summarize_recent_chats(self, student_id, class_id, limit=5):
+        """Summarize recent chat history to optimize memory usage"""
+        try:
+            recent_chats = ChatMessage.query.filter_by(
+                user_id=student_id, 
+                class_id=class_id
+            ).order_by(ChatMessage.created_at.desc()).limit(limit).all()
+            
+            if not recent_chats:
+                return "No previous interactions"
+            
+            topics = []
+            for chat in recent_chats:
+                # Extract key topics from message (first 50 chars)
+                topic = chat.message[:50].replace('\n', ' ')
+                topics.append(topic)
+            
+            return f"Recent topics: {', '.join(topics[:3])}..." if topics else "No recent topics"
+            
+        except Exception as e:
+            print(f"Error summarizing chats: {e}")
+            return "Recent chat history unavailable"
+    
     def _generate_openai_response(self, system_prompt, message, ai_model):
         """Generate response using OpenAI"""
         try:
+            # Use GPT-4o-mini for cost optimization (most affordable GPT-4 model)
+            model_name = "gpt-4o-mini"
+            
             response = self.client.chat.completions.create(
-                model=ai_model.model_name or self.default_model,
+                model=model_name,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": message}
                 ],
-                max_tokens=ai_model.max_tokens,
-                temperature=ai_model.temperature
+                max_tokens=800,  # Reduced for cost optimization
+                temperature=0.7
             )
             return response.choices[0].message.content
         except Exception as e:

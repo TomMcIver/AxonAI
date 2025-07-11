@@ -69,6 +69,28 @@
     </div>
 </div>
 
+<!-- AI Tutor Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="card-body text-white">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h4><i class="fas fa-robot me-2"></i>AI Tutor Available</h4>
+                        <p class="mb-0">Get personalized help with {{ class_obj.subject.title() }} from your AI tutor. 
+                        The AI knows your learning style, current grades, and academic goals to provide tailored assistance.</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <a href="{{ url_for('ai_tutor', class_id=class_obj.id) }}" class="btn btn-light btn-lg">
+                            <i class="fas fa-comments me-2"></i>Start AI Chat
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Assignments -->
 <div class="row">
     <div class="col-12">

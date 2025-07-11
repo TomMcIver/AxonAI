@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tutor - {{ class_obj.name }}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        .chat-container {
+            height: 60vh;
+            overflow-y: auto;
+            border: 1px solid #404040;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            background: #1a1a1a;
+        }
+        .message {
+            margin-bottom: 1rem;
+        }
+        .message.user {
+            text-align: right;
+        }
+        .message.ai {
+            text-align: left;
+        }
+        .message-bubble {
+            display: inline-block;
+            max-width: 70%;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            word-wrap: break-word;
+        }
+        .message.user .message-bubble {
+            background: #0d6efd;
+            color: white;
+        }
+        .message.ai .message-bubble {
+            background: #28a745;
+            color: white;
+        }
+        .typing-indicator {
+            display: none;
+            text-align: left;
+        }
+        .typing-indicator .message-bubble {
+            background: #6c757d;
+            color: white;
+        }
+        .subject-card {
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .subject-card:hover {
+            border-color: #0d6efd;
+            transform: translateY(-2px);
+        }
+        .subject-card.active {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2><i class="fas fa-robot text-info me-2"></i>AI Tutor</h2>
+                        <p class="text-muted mb-0">{{ class_obj.name }} - {{ class_obj.subject.title() }}</p>
+                    </div>
+                    <a href="{{ url_for('student_class_detail', class_id=class_obj.id) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Class
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subject Constraint Notice -->
+        <div class="alert alert-info mb-4">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Subject Focus:</strong> This AI tutor can only help with <strong>{{ class_obj.subject.title() }}</strong> topics. 
+            For other subjects, please visit their respective AI tutors or ask your teacher.
+        </div>
+
+        <!-- Student Profile Summary -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-user-graduate me-2"></i>Your Learning Profile</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Learning Style:</strong> {{ current_user.learning_style or 'Not specified' }}</p>
+                        <p class="mb-1"><strong>Preferred Difficulty:</strong> {{ current_user.preferred_difficulty or 'Intermediate' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Current Average:</strong> {{ "%.1f"|format(average_grade) if average_grade else 'No grades yet' }}</p>
+                        <p class="mb-1"><strong>Academic Goals:</strong> {{ current_user.academic_goals or 'General improvement' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-comments me-2"></i>
+                            Chat with {{ class_obj.subject.title() }} AI Tutor
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Chat Messages -->
+                        <div id="chatContainer" class="chat-container mb-3">
+                            {% if chat_history %}
+                                {% for chat in chat_history %}
+                                <div class="message user">
+                                    <div class="message-bubble">{{ chat.message }}</div>
+                                    <small class="text-muted d-block mt-1">{{ chat.created_at.strftime('%H:%M') }}</small>
+                                </div>
+                                <div class="message ai">
+                                    <div class="message-bubble">{{ chat.response }}</div>
+                                    <small class="text-muted d-block mt-1">AI Tutor</small>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-robot fa-3x mb-3"></i>
+                                    <p>Hi {{ current_user.first_name }}! I'm your {{ class_obj.subject.title() }} AI tutor.</p>
+                                    <p>I know about your learning style, current grades, and goals. How can I help you today?</p>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Typing Indicator -->
+                            <div id="typingIndicator" class="message ai typing-indicator">
+                                <div class="message-bubble">
+                                    <i class="fas fa-circle-notch fa-spin me-2"></i>AI is thinking...
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Message Input -->
+                        <form id="chatForm" onsubmit="sendMessage(event)">
+                            <div class="input-group">
+                                <input type="text" id="messageInput" class="form-control" 
+                                       placeholder="Ask me anything about {{ class_obj.subject.title() }}..." required>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Quick Tips -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Quick Tips</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Ask about specific concepts</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Request step-by-step explanations</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Get help with assignments</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Review material before tests</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Available Materials -->
+                {% if content_files %}
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-book me-2"></i>Available Materials</h6>
+                    </div>
+                    <div class="card-body">
+                        {% for file in content_files %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-file-{{ 'pdf' if file.file_type == 'pdf' else 'text' }} text-info me-2"></i>
+                            <span>{{ file.name }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        const classId = {{ class_obj.id }};
+        
+        function sendMessage(event) {
+            event.preventDefault();
+            
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message to chat
+            addMessageToChat(message, 'user');
+            
+            // Clear input and show typing indicator
+            messageInput.value = '';
+            showTypingIndicator();
+            
+            // Send message to API
+            fetch('/api/chat/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    class_id: classId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideTypingIndicator();
+                if (data.success) {
+                    addMessageToChat(data.response, 'ai');
+                } else {
+                    addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');
+                }
+            })
+            .catch(error => {
+                hideTypingIndicator();
+                addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');
+                console.error('Error:', error);
+            });
+        }
+        
+        function addMessageToChat(message, sender) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.innerHTML = `
+                <div class="message-bubble">${message}</div>
+                <small class="text-muted d-block mt-1">${sender === 'user' ? timeString : 'AI Tutor'}</small>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'block';
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+        
+        // Auto-scroll chat container
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        });
+    </script>
+</body>
+</html>

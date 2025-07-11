@@ -746,3 +746,34 @@ def student_profile(student_id):
                     student_grades.append(grade)
     
     return render_template('student_profile.html', student=student, grades=student_grades, user=user)
+
+@app.route('/ai-tutor/<int:class_id>')
+@login_required
+@role_required(['student'])
+def ai_tutor(class_id):
+    """AI tutor interface for students"""
+    current_user = get_current_user()
+    class_obj = Class.query.get_or_404(class_id)
+    
+    # Check if student is enrolled in this class
+    if current_user not in class_obj.users:
+        flash('You are not enrolled in this class.', 'danger')
+        return redirect(url_for('student_classes'))
+    
+    # Get chat history for this student and class
+    from ai_service import AIService
+    ai_service = AIService()
+    chat_history = ai_service.get_chat_history(current_user.id, class_id, limit=10)
+    
+    # Get student's average grade in this class
+    grades = [g.grade for g in current_user.grades if g.assignment.class_id == class_id and g.grade is not None]
+    average_grade = sum(grades) / len(grades) if grades else None
+    
+    # Get available content files
+    content_files = ContentFile.query.filter_by(class_id=class_id).all()
+    
+    return render_template('ai_tutor.html', 
+                         class_obj=class_obj, 
+                         chat_history=chat_history,
+                         average_grade=average_grade,
+                         content_files=content_files)

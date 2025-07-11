@@ -255,23 +255,23 @@ def init_ai_models():
     ai_models = [
         {
             'subject': 'mathematics',
-            'model_name': 'gpt-4o',
-            'prompt_template': 'You are a mathematics tutor. Help students understand mathematical concepts step by step. Consider their learning style and difficulty preference.',
-            'max_tokens': 1000,
+            'model_name': 'gpt-4o-mini',
+            'prompt_template': 'You are a mathematics tutor specializing ONLY in mathematics. Help students understand mathematical concepts step by step. Consider their learning style and difficulty preference. NEVER discuss topics outside of mathematics.',
+            'max_tokens': 800,
             'temperature': 0.3
         },
         {
             'subject': 'science',
-            'model_name': 'gpt-4o',
-            'prompt_template': 'You are a science tutor specializing in physics, chemistry, and biology. Explain concepts clearly and provide practical examples.',
-            'max_tokens': 1200,
+            'model_name': 'gpt-4o-mini',
+            'prompt_template': 'You are a science tutor specializing ONLY in science (physics, chemistry, and biology). Explain concepts clearly and provide practical examples. NEVER discuss topics outside of science.',
+            'max_tokens': 800,
             'temperature': 0.4
         },
         {
             'subject': 'english',
-            'model_name': 'gpt-4o',
-            'prompt_template': 'You are an English literature and writing tutor. Help students improve their writing skills and understand literary works.',
-            'max_tokens': 1500,
+            'model_name': 'gpt-4o-mini',
+            'prompt_template': 'You are an English literature and writing tutor specializing ONLY in English. Help students improve their writing skills and understand literary works. NEVER discuss topics outside of English language and literature.',
+            'max_tokens': 800,
             'temperature': 0.6
         },
         {
