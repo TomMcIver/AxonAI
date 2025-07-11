@@ -381,7 +381,7 @@ Goals: {student_info.get('academic_goals', 'General improvement')[:100]}..."""
                 query = query.filter_by(class_id=class_id)
             
             messages = query.order_by(ChatMessage.created_at.desc()).limit(limit).all()
-            return [msg.to_dict() for msg in messages]
+            return messages  # Return actual model objects, not dictionaries
             
         except Exception as e:
             print(f"Error getting chat history: {e}")

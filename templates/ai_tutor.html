@@ -120,11 +120,11 @@
                     <div class="card-body">
                         <!-- Chat Messages -->
                         <div id="chatContainer" class="chat-container mb-3">
-                            {% if chat_history %}
+                            {% if chat_history and chat_history|length > 0 %}
                                 {% for chat in chat_history %}
                                 <div class="message user">
                                     <div class="message-bubble">{{ chat.message }}</div>
-                                    <small class="text-muted d-block mt-1">{{ chat.created_at.strftime('%H:%M') }}</small>
+                                    <small class="text-muted d-block mt-1">{{ chat.created_at.strftime('%H:%M') if chat.created_at else 'Now' }}</small>
                                 </div>
                                 <div class="message ai">
                                     <div class="message-bubble">{{ chat.response }}</div>
