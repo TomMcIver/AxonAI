@@ -9,6 +9,20 @@
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- MathJax for proper LaTeX rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            }
+        };
+    </script>
     
     <style>
         .chat-container {
@@ -172,7 +186,7 @@
 
                         <!-- Message Input -->
                         <form id="chatForm" onsubmit="sendMessage(event)">
-                            <div class="input-group">
+                            <div class="input-group mb-2">
                                 <input type="text" id="messageInput" class="form-control" 
                                        placeholder="Ask me anything about {{ class_obj.subject.title() }}..." required>
                                 <button type="submit" class="btn btn-primary">
@@ -180,6 +194,11 @@
                                 </button>
                             </div>
                         </form>
+                        <div class="text-end">
+                            <button class="btn btn-outline-warning btn-sm" onclick="clearChat()">
+                                <i class="fas fa-broom me-1"></i>Clear All
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -331,6 +350,13 @@
                     <small class="text-muted d-block mt-1">${sender === 'user' ? timeString : 'AI Tutor'}</small>
                 `;
                 
+                // Render math with MathJax for AI messages
+                if (sender === 'ai' && window.MathJax) {
+                    MathJax.typesetPromise([messageDiv]).then(() => {
+                        console.log('MathJax rendering complete for static message');
+                    }).catch((err) => console.log('MathJax error: ', err));
+                }
+                
                 chatContainer.appendChild(messageDiv);
                 chatContainer.scrollTop = chatContainer.scrollHeight;
                 return messageDiv;
@@ -356,12 +382,8 @@
             // Line breaks
             formatted = formatted.replace(/\n/g, '<br>');
             
-            // Math expressions (\\(...\\) for inline math)
-            formatted = formatted.replace(/\\\((.*?)\\\)/g, '<span class="math-inline bg-info bg-opacity-10 px-1 rounded">$1</span>');
-            
-            // LaTeX-style fractions and integrals
-            formatted = formatted.replace(/\\int_\{(.*?)\}\^\{(.*?)\}/g, '<span class="math-symbol">∫<sub>$1</sub><sup>$2</sup></span>');
-            formatted = formatted.replace(/\\frac\{(.*?)\}\{(.*?)\}/g, '<span class="math-fraction"><sup>$1</sup>⁄<sub>$2</sub></span>');
+            // Keep LaTeX math expressions as-is for MathJax to process
+            // Don't modify \[ \] (display math) or \( \) (inline math)
             
             return formatted;
         }
@@ -377,6 +399,13 @@
                     index++;
                     setTimeout(typeWord, 50); // Adjust speed here
                     element.parentElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }
+                
+                // When typing is complete, render math with MathJax
+                if (index >= words.length && window.MathJax) {
+                    MathJax.typesetPromise([element]).then(() => {
+                        console.log('MathJax rendering complete');
+                    }).catch((err) => console.log('MathJax error: ', err));
                 }
             }
             
@@ -426,6 +455,33 @@
             })
             .catch(error => console.log('Token usage fetch failed:', error));
         
+        // Clear chat function (clears display only, not database)
+        function clearChat() {
+            const chatContainer = document.getElementById('chatContainer');
+            // Remove all message elements but keep the welcome message if no history exists
+            const messages = chatContainer.querySelectorAll('.message:not(.typing-indicator)');
+            messages.forEach(message => message.remove());
+            
+            // Show welcome message if no history
+            if (messages.length > 0) {
+                chatContainer.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-robot fa-3x mb-3"></i>
+                        <p>Chat cleared! How can I help you today?</p>
+                    </div>
+                    <!-- Typing Indicator -->
+                    <div id="typingIndicator" class="message ai typing-indicator" style="display: none;">
+                        <div class="message-bubble">
+                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            AI is thinking...
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
         // Auto-scroll chat container
         document.addEventListener('DOMContentLoaded', function() {
             const chatContainer = document.getElementById('chatContainer');
