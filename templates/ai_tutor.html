@@ -257,8 +257,8 @@
                 hideTypingIndicator();
                 if (data.success) {
                     // Create streaming message container
-                    const aiMessage = addMessageToChat('', 'ai', true);
-                    const bubble = document.getElementById('streamingBubble');
+                    const aiMessageInfo = addMessageToChat('', 'ai', true);
+                    const bubble = document.getElementById(aiMessageInfo.bubbleId);
                     
                     // Type out the response with animation
                     typeMessage(data.response, bubble);
@@ -283,18 +283,20 @@
             let messageDiv;
             
             if (streaming && sender === 'ai') {
-                // Create AI message container for streaming
+                // Create AI message container for streaming with unique ID
                 messageDiv = document.createElement('div');
                 messageDiv.className = 'message ai';
-                messageDiv.id = 'streamingMessage';
+                const streamingId = 'streaming-' + Date.now();
+                messageDiv.id = streamingId;
                 
                 messageDiv.innerHTML = `
-                    <div class="message-bubble" id="streamingBubble"></div>
+                    <div class="message-bubble" id="${streamingId}-bubble"></div>
                     <small class="text-muted d-block mt-1">AI Tutor</small>
                 `;
                 
                 chatContainer.appendChild(messageDiv);
-                return messageDiv;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                return { element: messageDiv, bubbleId: streamingId + '-bubble' };
             } else {
                 // Normal message display
                 messageDiv = document.createElement('div');
@@ -331,8 +333,12 @@
         }
         
         function showTypingIndicator() {
-            document.getElementById('typingIndicator').style.display = 'block';
+            const indicator = document.getElementById('typingIndicator');
+            indicator.style.display = 'block';
+            
+            // Move typing indicator to the end of chat
             const chatContainer = document.getElementById('chatContainer');
+            chatContainer.appendChild(indicator);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
         
