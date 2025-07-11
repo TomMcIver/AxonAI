@@ -8,6 +8,7 @@ from sqlalchemy.orm import DeclarativeBase
 try:
     from dotenv import load_dotenv
     load_dotenv()
+    print("Successfully loaded .env file")
 except ImportError:
     print("python-dotenv not installed. Using system environment variables only.")
 
@@ -23,6 +24,10 @@ db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 
+# Debug: Print environment variables
+print(f"DATABASE_URL from env: {os.environ.get('DATABASE_URL')}")
+print(f"SESSION_SECRET from env: {os.environ.get('SESSION_SECRET')}")
+
 # Configure the database
 database_url = os.environ.get("DATABASE_URL")
 if not database_url:
@@ -37,26 +42,10 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+print(f"Final DATABASE_URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
+
 # Initialize the app with the extension
 db.init_app(app)
-
-with app.app_context():
-    # Import models and routes
-    import models
-    import routes
-    import api_routes
-    
-    # Drop and recreate all tables to handle schema changes
-    db.drop_all()
-    db.create_all()
-    
-    # Initialize comprehensive dummy data with AI features
-    from init_db import init_dummy_users, init_ai_models, init_dummy_classes, init_sample_chat_history, init_student_profiles
-    init_dummy_users()
-    init_ai_models()
-    init_dummy_classes()
-    init_sample_chat_history()
-    init_student_profiles()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -1,4 +1,10 @@
-from app import db
+import os
+from dotenv import load_dotenv
+
+# Load environment variables first
+load_dotenv()
+
+from app import db, app
 from models import User, Class, Assignment, AssignmentSubmission, Grade, AIModel, ChatMessage, StudentProfile, ContentFile
 from auth import hash_password
 from datetime import datetime, timedelta
@@ -529,3 +535,19 @@ def init_student_profiles():
     except Exception as e:
         db.session.rollback()
         print(f"Error initializing student profiles: {e}")
+
+if __name__ == '__main__':
+    with app.app_context():
+        # Import models after app context is created
+        import models
+        
+        # Create all tables
+        db.create_all()
+        
+        # Initialize data
+        init_dummy_users()
+        init_ai_models()
+        init_dummy_classes()
+        init_sample_chat_history()
+        init_student_profiles()
+        print("Database initialized successfully!")
