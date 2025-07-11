@@ -214,79 +214,34 @@
             </div>
             <div class="modal-body">
                 <div class="row">
+                    {% for class_obj in user.classes %}
                     <div class="col-md-6 mb-3">
-                        <div class="card ai-subject-card" onclick="openTutorChat('mathematics')">
+                        <div class="card ai-subject-card" onclick="openClassTutor({{ class_obj.id }}, '{{ class_obj.subject }}', '{{ class_obj.name }}')">
                             <div class="card-body text-center">
+                                {% if class_obj.subject == 'mathematics' %}
                                 <i class="fas fa-calculator fa-3x text-primary mb-3"></i>
-                                <h6>Mathematics</h6>
-                                <small class="text-muted">Algebra, Geometry, Calculus</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="card ai-subject-card" onclick="openTutorChat('science')">
-                            <div class="card-body text-center">
+                                {% elif class_obj.subject == 'science' %}
                                 <i class="fas fa-flask fa-3x text-success mb-3"></i>
-                                <h6>Science</h6>
-                                <small class="text-muted">Physics, Chemistry, Biology</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="card ai-subject-card" onclick="openTutorChat('english')">
-                            <div class="card-body text-center">
+                                {% elif class_obj.subject == 'english' %}
                                 <i class="fas fa-book fa-3x text-info mb-3"></i>
-                                <h6>English</h6>
-                                <small class="text-muted">Literature, Writing, Grammar</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="card ai-subject-card" onclick="openTutorChat('history')">
-                            <div class="card-body text-center">
+                                {% elif class_obj.subject == 'history' %}
                                 <i class="fas fa-landmark fa-3x text-warning mb-3"></i>
-                                <h6>History</h6>
-                                <small class="text-muted">World History, Civics</small>
+                                {% else %}
+                                <i class="fas fa-graduation-cap fa-3x text-secondary mb-3"></i>
+                                {% endif %}
+                                <h6>{{ class_obj.name }}</h6>
+                                <small class="text-muted">{{ class_obj.subject.title() }} Tutor</small>
                             </div>
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- AI Chat Modal -->
-<div class="modal fade" id="aiChatModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-robot me-2"></i>AI Tutor - <span id="chatSubjectTitle">Mathematics</span>
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" style="height: 500px;">
-                <div class="chat-container h-100 d-flex flex-column">
-                    <div class="chat-messages flex-grow-1 overflow-auto mb-3" id="chatMessages">
-                        <div class="alert alert-info">
-                            <i class="fas fa-robot me-2"></i>
-                            <strong>AI Tutor:</strong> Hello! I'm your personalized AI tutor. I can help you with your homework, explain concepts, and answer questions about <span id="chatSubject">mathematics</span>. What would you like to learn about today?
-                        </div>
-                    </div>
-                    <div class="chat-input">
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="chatInput" placeholder="Ask me anything about the subject...">
-                            <button class="btn btn-primary" onclick="sendMessage()">
-                                <i class="fas fa-paper-plane"></i> Send
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <style>
 .ai-subject-card {
@@ -345,84 +300,13 @@ function openAITutor() {
     new bootstrap.Modal(document.getElementById('aiTutorModal')).show();
 }
 
-function openTutorChat(subject) {
-    currentSubject = subject;
-    document.getElementById('chatSubjectTitle').textContent = subject.charAt(0).toUpperCase() + subject.slice(1);
-    document.getElementById('chatSubject').textContent = subject;
-    
+function openClassTutor(classId, subject, className) {
     // Close subject selection modal
     bootstrap.Modal.getInstance(document.getElementById('aiTutorModal')).hide();
     
-    // Open chat modal
-    new bootstrap.Modal(document.getElementById('aiChatModal')).show();
+    // Redirect to the actual AI tutor page
+    window.location.href = `/ai-tutor/${classId}`;
 }
-
-function sendMessage() {
-    const input = document.getElementById('chatInput');
-    const message = input.value.trim();
-    
-    if (!message) return;
-    
-    // Add user message
-    addMessage(message, 'user');
-    input.value = '';
-    
-    // Simulate AI response
-    setTimeout(() => {
-        const responses = {
-            mathematics: [
-                "Great question! Let me break this down step by step for you.",
-                "In mathematics, it's important to understand the underlying concepts. Here's how I'd approach this problem...",
-                "I can see you're working on this topic. Let me provide some guidance and examples."
-            ],
-            science: [
-                "That's a fascinating scientific question! Let me explain the principles involved.",
-                "Science is all about understanding how things work. In this case...",
-                "I love helping with science topics! Here's what you need to know..."
-            ],
-            english: [
-                "Excellent question about literature and language! Let me help you understand this better.",
-                "English can be tricky, but once you grasp the concepts, it becomes much clearer.",
-                "I'm here to help with your writing and literature questions. Here's my take..."
-            ],
-            history: [
-                "History is full of interesting connections! Let me explain the context and significance.",
-                "Understanding historical events requires looking at multiple perspectives. Here's what happened...",
-                "That's a great historical question! Let me walk you through the key events and their importance."
-            ]
-        };
-        
-        const responseList = responses[currentSubject] || responses.mathematics;
-        const response = responseList[Math.floor(Math.random() * responseList.length)];
-        
-        addMessage(response, 'ai');
-    }, 1500);
-}
-
-function addMessage(text, sender) {
-    const messagesDiv = document.getElementById('chatMessages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}`;
-    
-    const bubble = document.createElement('div');
-    bubble.className = 'message-bubble';
-    bubble.textContent = text;
-    
-    messageDiv.appendChild(bubble);
-    messagesDiv.appendChild(messageDiv);
-    
-    // Scroll to bottom
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-// Allow Enter key to send message
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('chatInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            sendMessage();
-        }
-    });
-});
 </script>
 
 {% endblock %}

@@ -776,4 +776,5 @@ def ai_tutor(class_id):
                          class_obj=class_obj, 
                          chat_history=chat_history,
                          average_grade=average_grade,
-                         content_files=content_files)
+                         content_files=content_files,
+                         current_user=current_user)
