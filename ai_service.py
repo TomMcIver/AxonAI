@@ -50,6 +50,39 @@ class AIService:
         print(f"Using local provider at {self.local_endpoint}")
         self.provider = "local"
     
+    def count_tokens(self, text):
+        """Count tokens in text using tiktoken"""
+        try:
+            import tiktoken
+            encoding = tiktoken.encoding_for_model("gpt-4o-mini")
+            return len(encoding.encode(text))
+        except:
+            # Fallback: approximate token count
+            return int(len(text.split()) * 1.3)
+    
+    def check_token_limit(self, user_id):
+        """Check if user has exceeded daily token limit"""
+        today = date.today()
+        usage = TokenUsage.query.filter_by(user_id=user_id, date=today).first()
+        
+        if not usage:
+            return True, 0  # No usage today, within limit
+        
+        return usage.tokens_used < 10000, usage.tokens_used
+    
+    def update_token_usage(self, user_id, tokens_used):
+        """Update daily token usage for user"""
+        today = date.today()
+        usage = TokenUsage.query.filter_by(user_id=user_id, date=today).first()
+        
+        if not usage:
+            usage = TokenUsage(user_id=user_id, date=today, tokens_used=0, requests_made=0)
+            db.session.add(usage)
+        
+        usage.tokens_used += tokens_used
+        usage.requests_made += 1
+        db.session.commit()
+    
     def get_student_context(self, student_id, class_id):
         """Get comprehensive student context for AI personalization"""
         try:
