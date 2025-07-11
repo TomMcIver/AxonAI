@@ -778,3 +778,41 @@ def ai_tutor(class_id):
                          average_grade=average_grade,
                          content_files=content_files,
                          current_user=current_user)
+
+@app.route('/teacher/ai-insights/<int:class_id>')
+@login_required
+@role_required(['teacher'])
+def teacher_ai_insights(class_id):
+    """Teacher AI insights dashboard"""
+    class_obj = Class.query.get_or_404(class_id)
+    
+    # Verify teacher owns this class
+    if class_obj.teacher_id != session.get('user_id'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('teacher_dashboard'))
+    
+    from ai_service import AIService
+    ai_service = AIService()
+    
+    # Get comprehensive AI insights
+    insights = ai_service.get_teacher_insights(session.get('user_id'), class_id)
+    
+    # Get detailed student information with AI profiles
+    students = class_obj.get_students()
+    student_profiles = []
+    
+    for student in students:
+        profile = {
+            'student': student,
+            'ai_profile': student.get_ai_profile_summary(),
+            'chat_count': ChatMessage.query.filter_by(user_id=student.id, class_id=class_id).count(),
+            'recent_topics': [chat.message[:50] for chat in ChatMessage.query.filter_by(
+                user_id=student.id, class_id=class_id
+            ).order_by(ChatMessage.created_at.desc()).limit(3).all()]
+        }
+        student_profiles.append(profile)
+    
+    return render_template('teacher_ai_insights.html',
+                         class_obj=class_obj,
+                         insights=insights,
+                         student_profiles=student_profiles)

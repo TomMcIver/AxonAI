@@ -19,8 +19,20 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     
-    # Student profile fields for AI personalization
+    # Enhanced student profile fields for AI personalization
     age = db.Column(db.Integer, nullable=True)
+    gender = db.Column(db.String(20), nullable=True)  # Male, Female, Other
+    ethnicity = db.Column(db.String(100), nullable=True)  # European, Māori, Pasifika, Asian, etc.
+    date_of_birth = db.Column(db.Date, nullable=True)
+    year_level = db.Column(db.String(20), nullable=True)  # Year 11, Year 12, Year 13
+    primary_language = db.Column(db.String(50), nullable=True)
+    secondary_language = db.Column(db.String(50), nullable=True)
+    learning_difficulty = db.Column(db.String(100), nullable=True)  # Dyslexia, ADHD, etc.
+    extracurricular_activities = db.Column(db.Text, nullable=True)  # JSON string
+    major_life_event = db.Column(db.String(200), nullable=True)
+    attendance_rate = db.Column(db.Float, nullable=True)  # Average attendance percentage
+    
+    # Original AI fields
     learning_style = db.Column(db.String(50), nullable=True)  # visual, auditory, kinesthetic, reading
     interests = db.Column(db.Text, nullable=True)  # JSON string of interests
     academic_goals = db.Column(db.Text, nullable=True)
@@ -71,6 +83,53 @@ class User(db.Model):
         """Set interests from a list"""
         self.interests = json.dumps(interests_list)
     
+    def get_extracurricular_list(self):
+        """Get extracurricular activities as a list"""
+        if not self.extracurricular_activities:
+            return []
+        try:
+            return json.loads(self.extracurricular_activities)
+        except:
+            return []
+    
+    def set_extracurricular_list(self, activities_list):
+        """Set extracurricular activities from a list"""
+        self.extracurricular_activities = json.dumps(activities_list)
+    
+    def get_ai_profile_summary(self):
+        """Generate a concise AI profile summary for token optimization"""
+        summary = f"Student: {self.first_name} ({self.year_level or 'Unknown year'})"
+        
+        if self.gender:
+            summary += f", {self.gender}"
+        if self.ethnicity:
+            summary += f", {self.ethnicity}"
+        
+        if self.learning_style:
+            summary += f"\nLearning: {self.learning_style} learner"
+        if self.preferred_difficulty:
+            summary += f", {self.preferred_difficulty} level"
+        
+        if self.learning_difficulty:
+            summary += f"\nSpecial needs: {self.learning_difficulty}"
+        
+        avg_grade = self.get_average_grade()
+        if avg_grade:
+            trend = "improving" if avg_grade > 70 else "stable" if avg_grade > 60 else "needs support"
+            summary += f"\nPerformance: Grade average {avg_grade:.1f}%, trend {trend}"
+        
+        if self.academic_goals:
+            summary += f"\nGoals: {self.academic_goals[:100]}..."
+        
+        activities = self.get_extracurricular_list()
+        if activities:
+            summary += f"\nActivities: {', '.join(activities[:3])}"
+        
+        if self.major_life_event:
+            summary += f"\nContext: {self.major_life_event}"
+        
+        return summary
+    
     def get_chat_summary(self, class_id=None):
         """Get a summary of chat interactions for AI context"""
         messages = self.chat_messages
@@ -92,6 +151,16 @@ class User(db.Model):
             'last_name': self.last_name,
             'photo_url': self.photo_url,
             'age': self.age,
+            'gender': self.gender,
+            'ethnicity': self.ethnicity,
+            'date_of_birth': self.date_of_birth.isoformat() if self.date_of_birth else None,
+            'year_level': self.year_level,
+            'primary_language': self.primary_language,
+            'secondary_language': self.secondary_language,
+            'learning_difficulty': self.learning_difficulty,
+            'extracurricular_activities': self.get_extracurricular_list(),
+            'major_life_event': self.major_life_event,
+            'attendance_rate': self.attendance_rate,
             'learning_style': self.learning_style,
             'interests': self.get_interests_list(),
             'academic_goals': self.academic_goals,

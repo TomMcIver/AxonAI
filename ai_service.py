@@ -106,27 +106,15 @@ class AIService:
             # Get class content
             class_content = ContentFile.query.filter_by(class_id=class_id).all()
             
+            # Use enhanced AI profile summary for token efficiency
+            profile_summary = student.get_ai_profile_summary()
+            
             context = {
-                'student_info': {
-                    'name': student.get_full_name(),
-                    'age': student.age,
-                    'learning_style': student.learning_style,
-                    'interests': student.get_interests_list(),
-                    'academic_goals': student.academic_goals,
-                    'preferred_difficulty': student.preferred_difficulty,
-                    'average_grade': avg_grade,
-                    'grade_trend': 'improving' if len(grades) > 1 and grades[-1] > grades[0] else 'stable'
-                },
-                'class_info': {
-                    'name': class_obj.name,
-                    'subject': class_obj.subject,
-                    'description': class_obj.description,
-                    'available_content': [{'name': cf.name, 'type': cf.file_type} for cf in class_content]
-                },
-                'interaction_history': {
-                    'recent_topics': [chat.message[:100] for chat in recent_chats],
-                    'engagement_level': student.get_chat_summary(class_id)['engagement_level']
-                }
+                'profile_summary': profile_summary,
+                'recent_topics': [chat.message[:40] + '...' for chat in recent_chats] if recent_chats else [],
+                'subject': class_obj.subject,
+                'learning_accommodations': self._get_learning_accommodations(student),
+                'available_content': [cf.name for cf in class_content[:3]]  # Limit for tokens
             }
             
             if student_profile:
@@ -137,6 +125,35 @@ class AIService:
         except Exception as e:
             print(f"Error getting student context: {e}")
             return {}
+    
+    def _get_learning_accommodations(self, student):
+        """Generate learning accommodations based on student profile"""
+        accommodations = []
+        
+        if student.learning_difficulty:
+            difficulty = student.learning_difficulty.lower()
+            if 'dyslexia' in difficulty:
+                accommodations.append("Use clear, simple language and break down complex concepts")
+            elif 'adhd' in difficulty:
+                accommodations.append("Keep responses concise and use bullet points")
+            elif 'autism' in difficulty:
+                accommodations.append("Provide structured, step-by-step explanations")
+            else:
+                accommodations.append(f"Consider learning support needs for {student.learning_difficulty}")
+        
+        if student.primary_language and student.primary_language != 'English':
+            accommodations.append(f"Student's primary language is {student.primary_language}, use clear English")
+        
+        if student.learning_style:
+            style = student.learning_style.lower()
+            if 'visual' in style:
+                accommodations.append("Use visual examples and descriptions")
+            elif 'auditory' in style:
+                accommodations.append("Use clear explanations with examples")
+            elif 'kinesthetic' in style:
+                accommodations.append("Suggest hands-on activities and practical examples")
+        
+        return accommodations
     
     def generate_response(self, message, student_id, class_id):
         """Generate AI response based on student context and message"""
@@ -163,25 +180,29 @@ class AIService:
                     db.session.commit()
             context = self.get_student_context(student_id, class_id)
             
-            # Build optimized system prompt with subject constraints
-            subject = context.get('class_info', {}).get('subject', 'Unknown')
-            student_summary = self._create_student_summary(context)
-            chat_summary = self._summarize_recent_chats(student_id, class_id)
+            # Use the optimized profile summary
+            subject = context.get('subject', 'general')
+            profile_summary = context.get('profile_summary', 'Student profile not available')
+            recent_topics = context.get('recent_topics', [])
+            accommodations = context.get('learning_accommodations', [])
             
-            system_prompt = f"""You are an AI tutor for {subject} ONLY. You must ONLY help with {subject}-related topics and refuse any questions outside this subject.
+            system_prompt = f"""You are a specialized {subject} AI tutor. You can ONLY discuss topics related to {subject}.
 
 STRICT RULES:
 1. ONLY answer questions about {subject}
 2. If asked about other subjects, politely redirect: "I can only help with {subject}. Please ask your teacher about other subjects."
-3. Stay focused on this specific class: {context.get('class_info', {}).get('name', 'Unknown')}
 
 STUDENT PROFILE:
-{student_summary}
+{profile_summary}
 
 RECENT LEARNING CONTEXT:
-{chat_summary}
+Recent topics: {', '.join(recent_topics) if recent_topics else 'First interaction'}
 
-AVAILABLE MATERIALS: {', '.join([item['name'] for item in context.get('class_info', {}).get('available_content', [])])}
+AVAILABLE MATERIALS: 
+{', '.join(context.get('available_content', []))}
+
+LEARNING ACCOMMODATIONS:
+{chr(10).join(f'- {acc}' for acc in accommodations) if accommodations else 'No specific accommodations'}
 
 Provide personalized {subject} help based on this student's learning style, current performance, and goals. Keep responses concise and educational."""
             

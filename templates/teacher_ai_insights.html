@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Insights - {{ class_obj.name }}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        .insight-card {
+            border-left: 4px solid #0d6efd;
+            background: rgba(13, 110, 253, 0.1);
+        }
+        .engagement-high {
+            border-left-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        .engagement-medium {
+            border-left-color: #ffc107;
+            background: rgba(255, 193, 7, 0.1);
+        }
+        .engagement-low {
+            border-left-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+        .student-profile-card {
+            border: 1px solid #404040;
+            transition: transform 0.2s;
+        }
+        .student-profile-card:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2><i class="fas fa-chart-line text-info me-2"></i>AI Learning Insights</h2>
+                        <p class="text-muted mb-0">{{ class_obj.name }} - {{ class_obj.subject.title() }}</p>
+                    </div>
+                    <a href="{{ url_for('teacher_class_detail', class_id=class_obj.id) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Class
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% if insights and 'class_' + class_obj.id|string in insights %}
+            {% set class_insights = insights['class_' + class_obj.id|string] %}
+            
+            <!-- Engagement Overview -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card engagement-high">
+                        <div class="card-body text-center">
+                            <h3 class="text-success">{{ class_insights.engagement_summary.high }}</h3>
+                            <p class="mb-0">High Engagement</p>
+                            <small class="text-muted">20+ AI interactions</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card engagement-medium">
+                        <div class="card-body text-center">
+                            <h3 class="text-warning">{{ class_insights.engagement_summary.medium }}</h3>
+                            <p class="mb-0">Medium Engagement</p>
+                            <small class="text-muted">5-20 AI interactions</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card engagement-low">
+                        <div class="card-body text-center">
+                            <h3 class="text-danger">{{ class_insights.engagement_summary.low }}</h3>
+                            <p class="mb-0">Low Engagement</p>
+                            <small class="text-muted">Under 5 AI interactions</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Learning Support Needs -->
+            <div class="row mb-4">
+                {% if class_insights.learning_difficulties %}
+                <div class="col-md-6">
+                    <div class="card insight-card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-heart me-2"></i>Learning Support Needs</h5>
+                        </div>
+                        <div class="card-body">
+                            {% for difficulty, count in class_insights.learning_difficulties.items() %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>{{ difficulty }}</span>
+                                <span class="badge bg-primary">{{ count }} student{{ 's' if count != 1 else '' }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if class_insights.primary_languages %}
+                <div class="col-md-6">
+                    <div class="card insight-card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-language me-2"></i>Language Diversity</h5>
+                        </div>
+                        <div class="card-body">
+                            {% for language, count in class_insights.primary_languages.items() %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>{{ language }}</span>
+                                <span class="badge bg-info">{{ count }} student{{ 's' if count != 1 else '' }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Common Questions -->
+            {% if class_insights.common_questions %}
+            <div class="card mb-4 insight-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Most Common AI Tutor Questions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for question in class_insights.common_questions %}
+                        <div class="col-md-6 mb-2">
+                            <div class="alert alert-secondary mb-2">
+                                <i class="fas fa-comment me-2"></i>{{ question }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
+
+        <!-- Individual Student Profiles -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Individual Student AI Profiles</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for profile in student_profiles %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card student-profile-card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">{{ profile.student.get_full_name() }}</h6>
+                                <span class="badge bg-secondary">{{ profile.chat_count }} chats</span>
+                            </div>
+                            <div class="card-body">
+                                <!-- AI Profile Summary -->
+                                <div class="mb-3">
+                                    <h6 class="text-muted">AI Personalization Profile:</h6>
+                                    <pre class="bg-dark p-2 rounded small" style="white-space: pre-wrap;">{{ profile.ai_profile }}</pre>
+                                </div>
+                                
+                                <!-- Recent Topics -->
+                                {% if profile.recent_topics %}
+                                <div class="mb-3">
+                                    <h6 class="text-muted">Recent AI Interactions:</h6>
+                                    {% for topic in profile.recent_topics %}
+                                    <div class="badge bg-outline-info me-1 mb-1">{{ topic }}...</div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Student Details -->
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <small class="text-muted">Learning Style:</small>
+                                        <div>{{ profile.student.learning_style or 'Not specified' }}</div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <small class="text-muted">Difficulty Level:</small>
+                                        <div>{{ profile.student.preferred_difficulty or 'Intermediate' }}</div>
+                                    </div>
+                                </div>
+                                
+                                {% if profile.student.learning_difficulty %}
+                                <div class="mt-2">
+                                    <small class="text-muted">Learning Support:</small>
+                                    <div class="text-warning">{{ profile.student.learning_difficulty }}</div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if profile.student.primary_language and profile.student.primary_language != 'English' %}
+                                <div class="mt-2">
+                                    <small class="text-muted">Primary Language:</small>
+                                    <div class="text-info">{{ profile.student.primary_language }}</div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
