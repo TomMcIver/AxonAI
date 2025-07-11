@@ -60,5 +60,17 @@ print(f"Final DATABASE_URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
 # Initialize the app with the extension
 db.init_app(app)
 
+# Import routes and models to register them with the app
+with app.app_context():
+    # Import models first
+    import models
+    
+    # Import routes to register them
+    import routes
+    import api_routes
+    
+    # Create database tables
+    db.create_all()
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
