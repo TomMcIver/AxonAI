@@ -38,6 +38,7 @@ def send_chat_message():
         response = ai_service.generate_response(message, user_id, class_id)
         
         return jsonify({
+            'success': True,
             'message': message,
             'response': response,
             'timestamp': datetime.now().isoformat()

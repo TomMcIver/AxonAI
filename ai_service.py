@@ -305,41 +305,15 @@ Goals: {student_info.get('academic_goals', 'General improvement')[:100]}..."""
     
     def _generate_demo_response(self, message, ai_model):
         """Generate a demo response when no AI service is available"""
+        # Always use OpenAI if available, even in "demo mode"
+        if self.provider == "openai" and self.client:
+            subject = ai_model.subject if ai_model else "general"
+            system_prompt = f"You are an AI tutor for {subject} ONLY. Only answer questions about {subject}."
+            return self._generate_openai_response(system_prompt, message, ai_model)
+        
+        # Fallback only if truly no AI service
         subject = ai_model.subject if ai_model else "general"
-        
-        demo_responses = {
-            "mathematics": [
-                "Great question about math! Let me break this down step by step. In mathematics, it's important to understand the underlying concepts before moving to complex problems.",
-                "I can help you with that math problem! Let's start with the basics and work our way up to more advanced concepts.",
-                "Mathematics is all about patterns and logical thinking. Let me help you see the pattern in this problem."
-            ],
-            "science": [
-                "Excellent science question! Scientific understanding comes from observation, hypothesis, and testing. Let me explain this concept clearly.",
-                "Science is fascinating! This topic connects to many real-world applications. Let me show you how this works.",
-                "Great scientific curiosity! Understanding the 'why' behind phenomena is key to scientific thinking."
-            ],
-            "english": [
-                "Wonderful question about language and literature! Effective communication involves understanding both structure and meaning.",
-                "English literature offers rich insights into human experience. Let me help you analyze this text.",
-                "Great observation about language! Writing and reading are powerful tools for expression and understanding."
-            ],
-            "history": [
-                "Interesting historical question! Understanding the past helps us make sense of the present and future.",
-                "History is full of fascinating stories and important lessons. Let me provide some context for this topic.",
-                "Excellent historical thinking! It's important to consider multiple perspectives when studying the past."
-            ],
-            "art": [
-                "Wonderful artistic inquiry! Art is a powerful form of expression that reflects culture, emotion, and creativity.",
-                "Great question about art! Creative expression takes many forms and serves many purposes in human society.",
-                "Artistic exploration is exciting! Let me help you understand the techniques and meanings behind this work."
-            ]
-        }
-        
-        responses = demo_responses.get(subject, demo_responses["mathematics"])
-        import random
-        base_response = random.choice(responses)
-        
-        return f"{base_response}\n\n[Demo Mode: This is a simulated response. To enable full AI functionality, configure your AI provider settings.]"
+        return f"I'm sorry, but I need to be connected to an AI service to help you with {subject} questions. Please ask your teacher to configure the AI settings."
     
     def get_teacher_insights(self, teacher_id, class_id=None):
         """Generate insights for teachers about their students"""
