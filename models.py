@@ -273,6 +273,21 @@ class ChatMessage(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
+class TokenUsage(db.Model):
+    """Track AI token usage per user"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date = db.Column(db.Date, default=datetime.utcnow().date, nullable=False)
+    tokens_used = db.Column(db.Integer, default=0, nullable=False)
+    requests_made = db.Column(db.Integer, default=0, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='token_usage')
+    
+    def __repr__(self):
+        return f'<TokenUsage {self.user_id} - {self.date}: {self.tokens_used} tokens>'
+
 class StudentProfile(db.Model):
     """Extended student profile for AI personalization"""
     id = db.Column(db.Integer, primary_key=True)

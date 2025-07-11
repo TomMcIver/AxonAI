@@ -140,9 +140,12 @@
                             {% endif %}
                             
                             <!-- Typing Indicator -->
-                            <div id="typingIndicator" class="message ai typing-indicator">
+                            <div id="typingIndicator" class="message ai typing-indicator" style="display: none;">
                                 <div class="message-bubble">
-                                    <i class="fas fa-circle-notch fa-spin me-2"></i>AI is thinking...
+                                    <div class="spinner-border spinner-border-sm me-2" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    AI is thinking...
                                 </div>
                             </div>
                         </div>
@@ -163,6 +166,25 @@
 
             <!-- Sidebar -->
             <div class="col-lg-4">
+                <!-- Token Usage Counter -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Daily Usage</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="tokenUsage">
+                            <div class="d-flex justify-content-between">
+                                <span>Tokens Used:</span>
+                                <span id="tokenCount">0</span>
+                            </div>
+                            <div class="progress mt-2">
+                                <div id="tokenProgress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <small class="text-muted">Daily limit: 10,000 tokens</small>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Quick Tips -->
                 <div class="card mb-4">
                     <div class="card-header">
@@ -234,7 +256,17 @@
             .then(data => {
                 hideTypingIndicator();
                 if (data.success) {
-                    addMessageToChat(data.response, 'ai');
+                    // Create streaming message container
+                    const aiMessage = addMessageToChat('', 'ai', true);
+                    const bubble = document.getElementById('streamingBubble');
+                    
+                    // Type out the response with animation
+                    typeMessage(data.response, bubble);
+                    
+                    // Update token counter if provided
+                    if (data.tokens_used) {
+                        updateTokenCounter(data.tokens_used);
+                    }
                 } else {
                     addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');
                 }
@@ -246,21 +278,56 @@
             });
         }
         
-        function addMessageToChat(message, sender) {
+        function addMessageToChat(message, sender, streaming = false) {
             const chatContainer = document.getElementById('chatContainer');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`;
+            let messageDiv;
             
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            if (streaming && sender === 'ai') {
+                // Create AI message container for streaming
+                messageDiv = document.createElement('div');
+                messageDiv.className = 'message ai';
+                messageDiv.id = 'streamingMessage';
+                
+                messageDiv.innerHTML = `
+                    <div class="message-bubble" id="streamingBubble"></div>
+                    <small class="text-muted d-block mt-1">AI Tutor</small>
+                `;
+                
+                chatContainer.appendChild(messageDiv);
+                return messageDiv;
+            } else {
+                // Normal message display
+                messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}`;
+                
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                
+                messageDiv.innerHTML = `
+                    <div class="message-bubble">${message}</div>
+                    <small class="text-muted d-block mt-1">${sender === 'user' ? timeString : 'AI Tutor'}</small>
+                `;
+                
+                chatContainer.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                return messageDiv;
+            }
+        }
+        
+        function typeMessage(text, element) {
+            let index = 0;
+            const words = text.split(' ');
             
-            messageDiv.innerHTML = `
-                <div class="message-bubble">${message}</div>
-                <small class="text-muted d-block mt-1">${sender === 'user' ? timeString : 'AI Tutor'}</small>
-            `;
+            function typeWord() {
+                if (index < words.length) {
+                    element.innerHTML += (index === 0 ? '' : ' ') + words[index];
+                    index++;
+                    setTimeout(typeWord, 50); // Adjust speed here
+                    element.parentElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }
+            }
             
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            typeWord();
         }
         
         function showTypingIndicator() {
@@ -272,6 +339,35 @@
         function hideTypingIndicator() {
             document.getElementById('typingIndicator').style.display = 'none';
         }
+        
+        function updateTokenCounter(totalTokens) {
+            const tokenCount = document.getElementById('tokenCount');
+            const tokenProgress = document.getElementById('tokenProgress');
+            const maxTokens = 10000;
+            
+            tokenCount.textContent = totalTokens;
+            const percentage = (totalTokens / maxTokens) * 100;
+            tokenProgress.style.width = percentage + '%';
+            
+            // Update progress bar color based on usage
+            if (percentage > 90) {
+                tokenProgress.className = 'progress-bar bg-danger';
+            } else if (percentage > 70) {
+                tokenProgress.className = 'progress-bar bg-warning';
+            } else {
+                tokenProgress.className = 'progress-bar bg-success';
+            }
+        }
+        
+        // Load current token usage on page load
+        fetch('/api/token-usage')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateTokenCounter(data.tokens_used);
+                }
+            })
+            .catch(error => console.log('Token usage fetch failed:', error));
         
         // Auto-scroll chat container
         document.addEventListener('DOMContentLoaded', function() {

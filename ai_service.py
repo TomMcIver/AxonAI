@@ -1,8 +1,9 @@
 import json
 import os
 import requests
-from datetime import datetime
-from models import AIModel, ChatMessage, User, Class, StudentProfile, ContentFile
+import tiktoken
+from datetime import datetime, date
+from models import AIModel, ChatMessage, User, Class, StudentProfile, ContentFile, TokenUsage
 from app import db
 
 # AI Provider Configuration
@@ -151,6 +152,9 @@ AVAILABLE MATERIALS: {', '.join([item['name'] for item in context.get('class_inf
 
 Provide personalized {subject} help based on this student's learning style, current performance, and goals. Keep responses concise and educational."""
             
+            # Count tokens before sending
+            prompt_tokens = self.count_tokens(system_prompt + message)
+            
             # Generate response based on provider
             if self.provider == "openai":
                 ai_response = self._generate_openai_response(system_prompt, message, ai_model)
@@ -158,6 +162,11 @@ Provide personalized {subject} help based on this student's learning style, curr
                 ai_response = self._generate_aws_response(system_prompt, message, ai_model)
             else:  # local
                 ai_response = self._generate_local_response(system_prompt, message, ai_model)
+            
+            # Count response tokens and update usage
+            response_tokens = self.count_tokens(ai_response)
+            total_tokens = prompt_tokens + response_tokens
+            self.update_token_usage(student_id, total_tokens)
             
             # Store chat message
             try:

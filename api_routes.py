@@ -1,6 +1,6 @@
 from flask import jsonify, request, session, send_file
 from app import app, db
-from models import User, Class, ChatMessage, AIModel, StudentProfile, Assignment, AssignmentSubmission, Grade, ContentFile
+from models import User, Class, ChatMessage, AIModel, StudentProfile, Assignment, AssignmentSubmission, Grade, ContentFile, TokenUsage
 from ai_service import AIService
 from auth import login_required, role_required
 import csv
@@ -37,10 +37,17 @@ def send_chat_message():
         # Generate AI response
         response = ai_service.generate_response(message, user_id, class_id)
         
+        # Get token usage for this user today
+        from datetime import date
+        today = date.today()
+        usage = TokenUsage.query.filter_by(user_id=user_id, date=today).first()
+        tokens_used = usage.tokens_used if usage else 0
+        
         return jsonify({
             'success': True,
             'message': message,
             'response': response,
+            'tokens_used': tokens_used,
             'timestamp': datetime.now().isoformat()
         })
         
@@ -443,3 +450,26 @@ def get_students():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/token-usage')
+@login_required
+def get_token_usage():
+    """Get current daily token usage for user"""
+    try:
+        user_id = session.get('user_id')
+        from datetime import date
+        today = date.today()
+        
+        usage = TokenUsage.query.filter_by(user_id=user_id, date=today).first()
+        tokens_used = usage.tokens_used if usage else 0
+        requests_made = usage.requests_made if usage else 0
+        
+        return jsonify({
+            'success': True,
+            'tokens_used': tokens_used,
+            'requests_made': requests_made,
+            'daily_limit': 10000
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
