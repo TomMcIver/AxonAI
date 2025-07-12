@@ -79,6 +79,21 @@
             border-color: #28a745;
             background: rgba(40, 167, 69, 0.1);
         }
+        .math-display, .math-inline {
+            font-family: 'Times New Roman', serif;
+        }
+        .message-bubble code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .message-bubble strong {
+            font-weight: bold;
+        }
+        .message-bubble em {
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -239,6 +254,22 @@
             typingIndicator.style.display = 'block';
             chatContainer.scrollTop = chatContainer.scrollHeight;
 
+            // Create placeholder for AI response with streaming effect
+            const aiMessageDiv = document.createElement('div');
+            aiMessageDiv.className = 'message ai';
+            
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'message-bubble';
+            messageBubble.innerHTML = '';
+            
+            const timeStamp = document.createElement('small');
+            timeStamp.className = 'text-muted d-block mt-1';
+            timeStamp.textContent = 'AI Assistant';
+            
+            aiMessageDiv.appendChild(messageBubble);
+            aiMessageDiv.appendChild(timeStamp);
+            chatContainer.appendChild(aiMessageDiv);
+
             try {
                 const response = await fetch('/api/chat', {
                     method: 'POST',
@@ -258,14 +289,15 @@
                 typingIndicator.style.display = 'none';
                 
                 if (data.success) {
-                    addMessage(data.response, 'ai');
+                    // Simulate streaming effect
+                    await typeMessage(messageBubble, data.response);
                 } else {
-                    addMessage('Sorry, I encountered an error. Please try again.', 'ai');
+                    messageBubble.innerHTML = 'Sorry, I encountered an error. Please try again.';
                 }
             } catch (error) {
                 console.error('Chat error:', error);
                 typingIndicator.style.display = 'none';
-                addMessage('Sorry, I encountered a connection error. Please try again.', 'ai');
+                messageBubble.innerHTML = 'Sorry, I encountered a connection error. Please try again.';
             }
             
             sendButton.disabled = false;
@@ -295,6 +327,60 @@
             }
         }
 
+        async function typeMessage(element, text) {
+            // Clear the element first
+            element.innerHTML = '';
+            
+            // Convert markdown-style formatting to HTML
+            let formattedText = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                .replace(/\n/g, '<br>');
+            
+            // Handle LaTeX math expressions
+            formattedText = formattedText
+                .replace(/\$\$(.*?)\$\$/g, '<span class="math-display">$$$$1$$</span>')
+                .replace(/\$(.*?)\$/g, '<span class="math-inline">$$$1$$</span>');
+            
+            // Type out character by character
+            let i = 0;
+            const typingSpeed = 20; // milliseconds per character
+            
+            function typeChar() {
+                if (i < formattedText.length) {
+                    // Handle HTML tags - don't type them character by character
+                    if (formattedText[i] === '<') {
+                        const tagEnd = formattedText.indexOf('>', i);
+                        if (tagEnd !== -1) {
+                            element.innerHTML += formattedText.slice(i, tagEnd + 1);
+                            i = tagEnd + 1;
+                        } else {
+                            element.innerHTML += formattedText[i];
+                            i++;
+                        }
+                    } else {
+                        element.innerHTML += formattedText[i];
+                        i++;
+                    }
+                    
+                    // Auto-scroll to bottom
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    
+                    setTimeout(typeChar, typingSpeed);
+                } else {
+                    // Finished typing, render MathJax
+                    if (window.MathJax) {
+                        MathJax.typesetPromise([element]).then(() => {
+                            console.log('MathJax rendering complete');
+                        });
+                    }
+                }
+            }
+            
+            typeChar();
+        }
+
         function insertStudentReference(studentName, studentId) {
             const currentMessage = messageInput.value;
             const studentRef = `regarding ${studentName}`;
@@ -311,9 +397,23 @@
             messageInput.value = question;
             messageInput.focus();
         }
+        
+        async function updateTokenUsage() {
+            try {
+                const response = await fetch('/api/token-usage');
+                const data = await response.json();
+                // Token usage tracking for teachers (optional display)
+                console.log('Token usage:', data);
+            } catch (error) {
+                console.log('Token usage not available');
+            }
+        }
 
         // Auto-focus on message input
         messageInput.focus();
+        
+        // Update token usage display on page load
+        updateTokenUsage();
     </script>
 </body>
 </html>
