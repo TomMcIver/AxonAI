@@ -124,6 +124,48 @@ def add_user():
             last_name=last_name
         )
         
+        # Add student profile fields if role is student
+        if role == 'student':
+            user.age = request.form.get('age') or None
+            user.gender = request.form.get('gender') or None
+            user.ethnicity = request.form.get('ethnicity') or None
+            user.year_level = request.form.get('year_level') or None
+            user.primary_language = request.form.get('primary_language') or None
+            user.secondary_language = request.form.get('secondary_language') or None
+            user.learning_difficulty = request.form.get('learning_difficulty') or None
+            user.major_life_event = request.form.get('major_life_event') or None
+            user.learning_style = request.form.get('learning_style') or None
+            user.preferred_difficulty = request.form.get('preferred_difficulty') or None
+            user.academic_goals = request.form.get('academic_goals') or None
+            
+            # Parse date of birth
+            dob_str = request.form.get('date_of_birth')
+            if dob_str:
+                try:
+                    from datetime import datetime
+                    user.date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+            
+            # Parse attendance rate
+            attendance_str = request.form.get('attendance_rate')
+            if attendance_str:
+                try:
+                    user.attendance_rate = float(attendance_str)
+                except ValueError:
+                    pass
+            
+            # Parse lists for extracurricular activities and interests
+            activities_text = request.form.get('extracurricular_activities', '').strip()
+            if activities_text:
+                activities_list = [act.strip() for act in activities_text.split('\n') if act.strip()]
+                user.set_extracurricular_list(activities_list)
+            
+            interests_text = request.form.get('interests', '').strip()
+            if interests_text:
+                interests_list = [int.strip() for int in interests_text.split('\n') if int.strip()]
+                user.set_interests_list(interests_list)
+        
         try:
             db.session.add(user)
             db.session.commit()
@@ -168,6 +210,73 @@ def edit_user(user_id):
         # Update password if provided
         if password:
             user.password_hash = hash_password(password)
+        
+        # Update student profile fields if role is student
+        if role == 'student':
+            user.age = request.form.get('age') or None
+            user.gender = request.form.get('gender') or None
+            user.ethnicity = request.form.get('ethnicity') or None
+            user.year_level = request.form.get('year_level') or None
+            user.primary_language = request.form.get('primary_language') or None
+            user.secondary_language = request.form.get('secondary_language') or None
+            user.learning_difficulty = request.form.get('learning_difficulty') or None
+            user.major_life_event = request.form.get('major_life_event') or None
+            user.learning_style = request.form.get('learning_style') or None
+            user.preferred_difficulty = request.form.get('preferred_difficulty') or None
+            user.academic_goals = request.form.get('academic_goals') or None
+            
+            # Parse date of birth
+            dob_str = request.form.get('date_of_birth')
+            if dob_str:
+                try:
+                    from datetime import datetime
+                    user.date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+            else:
+                user.date_of_birth = None
+            
+            # Parse attendance rate
+            attendance_str = request.form.get('attendance_rate')
+            if attendance_str:
+                try:
+                    user.attendance_rate = float(attendance_str)
+                except ValueError:
+                    user.attendance_rate = None
+            else:
+                user.attendance_rate = None
+            
+            # Parse lists for extracurricular activities and interests
+            activities_text = request.form.get('extracurricular_activities', '').strip()
+            if activities_text:
+                activities_list = [act.strip() for act in activities_text.split('\n') if act.strip()]
+                user.set_extracurricular_list(activities_list)
+            else:
+                user.set_extracurricular_list([])
+            
+            interests_text = request.form.get('interests', '').strip()
+            if interests_text:
+                interests_list = [int.strip() for int in interests_text.split('\n') if int.strip()]
+                user.set_interests_list(interests_list)
+            else:
+                user.set_interests_list([])
+        else:
+            # Clear student fields if role is not student
+            user.age = None
+            user.gender = None
+            user.ethnicity = None
+            user.date_of_birth = None
+            user.year_level = None
+            user.primary_language = None
+            user.secondary_language = None
+            user.learning_difficulty = None
+            user.major_life_event = None
+            user.learning_style = None
+            user.preferred_difficulty = None
+            user.academic_goals = None
+            user.attendance_rate = None
+            user.set_extracurricular_list([])
+            user.set_interests_list([])
         
         try:
             db.session.commit()
@@ -816,3 +925,37 @@ def teacher_ai_insights(class_id):
                          class_obj=class_obj,
                          insights=insights,
                          student_profiles=student_profiles)
+
+@app.route('/teacher/ai-chat/<int:class_id>')
+@login_required
+@role_required(['teacher'])
+def teacher_ai_chat(class_id):
+    """Teacher AI chat interface"""
+    class_obj = Class.query.get_or_404(class_id)
+    
+    # Verify teacher owns this class
+    if class_obj.teacher_id != session.get('user_id'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('teacher_dashboard'))
+    
+    from ai_service import AIService
+    ai_service = AIService()
+    
+    # Get recent chat history for this teacher and class
+    chat_history = ai_service.get_chat_history(session.get('user_id'), class_id, limit=10)
+    
+    # Get students in this class for context
+    students = class_obj.get_students()
+    student_summaries = []
+    for student in students:
+        summary = {
+            'name': student.get_full_name(),
+            'id': student.id,
+            'profile': student.get_ai_profile_summary()[:200] + '...' if len(student.get_ai_profile_summary()) > 200 else student.get_ai_profile_summary()
+        }
+        student_summaries.append(summary)
+    
+    return render_template('teacher_ai_chat.html',
+                         class_obj=class_obj,
+                         chat_history=chat_history,
+                         students=student_summaries)

@@ -54,6 +54,58 @@ def send_chat_message():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/chat', methods=['POST'])
+@login_required
+def send_chat_message_unified():
+    """Unified chat endpoint for both students and teachers"""
+    try:
+        data = request.get_json()
+        message = data.get('message', '').strip()
+        class_id = data.get('class_id')
+        message_type = data.get('message_type', 'student')
+        
+        if not message or not class_id:
+            return jsonify({'success': False, 'error': 'Missing message or class_id'})
+        
+        user_id = session.get('user_id')
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'success': False, 'error': 'User not authenticated'})
+        
+        # Get class and verify access
+        class_obj = Class.query.get(class_id)
+        if not class_obj:
+            return jsonify({'success': False, 'error': 'Class not found'})
+        
+        # Verify access based on role
+        if user.role == 'student':
+            if user not in class_obj.users:
+                return jsonify({'success': False, 'error': 'Not enrolled in this class'})
+            # Generate student tutoring response
+            response = ai_service.generate_response(message, user_id, class_id)
+        elif user.role == 'teacher':
+            if class_obj.teacher_id != user_id:
+                return jsonify({'success': False, 'error': 'Access denied'})
+            # Generate teacher insights response
+            response = ai_service.generate_teacher_response(message, user_id, class_id)
+        else:
+            return jsonify({'success': False, 'error': 'Invalid user role'})
+        
+        if response:
+            return jsonify({
+                'success': True, 
+                'response': response,
+                'message': message,
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Failed to generate response'})
+            
+    except Exception as e:
+        app.logger.error(f'Chat API error: {e}')
+        return jsonify({'success': False, 'error': 'Internal server error'})
+
 @app.route('/api/chat/history/<int:class_id>')
 @login_required
 def get_chat_history(class_id):

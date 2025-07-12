@@ -249,6 +249,103 @@ Provide personalized {subject} help based on this student's learning style, curr
             traceback.print_exc()
             return "Sorry, I encountered an error. Please try again."
     
+    def generate_teacher_response(self, message, teacher_id, class_id):
+        """Generate AI response for teacher inquiries about students and teaching"""
+        try:
+            from models import Class, User
+            
+            # Check daily token limit
+            if not self.check_token_limit(teacher_id):
+                return "Daily token limit reached. Please try again tomorrow."
+            
+            # Get class and students context
+            class_obj = Class.query.get(class_id)
+            if not class_obj:
+                return "Class not found."
+            
+            students = class_obj.get_students()
+            student_profiles = []
+            class_insights = {}
+            
+            # Collect student information
+            for student in students:
+                profile_summary = student.get_ai_profile_summary()
+                chat_count = ChatMessage.query.filter_by(user_id=student.id, class_id=class_id).count()
+                
+                student_profiles.append({
+                    'name': student.get_full_name(),
+                    'profile': profile_summary,
+                    'chat_interactions': chat_count,
+                    'average_grade': student.get_class_average(class_id)
+                })
+            
+            # Get class insights
+            insights = self.get_teacher_insights(teacher_id, class_id)
+            
+            system_prompt = f"""You are an AI teaching assistant helping a teacher understand their students and improve their teaching methods.
+
+CLASS INFORMATION:
+Subject: {class_obj.subject}
+Class: {class_obj.name}
+Total Students: {len(students)}
+
+STUDENT PROFILES:
+{chr(10).join([f"- {s['name']}: {s['profile'][:200]}..." for s in student_profiles])}
+
+CLASS INSIGHTS:
+{json.dumps(insights.get(f'class_{class_id}', {}), indent=2) if insights else 'No insights available'}
+
+INSTRUCTIONS:
+- Provide thoughtful, practical teaching advice
+- Reference specific students when relevant (use names if mentioned)
+- Suggest evidence-based teaching strategies
+- Consider individual learning needs and class dynamics
+- Focus on student engagement, learning outcomes, and support
+
+Answer the teacher's question with specific, actionable advice based on the student data provided."""
+
+            # Generate response based on provider
+            if self.provider == "openai":
+                ai_response = self._generate_openai_response(system_prompt, message, None)
+            elif self.provider == "aws":
+                ai_response = self._generate_aws_response(system_prompt, message, None)
+            else:  # local
+                ai_response = self._generate_local_response(system_prompt, message, None)
+            
+            # Count tokens and update usage
+            total_tokens = self.count_tokens(system_prompt + message + ai_response)
+            self.update_token_usage(teacher_id, total_tokens)
+            
+            # Store teacher chat message
+            try:
+                chat_message = ChatMessage(
+                    user_id=teacher_id,
+                    class_id=class_id,
+                    ai_model_id=1,  # Default AI model for teachers
+                    message=message,
+                    response=ai_response,
+                    message_type='teacher',
+                    context_data=json.dumps({
+                        'student_count': len(students),
+                        'subject': class_obj.subject,
+                        'insights_available': bool(insights)
+                    })
+                )
+                db.session.add(chat_message)
+                db.session.commit()
+                print(f"Successfully saved teacher chat message to database")
+            except Exception as db_error:
+                print(f"Database error saving teacher chat: {db_error}")
+                db.session.rollback()
+            
+            return ai_response
+            
+        except Exception as e:
+            print(f"Error generating teacher AI response: {e}")
+            import traceback
+            traceback.print_exc()
+            return "Sorry, I encountered an error. Please try again."
+    
     def _create_student_summary(self, context):
         """Create a concise student summary to optimize token usage"""
         student_info = context.get('student_info', {})
