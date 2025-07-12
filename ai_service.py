@@ -280,7 +280,10 @@ Provide personalized {subject} help based on this student's learning style, curr
                 })
             
             # Get class insights
-            insights = self.get_teacher_insights(teacher_id, class_id)
+            insights_list = self.get_teacher_insights(teacher_id, class_id)
+            insights_text = "No insights available"
+            if insights_list and len(insights_list) > 0:
+                insights_text = json.dumps(insights_list[0], indent=2)
             
             system_prompt = f"""You are an AI teaching assistant helping a teacher understand their students and improve their teaching methods.
 
@@ -293,7 +296,7 @@ STUDENT PROFILES:
 {chr(10).join([f"- {s['name']}: {s['profile'][:200]}..." for s in student_profiles])}
 
 CLASS INSIGHTS:
-{json.dumps(insights.get(f'class_{class_id}', {}), indent=2) if insights else 'No insights available'}
+{insights_text}
 
 INSTRUCTIONS:
 - Provide thoughtful, practical teaching advice
@@ -328,7 +331,7 @@ Answer the teacher's question with specific, actionable advice based on the stud
                     context_data=json.dumps({
                         'student_count': len(students),
                         'subject': class_obj.subject,
-                        'insights_available': bool(insights)
+                        'insights_available': bool(insights_list)
                     })
                 )
                 db.session.add(chat_message)
