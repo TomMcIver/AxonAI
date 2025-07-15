@@ -8,10 +8,10 @@ from datetime import datetime
 
 @app.route('/')
 def index():
-    """Serve the React frontend"""
-    return render_template('spa_loader.html')
+    """Redirect to login page"""
+    return redirect(url_for('login'))
 
-@app.route('/legacy-login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     """Login page with user type selection"""
     if request.method == 'POST':
