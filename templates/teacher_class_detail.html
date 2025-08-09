@@ -21,9 +21,7 @@
                     <a href="{{ url_for('upload_content', class_id=class_obj.id) }}" class="btn btn-primary">
                         <i class="fas fa-upload me-1"></i>Upload Content
                     </a>
-                    <a href="{{ url_for('create_assignment', class_id=class_obj.id) }}" class="btn btn-success">
-                        <i class="fas fa-plus me-1"></i>Create Assignment
-                    </a>
+
                 </div>
             </div>
         </div>
@@ -126,7 +124,7 @@
                 {% if assignments %}
                 <div class="list-group list-group-flush">
                     {% for assignment in assignments %}
-                    <div class="list-group-item">
+                    <a href="{{ url_for('view_assignment', assignment_id=assignment.id) }}" class="list-group-item list-group-item-action">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <h6 class="mb-1">{{ assignment.title }}</h6>
@@ -138,23 +136,19 @@
                                     {% endif %}
                                 </small>
                             </div>
-                            <span class="badge bg-primary">{{ assignment.max_points }} pts</span>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-primary me-2">{{ assignment.max_points }} pts</span>
+                                <i class="fas fa-chevron-right text-muted"></i>
+                            </div>
                         </div>
-                        <div class="mt-2">
-                            <small class="text-muted">
-                                {{ assignment.submissions|length }} submissions
-                            </small>
-                        </div>
-                    </div>
+
+                    </a>
                     {% endfor %}
                 </div>
                 {% else %}
                 <div class="text-center py-4">
                     <i class="fas fa-tasks fa-2x text-muted mb-3"></i>
                     <p class="text-muted">No assignments created yet.</p>
-                    <a href="{{ url_for('create_assignment', class_id=class_obj.id) }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus me-1"></i>Create First Assignment
-                    </a>
                 </div>
                 {% endif %}
             </div>

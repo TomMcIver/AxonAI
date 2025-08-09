@@ -66,14 +66,24 @@ def dashboard():
                              student_count=student_count,
                              total_classes=total_classes)
     elif user.role == 'teacher':
-        # Get teacher's classes
+        # Get teacher's classes and real statistics
         teacher_classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
         total_students = sum(cls.get_student_count() for cls in teacher_classes)
+        
+        # Calculate pending grades (assignments without grades)
+        pending_grades = 0
+        for cls in teacher_classes:
+            for assignment in cls.assignments:
+                submissions_count = AssignmentSubmission.query.filter_by(assignment_id=assignment.id).count()
+                grades_count = Grade.query.filter_by(assignment_id=assignment.id).count()
+                pending_grades += submissions_count - grades_count
         
         return render_template('teacher_dashboard.html', 
                              user=user,
                              classes=teacher_classes,
-                             total_students=total_students)
+                             class_count=len(teacher_classes),
+                             total_students=total_students,
+                             pending_grades=pending_grades)
     elif user.role == 'student':
         # Get student's classes and overall average
         student_classes = user.classes
@@ -911,13 +921,27 @@ def teacher_ai_insights(class_id):
     student_profiles = []
     
     for student in students:
+        # Get student's chat messages for this class
+        chat_messages = ChatMessage.query.filter_by(user_id=student.id, class_id=class_id).all()
+        recent_chats = ChatMessage.query.filter_by(
+            user_id=student.id, class_id=class_id
+        ).order_by(ChatMessage.created_at.desc()).limit(3).all()
+        
+        # Get student's grades in this class
+        student_grades = Grade.query.join(Assignment).filter(
+            Assignment.class_id == class_id,
+            Grade.student_id == student.id
+        ).all()
+        
+        avg_grade = sum(g.grade for g in student_grades) / len(student_grades) if student_grades else 0
+        
         profile = {
             'student': student,
-            'ai_profile': student.get_ai_profile_summary(),
-            'chat_count': ChatMessage.query.filter_by(user_id=student.id, class_id=class_id).count(),
-            'recent_topics': [chat.message[:50] for chat in ChatMessage.query.filter_by(
-                user_id=student.id, class_id=class_id
-            ).order_by(ChatMessage.created_at.desc()).limit(3).all()]
+            'chat_count': len(chat_messages),
+            'recent_topics': [chat.message[:50] + '...' for chat in recent_chats],
+            'avg_grade': avg_grade,
+            'total_grades': len(student_grades),
+            'engagement_level': 'High' if len(chat_messages) > 10 else 'Medium' if len(chat_messages) > 3 else 'Low'
         }
         student_profiles.append(profile)
     
@@ -925,6 +949,26 @@ def teacher_ai_insights(class_id):
                          class_obj=class_obj,
                          insights=insights,
                          student_profiles=student_profiles)
+
+@app.route('/assignment/<int:assignment_id>')
+@role_required(['teacher'])
+def view_assignment(assignment_id):
+    """View and edit assignment details"""
+    assignment = Assignment.query.get_or_404(assignment_id)
+    user = get_current_user()
+    
+    # Check if teacher owns this assignment through the class
+    if assignment.class_obj.teacher_id != user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('teacher_classes'))
+    
+    submissions = AssignmentSubmission.query.filter_by(assignment_id=assignment_id).all()
+    grades = Grade.query.filter_by(assignment_id=assignment_id).all()
+    
+    return render_template('assignment_detail.html', 
+                         assignment=assignment, 
+                         submissions=submissions, 
+                         grades=grades)
 
 @app.route('/teacher/ai-chat/<int:class_id>')
 @login_required
