@@ -1,293 +1,298 @@
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Insights - {{ class_obj.name }}</title>
-    
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
-    <style>
-        .insight-card {
-            border-left: 4px solid #0d6efd;
-            background: rgba(13, 110, 253, 0.1);
-        }
-        .engagement-high {
-            border-left-color: #28a745;
-            background: rgba(40, 167, 69, 0.1);
-        }
-        .engagement-medium {
-            border-left-color: #ffc107;
-            background: rgba(255, 193, 7, 0.1);
-        }
-        .engagement-low {
-            border-left-color: #dc3545;
-            background: rgba(220, 53, 69, 0.1);
-        }
-        .student-profile-card {
-            border: 1px solid #404040;
-            transition: transform 0.2s;
-        }
-        .student-profile-card:hover {
-            transform: translateY(-2px);
-        }
-    </style>
-</head>
-<body>
-    <div class="container mt-4">
-        <!-- Header -->
-        <div class="row mb-4">
-            <div class="col">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2><i class="fas fa-chart-line text-info me-2"></i>AI Learning Insights</h2>
-                        <p class="text-muted mb-0">{{ class_obj.name }} - {{ class_obj.subject.title() }}</p>
-                    </div>
-                    <a href="{{ url_for('teacher_class_detail', class_id=class_obj.id) }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Class
-                    </a>
+{% extends "base.html" %}
+
+{% block title %}AI Insights - {{ class_obj.name }} - School Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="fas fa-brain me-2"></i>AI Insights</h2>
+                <p class="text-muted mb-0">{{ class_obj.name }} - {{ class_obj.subject }}</p>
+            </div>
+            <div>
+                <a href="{{ url_for('teacher_class_detail', class_id=class_obj.id) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Class
+                </a>
+                <a href="{{ url_for('teacher_ai_chat', class_id=class_obj.id) }}" class="btn btn-primary">
+                    <i class="fas fa-robot me-2"></i>AI Chat
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Service Status -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-robot me-3 fs-4"></i>
+                <div>
+                    <strong>AI Tutoring Active</strong>
+                    <p class="mb-0 small">Students can access personalized AI tutors for Math, Science, English, History, and Art subjects.</p>
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- Real-time Engagement Overview -->
-        {% set high_engagement = student_profiles | selectattr('engagement_level', 'equalto', 'High') | list | length %}
-        {% set medium_engagement = student_profiles | selectattr('engagement_level', 'equalto', 'Medium') | list | length %}
-        {% set low_engagement = student_profiles | selectattr('engagement_level', 'equalto', 'Low') | list | length %}
-        
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="card engagement-high">
-                    <div class="card-body text-center">
-                        <h3 class="text-success">{{ high_engagement }}</h3>
-                        <p class="mb-0">High Engagement</p>
-                        <small class="text-muted">10+ AI interactions</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card engagement-medium">
-                    <div class="card-body text-center">
-                        <h3 class="text-warning">{{ medium_engagement }}</h3>
-                        <p class="mb-0">Medium Engagement</p>
-                        <small class="text-muted">3-10 AI interactions</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card engagement-low">
-                    <div class="card-body text-center">
-                        <h3 class="text-danger">{{ low_engagement }}</h3>
-                        <p class="mb-0">Low Engagement</p>
-                        <small class="text-muted">Under 3 AI interactions</small>
-                    </div>
-                </div>
+<!-- Real-time Engagement Overview -->
+{% set high_engagement = student_profiles | selectattr('engagement_level', 'equalto', 'High') | list | length %}
+{% set medium_engagement = student_profiles | selectattr('engagement_level', 'equalto', 'Medium') | list | length %}
+{% set low_engagement = student_profiles | selectattr('engagement_level', 'equalto', 'Low') | list | length %}
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card engagement-high">
+            <div class="card-body text-center">
+                <h3 class="text-success">{{ high_engagement }}</h3>
+                <p class="mb-0">High Engagement</p>
+                <small class="text-muted">10+ AI interactions</small>
             </div>
         </div>
-
-            <!-- Learning Support Needs -->
-            <div class="row mb-4">
-                {% if class_insights.learning_difficulties %}
-                <div class="col-md-6">
-                    <div class="card insight-card">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="fas fa-heart me-2"></i>Learning Support Needs</h5>
-                        </div>
-                        <div class="card-body">
-                            {% for difficulty, count in class_insights.learning_difficulties.items() %}
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span>{{ difficulty }}</span>
-                                <span class="badge bg-primary">{{ count }} student{{ 's' if count != 1 else '' }}</span>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-                
-                {% if class_insights.primary_languages %}
-                <div class="col-md-6">
-                    <div class="card insight-card">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="fas fa-language me-2"></i>Language Diversity</h5>
-                        </div>
-                        <div class="card-body">
-                            {% for language, count in class_insights.primary_languages.items() %}
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span>{{ language }}</span>
-                                <span class="badge bg-info">{{ count }} student{{ 's' if count != 1 else '' }}</span>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
+    </div>
+    <div class="col-md-4">
+        <div class="card engagement-medium">
+            <div class="card-body text-center">
+                <h3 class="text-warning">{{ medium_engagement }}</h3>
+                <p class="mb-0">Medium Engagement</p>
+                <small class="text-muted">3-10 AI interactions</small>
             </div>
-
-            <!-- Common Questions -->
-            {% if class_insights.common_questions %}
-            <div class="card mb-4 insight-card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Most Common AI Tutor Questions</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        {% for question in class_insights.common_questions %}
-                        <div class="col-md-6 mb-2">
-                            <div class="alert alert-secondary mb-2">
-                                <i class="fas fa-comment me-2"></i>{{ question }}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card engagement-low">
+            <div class="card-body text-center">
+                <h3 class="text-danger">{{ low_engagement }}</h3>
+                <p class="mb-0">Low Engagement</p>
+                <small class="text-muted">Under 3 AI interactions</small>
             </div>
-            {% endif %}
-        {% endif %}
+        </div>
+    </div>
+</div>
 
-        <!-- Individual Student Profiles -->
-        <div class="card">
+<!-- Class Performance Summary -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card insight-card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Individual Student AI Profiles</h5>
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Class Performance</h5>
             </div>
             <div class="card-body">
-                <div class="row">
-                    {% for profile in student_profiles %}
-                    <div class="col-md-6 mb-4">
-                        <div class="card student-profile-card" onclick="showStudentDetails({{ profile.student.id }}, '{{ profile.student.get_full_name() }}', {{ profile.chat_count }}, {{ profile.avg_grade }}, '{{ profile.engagement_level }}', {{ profile.recent_topics | tojson }})" style="cursor: pointer;">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">{{ profile.student.get_full_name() }}</h6>
-                                <span class="badge bg-{{ 'success' if profile.engagement_level == 'High' else 'warning' if profile.engagement_level == 'Medium' else 'secondary' }}">
-                                    {{ profile.engagement_level }} Engagement
-                                </span>
-                            </div>
-                            <div class="card-body">
-                                <div class="row text-center mb-3">
-                                    <div class="col-4">
-                                        <h5 class="text-info">{{ profile.chat_count }}</h5>
-                                        <small class="text-muted">AI Chats</small>
-                                    </div>
-                                    <div class="col-4">
-                                        <h5 class="{{ 'text-success' if profile.avg_grade >= 70 else 'text-warning' if profile.avg_grade >= 50 else 'text-danger' }}">
-                                            {% if profile.avg_grade > 0 %}{{ "%.1f"|format(profile.avg_grade) }}%{% else %}No Grades{% endif %}
-                                        </h5>
-                                        <small class="text-muted">Average Grade</small>
-                                    </div>
-                                    <div class="col-4">
-                                        <h5 class="text-primary">{{ profile.total_grades }}</h5>
-                                        <small class="text-muted">Total Grades</small>
-                                    </div>
-                                </div>
-                                
-                                <!-- Recent Topics Preview -->
-                                {% if profile.recent_topics %}
-                                <div class="mb-2">
-                                    <small class="text-muted">Recent AI Topics:</small>
-                                    {% for topic in profile.recent_topics[:2] %}
-                                    <div class="badge bg-outline-secondary me-1 mb-1 text-truncate" style="max-width: 120px;">{{ topic }}</div>
-                                    {% endfor %}
-                                    {% if profile.recent_topics|length > 2 %}
-                                    <div class="badge bg-light text-dark">+{{ profile.recent_topics|length - 2 }} more</div>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
-                                
-                                <div class="text-center">
-                                    <small class="text-muted"><i class="fas fa-mouse-pointer"></i> Click for detailed insights</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
+                {% set total_students = student_profiles|length %}
+                {% set graded_students = student_profiles | selectattr('total_grades', 'greaterthan', 0) | list | length %}
+                {% set avg_class_grade = (student_profiles | selectattr('avg_grade', 'greaterthan', 0) | map(attribute='avg_grade') | sum) / (student_profiles | selectattr('avg_grade', 'greaterthan', 0) | list | length) if (student_profiles | selectattr('avg_grade', 'greaterthan', 0) | list | length) > 0 else 0 %}
+                
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Students with Grades:</span>
+                    <span class="badge bg-primary">{{ graded_students }}/{{ total_students }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Class Average:</span>
+                    <span class="badge bg-{{ 'success' if avg_class_grade >= 70 else 'warning' if avg_class_grade >= 50 else 'danger' }}">
+                        {% if avg_class_grade > 0 %}{{ "%.1f"|format(avg_class_grade) }}%{% else %}No grades yet{% endif %}
+                    </span>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Student Detail Modal -->
-    <div class="modal fade" id="studentDetailModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="studentModalTitle">Student Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="studentModalBody">
-                    <!-- Content will be loaded dynamically -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <script>
-        function showStudentDetails(studentId, studentName, chatCount, avgGrade, engagementLevel, recentTopics) {
-            // Update modal title
-            document.getElementById('studentModalTitle').textContent = studentName + ' - Detailed AI Insights';
-            
-            // Build modal content
-            const modalBody = document.getElementById('studentModalBody');
-            modalBody.innerHTML = `
-                <div class="row mb-4">
-                    <div class="col-md-4 text-center">
-                        <div class="bg-info p-3 rounded">
-                            <h3>${chatCount}</h3>
-                            <small>Total AI Interactions</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4 text-center">
-                        <div class="bg-${avgGrade >= 70 ? 'success' : avgGrade >= 50 ? 'warning' : 'danger'} p-3 rounded">
-                            <h3>${avgGrade > 0 ? avgGrade.toFixed(1) + '%' : 'No Grades'}</h3>
-                            <small>Class Average</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4 text-center">
-                        <div class="bg-${engagementLevel === 'High' ? 'success' : engagementLevel === 'Medium' ? 'warning' : 'secondary'} p-3 rounded">
-                            <h5>${engagementLevel}</h5>
-                            <small>Engagement Level</small>
-                        </div>
-                    </div>
-                </div>
+    <div class="col-md-6">
+        <div class="card insight-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-comments me-2"></i>AI Activity Summary</h5>
+            </div>
+            <div class="card-body">
+                {% set total_chats = student_profiles | map(attribute='chat_count') | sum %}
+                {% set active_students = student_profiles | selectattr('chat_count', 'greaterthan', 0) | list | length %}
                 
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-comments me-2"></i>Recent AI Interactions</h6>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Total AI Interactions:</span>
+                    <span class="badge bg-info">{{ total_chats }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Students Using AI:</span>
+                    <span class="badge bg-success">{{ active_students }}/{{ total_students }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Individual Student Profiles -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-users me-2"></i>Individual Student AI Profiles</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for profile in student_profiles %}
+            <div class="col-md-6 mb-4">
+                <div class="card student-profile-card" onclick="showStudentDetails({{ profile.student.id }}, '{{ profile.student.get_full_name() }}', {{ profile.chat_count }}, {{ profile.avg_grade }}, '{{ profile.engagement_level }}', {{ profile.recent_topics | tojson }})" style="cursor: pointer;">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">{{ profile.student.get_full_name() }}</h6>
+                        <span class="badge bg-{{ 'success' if profile.engagement_level == 'High' else 'warning' if profile.engagement_level == 'Medium' else 'secondary' }}">
+                            {{ profile.engagement_level }} Engagement
+                        </span>
                     </div>
                     <div class="card-body">
-                        ${recentTopics.length > 0 ? 
-                            recentTopics.map(topic => `<div class="alert alert-light mb-2"><i class="fas fa-comment me-2"></i>${topic}</div>`).join('') :
-                            '<p class="text-muted">No recent AI interactions in this class.</p>'
-                        }
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <h5 class="text-info">{{ profile.chat_count }}</h5>
+                                <small class="text-muted">AI Chats</small>
+                            </div>
+                            <div class="col-4">
+                                <h5 class="{{ 'text-success' if profile.avg_grade >= 70 else 'text-warning' if profile.avg_grade >= 50 else 'text-danger' }}">
+                                    {% if profile.avg_grade > 0 %}{{ "%.1f"|format(profile.avg_grade) }}%{% else %}No Grades{% endif %}
+                                </h5>
+                                <small class="text-muted">Average Grade</small>
+                            </div>
+                            <div class="col-4">
+                                <h5 class="text-primary">{{ profile.total_grades }}</h5>
+                                <small class="text-muted">Total Grades</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Recent Topics Preview -->
+                        {% if profile.recent_topics %}
+                        <div class="mb-2">
+                            <small class="text-muted">Recent AI Topics:</small>
+                            {% for topic in profile.recent_topics[:2] %}
+                            <div class="badge bg-outline-secondary me-1 mb-1 text-truncate" style="max-width: 120px;">{{ topic }}</div>
+                            {% endfor %}
+                            {% if profile.recent_topics|length > 2 %}
+                            <div class="badge bg-light text-dark">+{{ profile.recent_topics|length - 2 }} more</div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="text-center">
+                            <small class="text-muted"><i class="fas fa-mouse-pointer"></i> Click for detailed insights</small>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="card mt-3">
-                    <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Teacher Recommendations</h6>
-                    </div>
-                    <div class="card-body">
-                        ${engagementLevel === 'Low' ? 
-                            '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Consider encouraging this student to use the AI tutor more frequently for additional support.</div>' :
-                            engagementLevel === 'High' ?
-                            '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>This student is actively engaged with AI learning tools. Continue providing challenging content.</div>' :
-                            '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>This student shows moderate engagement. Consider introducing new AI features or topics.</div>'
-                        }
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Student Detail Modal -->
+<div class="modal fade" id="studentDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="studentModalTitle">Student Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="studentModalBody">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    function showStudentDetails(studentId, studentName, chatCount, avgGrade, engagementLevel, recentTopics) {
+        // Update modal title
+        document.getElementById('studentModalTitle').textContent = studentName + ' - Detailed AI Insights';
+        
+        // Build modal content
+        const modalBody = document.getElementById('studentModalBody');
+        modalBody.innerHTML = `
+            <div class="row mb-4">
+                <div class="col-md-4 text-center">
+                    <div class="bg-info p-3 rounded">
+                        <h3>${chatCount}</h3>
+                        <small>Total AI Interactions</small>
                     </div>
                 </div>
-            `;
+                <div class="col-md-4 text-center">
+                    <div class="bg-${avgGrade >= 70 ? 'success' : avgGrade >= 50 ? 'warning' : 'danger'} p-3 rounded">
+                        <h3>${avgGrade > 0 ? avgGrade.toFixed(1) + '%' : 'No Grades'}</h3>
+                        <small>Class Average</small>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="bg-${engagementLevel === 'High' ? 'success' : engagementLevel === 'Medium' ? 'warning' : 'secondary'} p-3 rounded">
+                        <h5>${engagementLevel}</h5>
+                        <small>Engagement Level</small>
+                    </div>
+                </div>
+            </div>
             
-            // Show the modal
-            const modal = new bootstrap.Modal(document.getElementById('studentDetailModal'));
-            modal.show();
-        }
-    </script>
-</body>
-</html>
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-comments me-2"></i>Recent AI Interactions</h6>
+                </div>
+                <div class="card-body">
+                    ${recentTopics.length > 0 ? 
+                        recentTopics.map(topic => `<div class="alert alert-light mb-2"><i class="fas fa-comment me-2"></i>${topic}</div>`).join('') :
+                        '<p class="text-muted">No recent AI interactions in this class.</p>'
+                    }
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Teacher Recommendations</h6>
+                </div>
+                <div class="card-body">
+                    ${engagementLevel === 'Low' ? 
+                        '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Consider encouraging this student to use the AI tutor more frequently for additional support.</div>' :
+                        engagementLevel === 'High' ?
+                        '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>This student is actively engaged with AI learning tools. Continue providing challenging content.</div>' :
+                        '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>This student shows moderate engagement. Consider introducing new AI features or topics.</div>'
+                    }
+                </div>
+            </div>
+        `;
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('studentDetailModal'));
+        modal.show();
+    }
+</script>
+
+<style>
+.insight-card {
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.insight-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.student-profile-card {
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.student-profile-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    border-color: var(--bs-primary);
+}
+
+.engagement-high .card-body {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+}
+
+.engagement-medium .card-body {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05));
+}
+
+.engagement-low .card-body {
+    background: linear-gradient(135deg, rgba(108, 117, 125, 0.1), rgba(108, 117, 125, 0.05));
+}
+</style>
+{% endblock %}
