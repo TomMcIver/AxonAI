@@ -388,7 +388,7 @@
                         <rect x="-15" y="27" width="30" height="15" fill="#0d0d0d" stroke="#1a1a1a" stroke-width="1" rx="1" ry="1" class="laptop-screen"/>
                     </g>
                     
-                    <g id="student8" transform="translate(575, 480)">
+                    <g id="student8" transform="translate(500, 480)">
                         <rect x="-25" y="30" width="50" height="35" fill="#1a1a1a" stroke="#333" stroke-width="2" rx="3" ry="3"/>
                         <rect x="-22" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
                         <rect x="16" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
@@ -400,7 +400,19 @@
                         <rect x="-15" y="27" width="30" height="15" fill="#0d0d0d" stroke="#1a1a1a" stroke-width="1" rx="1" ry="1" class="laptop-screen"/>
                     </g>
                     
-                    <g id="student9" transform="translate(725, 480)">
+                    <g id="student9" transform="translate(575, 480)">
+                        <rect x="-25" y="30" width="50" height="35" fill="#1a1a1a" stroke="#333" stroke-width="2" rx="3" ry="3"/>
+                        <rect x="-22" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+                        <rect x="16" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+                        <rect x="-12" y="0" width="24" height="45" fill="#404040" stroke="#303030" stroke-width="2" rx="3" ry="3" class="student-body"/>
+                        <circle cx="0" cy="-15" r="15" fill="#404040" stroke="#303030" stroke-width="2" class="student-head"/>
+                        <rect x="-20" y="15" width="8" height="25" fill="#404040" stroke="#303030" stroke-width="1" rx="4" ry="4"/>
+                        <rect x="12" y="15" width="8" height="25" fill="#404040" stroke="#303030" stroke-width="1" rx="4" ry="4"/>
+                        <rect x="-18" y="25" width="36" height="20" fill="#2d2d2d" stroke="#404040" stroke-width="1" rx="2" ry="2" class="laptop"/>
+                        <rect x="-15" y="27" width="30" height="15" fill="#0d0d0d" stroke="#1a1a1a" stroke-width="1" rx="1" ry="1" class="laptop-screen"/>
+                    </g>
+                    
+                    <g id="student10" transform="translate(725, 480)">
                         <rect x="-25" y="30" width="50" height="35" fill="#1a1a1a" stroke="#333" stroke-width="2" rx="3" ry="3"/>
                         <rect x="-22" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
                         <rect x="16" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
@@ -460,6 +472,12 @@
                           opacity="0" 
                           class="beam-line" 
                           filter="url(#glow)"/>
+                    <line x1="500" y1="250" x2="500" y2="480" 
+                          stroke="url(#harmonyGradient)" 
+                          stroke-width="4" 
+                          opacity="0" 
+                          class="beam-line" 
+                          filter="url(#glow)"/>
                     <line x1="500" y1="250" x2="575" y2="480" 
                           stroke="url(#harmonyGradient)" 
                           stroke-width="4" 
@@ -475,7 +493,7 @@
                 </g>
                 
                 <!-- Harmony Text -->
-                <text x="500" y="100" font-family="Arial, sans-serif" font-size="24" fill="#808080" text-anchor="middle" opacity="0" id="harmony-text">
+                <text x="500" y="100" font-family="Arial, sans-serif" font-size="24" fill="#808080" text-anchor="middle" opacity="0.6" id="harmony-text">
                     Teacher + AI = Every Student Seen
                 </text>
             </svg>
@@ -522,39 +540,40 @@
             const beamLines = document.querySelectorAll('.beam-line');
             const students = document.querySelectorAll('#students g');
 
-            // Step 1: Show connection lines from teacher and robot simultaneously (2s)
+            // Step 1: Show connection lines from teacher and robot simultaneously (1.5s)
             setTimeout(() => {
-                teacherLine.style.transition = 'opacity 2s ease-out, stroke 2s ease-out';
-                robotLine.style.transition = 'opacity 2s ease-out, stroke 2s ease-out';
+                teacherLine.style.transition = 'all 1.5s ease-out';
+                robotLine.style.transition = 'all 1.5s ease-out';
                 teacherLine.style.opacity = '1';
                 robotLine.style.opacity = '1';
                 teacherLine.style.stroke = '#ffffff';
                 robotLine.style.stroke = '#ffffff';
                 updateProgress();
-            }, 2000);
+            }, 1500);
 
-            // Step 2: Grow central harmony dot (5s)
+            // Step 2: Grow central harmony dot (3.5s)
             setTimeout(() => {
-                harmonyDot.style.transition = 'all 2.5s ease-out';
+                harmonyDot.style.transition = 'all 2s ease-out';
                 harmonyDot.style.r = '20';
                 harmonyDot.style.opacity = '1';
                 harmonyDot.style.filter = 'drop-shadow(0 0 30px rgba(255, 255, 255, 0.8))';
-                harmonyText.style.opacity = '0.8';
+                harmonyText.style.transition = 'opacity 1s ease-out';
+                harmonyText.style.opacity = '1';
                 updateProgress();
-            }, 5000);
+            }, 3500);
 
-            // Step 3: Beam out to students (8s)
+            // Step 3: Beam out to students (6s)
             setTimeout(() => {
                 beamLines.forEach((beam, index) => {
                     setTimeout(() => {
                         beam.style.opacity = '1';
-                        beam.style.transition = 'opacity 1s ease-out';
-                    }, index * 200);
+                        beam.style.transition = 'opacity 0.8s ease-out';
+                    }, index * 150);
                 });
                 updateProgress();
-            }, 8000);
+            }, 6000);
 
-            // Step 4: Enlighten students (11s)
+            // Step 4: Enlighten students (9s)
             setTimeout(() => {
                 students.forEach((student, index) => {
                     setTimeout(() => {
@@ -562,10 +581,10 @@
                         student.querySelector('.student-head').classList.add('student-enlightened');
                         student.querySelector('.laptop-screen').classList.add('laptop-active');
                         
-                        if (index === 4) updateProgress();
-                    }, index * 400);
+                        if (index === students.length - 1) updateProgress();
+                    }, index * 300);
                 });
-            }, 11000);
+            }, 9000);
 
             // Step 5: Final and redirect (15s)
             setTimeout(() => {
