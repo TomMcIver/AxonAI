@@ -8,7 +8,12 @@ from datetime import datetime
 
 @app.route('/')
 def index():
-    """Redirect to login page"""
+    """Landing page"""
+    return render_template('landing.html')
+
+@app.route('/demo')
+def demo():
+    """Redirect to login for demo"""
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
