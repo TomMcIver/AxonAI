@@ -231,7 +231,7 @@
                 <rect x="50" y="380" width="900" height="200" fill="#0f0f0f" opacity="0.5" rx="10" ry="10"/>
                 
                 <!-- Human Teacher (Left) -->
-                <g id="human-teacher" transform="translate(400, 180)" filter="url(#glow)">
+                <g id="human-teacher" transform="translate(400, 180)">
                     <!-- Body -->
                     <rect x="-20" y="20" width="40" height="70" fill="url(#humanGradient)" stroke="#303030" stroke-width="2" rx="5" ry="5"/>
                     <!-- Head -->
@@ -254,7 +254,7 @@
                 </g>
                 
                 <!-- AI Robot (Right) -->
-                <g id="ai-robot" transform="translate(600, 180)" class="teacher-ai-side" filter="url(#glow)">
+                <g id="ai-robot" transform="translate(600, 180)" class="teacher-ai-side">
                     <!-- Body -->
                     <rect x="-25" y="20" width="50" height="70" fill="url(#aiGradient)" stroke="#606060" stroke-width="2" rx="3" ry="3"/>
                     <!-- Head -->
@@ -506,14 +506,29 @@
             const beamLines = document.querySelectorAll('.beam-line');
             const students = document.querySelectorAll('#students g');
 
-            // Step 1: Show connection lines from teacher and robot simultaneously (1.5s)
+            // Step 1: Show teacher and robot with glow, then connection lines (1.5s)
             setTimeout(() => {
-                teacherLine.style.transition = 'all 1.5s ease-out';
-                robotLine.style.transition = 'all 1.5s ease-out';
-                teacherLine.style.opacity = '1';
-                robotLine.style.opacity = '1';
-                teacherLine.style.stroke = '#ffffff';
-                robotLine.style.stroke = '#ffffff';
+                // Show and glow teacher and robot first
+                const humanTeacher = document.querySelector('#human-teacher');
+                const aiRobot = document.querySelector('#ai-robot');
+                
+                humanTeacher.style.transition = 'opacity 1s ease-out, filter 1s ease-out';
+                aiRobot.style.transition = 'opacity 1s ease-out, filter 1s ease-out';
+                humanTeacher.style.opacity = '1';
+                aiRobot.style.opacity = '1';
+                humanTeacher.style.filter = 'url(#glow)';
+                aiRobot.style.filter = 'url(#glow)';
+                
+                // Then show connection lines
+                setTimeout(() => {
+                    teacherLine.style.transition = 'all 1.5s ease-out';
+                    robotLine.style.transition = 'all 1.5s ease-out';
+                    teacherLine.style.opacity = '1';
+                    robotLine.style.opacity = '1';
+                    teacherLine.style.stroke = '#ffffff';
+                    robotLine.style.stroke = '#ffffff';
+                }, 500);
+                
                 updateProgress();
             }, 1500);
 
