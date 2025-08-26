@@ -208,24 +208,10 @@
                     </linearGradient>
 
                     <!-- Glow Filter -->
-                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
                         <feMerge>
                             <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                    </filter>
-                    
-                    <!-- Stronger Glow Filter -->
-                    <filter id="strongGlow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
-                        <feComponentTransfer in="coloredBlur" result="boosted">
-                            <feFuncA type="discrete" tableValues="0 .8 .8 .8 .8 .8 .8 .8 .8 .8 .8 .8 .8 .8 .8 .8 1"/>
-                        </feComponentTransfer>
-                        <feMerge>
-                            <feMergeNode in="boosted"/>
-                            <feMergeNode in="boosted"/>
                             <feMergeNode in="SourceGraphic"/>
                         </feMerge>
                     </filter>
@@ -245,7 +231,7 @@
                 <rect x="50" y="380" width="900" height="200" fill="#0f0f0f" opacity="0.5" rx="10" ry="10"/>
                 
                 <!-- Human Teacher (Left) -->
-                <g id="human-teacher" transform="translate(400, 180)" opacity="0">
+                <g id="human-teacher" transform="translate(400, 180)">
                     <!-- Body -->
                     <rect x="-20" y="20" width="40" height="70" fill="url(#humanGradient)" stroke="#303030" stroke-width="2" rx="5" ry="5"/>
                     <!-- Head -->
@@ -268,7 +254,7 @@
                 </g>
                 
                 <!-- AI Robot (Right) -->
-                <g id="ai-robot" transform="translate(600, 180)" class="teacher-ai-side" opacity="0">
+                <g id="ai-robot" transform="translate(600, 180)" class="teacher-ai-side">
                     <!-- Body -->
                     <rect x="-25" y="20" width="50" height="70" fill="url(#aiGradient)" stroke="#606060" stroke-width="2" rx="3" ry="3"/>
                     <!-- Head -->
@@ -526,12 +512,12 @@
                 const humanTeacher = document.querySelector('#human-teacher');
                 const aiRobot = document.querySelector('#ai-robot');
                 
-                humanTeacher.style.transition = 'opacity 1s ease-out';
-                aiRobot.style.transition = 'opacity 1s ease-out';
+                humanTeacher.style.transition = 'opacity 1s ease-out, filter 1s ease-out';
+                aiRobot.style.transition = 'opacity 1s ease-out, filter 1s ease-out';
                 humanTeacher.style.opacity = '1';
                 aiRobot.style.opacity = '1';
-                humanTeacher.setAttribute('filter', 'url(#strongGlow)');
-                aiRobot.setAttribute('filter', 'url(#strongGlow)');
+                humanTeacher.style.filter = 'url(#glow)';
+                aiRobot.style.filter = 'url(#glow)';
                 
                 // Then show connection lines
                 setTimeout(() => {
