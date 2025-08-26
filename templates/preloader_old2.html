@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduAI - Loading</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --black: #000000;
+            --white: #ffffff;
+            --gray-dark: #2d2d2d;
+            --gray-mid: #4a4a4a;
+            --gray-light: #808080;
+            --gray-lighter: #b3b3b3;
+            --gray-lightest: #e0e0e0;
+            --ai-glow: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #1a1a1a 0%, #000000 100%);
+            color: var(--white);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preloader-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* SVG Scene Container */
+        .scene-container {
+            width: 900px;
+            height: 600px;
+            position: relative;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* AI Brain Glow Animation */
+        @keyframes brainGlow {
+            0%, 100% { 
+                filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.5)); 
+            }
+            50% { 
+                filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.9)); 
+            }
+        }
+
+        .ai-brain-active {
+            animation: brainGlow 2s ease-in-out infinite;
+        }
+
+        /* Student Glow Animation */
+        @keyframes studentGlow {
+            0% { 
+                fill: #404040;
+                filter: none;
+            }
+            100% { 
+                fill: #e0e0e0;
+                filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8));
+            }
+        }
+
+        .student-enlightened {
+            animation: studentGlow 1s ease-in-out forwards;
+        }
+
+        /* Laptop Screen Glow */
+        @keyframes screenGlow {
+            0% { 
+                fill: #2d2d2d;
+            }
+            100% { 
+                fill: #b3b3b3;
+                filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.6));
+            }
+        }
+
+        .laptop-screen-active {
+            animation: screenGlow 0.5s ease-in-out forwards;
+        }
+
+        /* Connection Line Animation */
+        @keyframes connectionFlow {
+            0% { 
+                stroke-dashoffset: 1000;
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% { 
+                stroke-dashoffset: 0;
+                opacity: 1;
+            }
+        }
+
+        .connection-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            opacity: 0;
+        }
+
+        .connection-active {
+            animation: connectionFlow 1.5s ease-in-out forwards;
+        }
+
+        /* Loading Text */
+        .loading-container {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            width: 500px;
+        }
+
+        .loading-text {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--white);
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, transparent, var(--white), transparent);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 2px;
+        }
+
+        /* Pulse Animation for Elements */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        /* Fade out animation */
+        .fade-out {
+            opacity: 0;
+            transition: opacity 1s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="preloader-container">
+        <div class="scene-container">
+            <svg viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+                <!-- Background Elements -->
+                <rect x="0" y="0" width="900" height="600" fill="transparent"/>
+                
+                <!-- Classroom Floor -->
+                <path d="M 100 400 L 800 400 L 850 550 L 50 550 Z" 
+                      fill="#1a1a1a" 
+                      stroke="#333" 
+                      stroke-width="2"/>
+                
+                <!-- Back Wall -->
+                <rect x="100" y="100" width="700" height="300" 
+                      fill="#262626" 
+                      stroke="#333" 
+                      stroke-width="2"/>
+                
+                <!-- Blackboard -->
+                <rect x="300" y="150" width="300" height="150" 
+                      fill="#1a1a1a" 
+                      stroke="#404040" 
+                      stroke-width="3" 
+                      rx="2" ry="2"/>
+                
+                <!-- Teacher Figure (Infographic Style) -->
+                <g id="teacher" transform="translate(450, 250)">
+                    <!-- Body -->
+                    <rect x="-20" y="0" width="40" height="60" fill="#4a4a4a" rx="3" ry="3"/>
+                    <!-- Head -->
+                    <circle cx="0" cy="-20" r="18" fill="#4a4a4a"/>
+                    <!-- Arms -->
+                    <rect x="-20" y="10" width="10" height="30" fill="#4a4a4a" rx="5" ry="5"/>
+                    <rect x="10" y="10" width="10" height="30" fill="#4a4a4a" rx="5" ry="5"/>
+                </g>
+                
+                <!-- Students Row 1 -->
+                <g id="student1" class="student-group" transform="translate(250, 350)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <!-- Laptop -->
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student2" class="student-group" transform="translate(350, 350)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student3" class="student-group" transform="translate(450, 350)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student4" class="student-group" transform="translate(550, 350)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student5" class="student-group" transform="translate(650, 350)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <!-- Students Row 2 -->
+                <g id="student6" class="student-group" transform="translate(300, 430)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student7" class="student-group" transform="translate(400, 430)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student8" class="student-group" transform="translate(500, 430)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student9" class="student-group" transform="translate(600, 430)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <!-- Hybrid Human-AI Brain -->
+                <g id="ai-brain" transform="translate(750, 150)">
+                    <!-- Brain Outline (Human-like) -->
+                    <path d="M -40 -10 Q -50 -30, -30 -40 Q -10 -50, 10 -45 Q 30 -40, 45 -25 Q 50 -5, 45 15 Q 40 35, 20 45 Q 0 50, -20 45 Q -40 35, -45 15 Q -50 -5, -40 -10 Z" 
+                          fill="#404040" 
+                          stroke="#666" 
+                          stroke-width="3" 
+                          class="brain-outer"/>
+                    
+                    <!-- Human Brain Folds -->
+                    <path d="M -35 -5 Q -25 -15, -15 -10 Q -5 -15, 5 -10 Q 15 -15, 25 -10 Q 35 -15, 40 -5" 
+                          fill="none" 
+                          stroke="#666" 
+                          stroke-width="2"/>
+                    <path d="M -35 5 Q -25 -5, -15 0 Q -5 -5, 5 0 Q 15 -5, 25 0 Q 35 -5, 40 5" 
+                          fill="none" 
+                          stroke="#666" 
+                          stroke-width="2"/>
+                    <path d="M -35 15 Q -25 5, -15 10 Q -5 5, 5 10 Q 15 5, 25 10 Q 35 5, 40 15" 
+                          fill="none" 
+                          stroke="#666" 
+                          stroke-width="2"/>
+                    
+                    <!-- AI Circuit Overlay -->
+                    <circle cx="-20" cy="-15" r="3" fill="#666" class="circuit-node"/>
+                    <circle cx="0" cy="-20" r="3" fill="#666" class="circuit-node"/>
+                    <circle cx="20" cy="-15" r="3" fill="#666" class="circuit-node"/>
+                    <circle cx="-15" cy="0" r="3" fill="#666" class="circuit-node"/>
+                    <circle cx="15" cy="0" r="3" fill="#666" class="circuit-node"/>
+                    <circle cx="-10" cy="20" r="3" fill="#666" class="circuit-node"/>
+                    <circle cx="10" cy="20" r="3" fill="#666" class="circuit-node"/>
+                    
+                    <!-- Neural Network Lines -->
+                    <line x1="-20" y1="-15" x2="0" y2="-20" stroke="#666" stroke-width="1.5"/>
+                    <line x1="0" y1="-20" x2="20" y2="-15" stroke="#666" stroke-width="1.5"/>
+                    <line x1="-20" y1="-15" x2="-15" y2="0" stroke="#666" stroke-width="1.5"/>
+                    <line x1="20" y1="-15" x2="15" y2="0" stroke="#666" stroke-width="1.5"/>
+                    <line x1="-15" y1="0" x2="-10" y2="20" stroke="#666" stroke-width="1.5"/>
+                    <line x1="15" y1="0" x2="10" y2="20" stroke="#666" stroke-width="1.5"/>
+                    <line x1="-10" y1="20" x2="10" y2="20" stroke="#666" stroke-width="1.5"/>
+                    
+                    <!-- Central Processing Core -->
+                    <circle cx="0" cy="0" r="8" fill="#666" class="brain-core"/>
+                    <path d="M -5 -5 L 5 5 M 5 -5 L -5 5" stroke="#404040" stroke-width="2"/>
+                </g>
+                
+                <!-- Connection Lines (Will be animated) -->
+                <line x1="700" y1="150" x2="250" y2="335" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn1"/>
+                <line x1="700" y1="150" x2="350" y2="335" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn2"/>
+                <line x1="700" y1="150" x2="450" y2="335" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn3"/>
+                <line x1="700" y1="150" x2="550" y2="335" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn4"/>
+                <line x1="700" y1="150" x2="650" y2="335" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn5"/>
+                <line x1="700" y1="170" x2="300" y2="415" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn6"/>
+                <line x1="700" y1="170" x2="400" y2="415" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn7"/>
+                <line x1="700" y1="170" x2="500" y2="415" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn8"/>
+                <line x1="700" y1="170" x2="600" y2="415" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn9"/>
+            </svg>
+        </div>
+
+        <!-- Loading UI -->
+        <div class="loading-container">
+            <div class="loading-text">Initializing AI Education Platform...</div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let progress = 0;
+        let currentStep = 0;
+        const steps = [
+            "Initializing AI Education Platform...",
+            "Activating AI Neural Network...",
+            "Connecting to Student Interfaces...",
+            "Personalizing Learning Experiences...",
+            "Launching EduAI System..."
+        ];
+
+        function updateProgress() {
+            const progressBar = document.querySelector('.progress-fill');
+            const loadingText = document.querySelector('.loading-text');
+            
+            progress += 20;
+            progressBar.style.width = progress + '%';
+            
+            if (currentStep < steps.length) {
+                loadingText.textContent = steps[currentStep];
+                currentStep++;
+            }
+        }
+
+        function startAnimation() {
+            const brainOuter = document.querySelector('.brain-outer');
+            const brainCore = document.querySelector('.brain-core');
+            const students = document.querySelectorAll('.student-group');
+            const connections = document.querySelectorAll('.connection-line');
+
+            // Step 1: Activate AI Brain (1s)
+            setTimeout(() => {
+                brainOuter.setAttribute('fill', '#e0e0e0');
+                brainCore.setAttribute('fill', '#ffffff');
+                document.querySelector('#ai-brain').classList.add('ai-brain-active');
+                updateProgress();
+            }, 1000);
+
+            // Step 2: Show connections (2s)
+            setTimeout(() => {
+                connections.forEach((connection, index) => {
+                    setTimeout(() => {
+                        connection.classList.add('connection-active');
+                        connection.setAttribute('stroke', '#ffffff');
+                    }, index * 100);
+                });
+                updateProgress();
+            }, 2000);
+
+            // Step 3: Activate students one by one (3-7s)
+            setTimeout(() => {
+                students.forEach((student, index) => {
+                    setTimeout(() => {
+                        // Enlighten student body and head
+                        student.querySelector('.student-body').classList.add('student-enlightened');
+                        student.querySelector('.student-head').classList.add('student-enlightened');
+                        
+                        // Activate laptop screen
+                        student.querySelector('.laptop-screen').classList.add('laptop-screen-active');
+                        
+                        if (index === 4) updateProgress(); // Mid-way through students
+                    }, index * 400);
+                });
+            }, 3500);
+
+            // Step 4: Complete activation (8s)
+            setTimeout(() => {
+                updateProgress();
+            }, 7500);
+
+            // Step 5: Final step and transition (9s)
+            setTimeout(() => {
+                updateProgress();
+                
+                // Fade out and redirect after a moment
+                setTimeout(() => {
+                    document.querySelector('.preloader-container').classList.add('fade-out');
+                    setTimeout(() => {
+                        window.location.href = '/main';
+                    }, 1000);
+                }, 1500);
+            }, 9000);
+        }
+
+        // Start the animation sequence
+        setTimeout(startAnimation, 500);
+    </script>
+</body>
+</html>
