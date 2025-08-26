@@ -15,23 +15,17 @@
         :root {
             --black: #000000;
             --white: #ffffff;
-            --gray-900: #1a1a1a;
-            --gray-800: #262626;
-            --gray-700: #404040;
-            --gray-600: #525252;
-            --gray-500: #737373;
-            --gray-400: #a3a3a3;
-            --gray-300: #d4d4d4;
-            --gray-200: #e5e5e5;
-            --gray-100: #f5f5f5;
-            --ai-glow: rgba(255, 255, 255, 0.8);
-            --shadow-light: rgba(255, 255, 255, 0.1);
-            --shadow-dark: rgba(0, 0, 0, 0.8);
+            --gray-dark: #2d2d2d;
+            --gray-mid: #4a4a4a;
+            --gray-light: #808080;
+            --gray-lighter: #b3b3b3;
+            --gray-lightest: #e0e0e0;
+            --ai-glow: #ffffff;
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            background: var(--black);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #1a1a1a 0%, #000000 100%);
             color: var(--white);
             overflow: hidden;
             height: 100vh;
@@ -41,317 +35,136 @@
         }
 
         .preloader-container {
-            position: relative;
             width: 100vw;
             height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        /* 3D Classroom Scene */
-        .classroom-3d {
             position: relative;
-            width: 800px;
+        }
+
+        /* SVG Scene Container */
+        .scene-container {
+            width: 900px;
             height: 600px;
-            perspective: 1000px;
-            transform-style: preserve-3d;
+            position: relative;
         }
 
-        .classroom-floor {
-            position: absolute;
-            width: 800px;
-            height: 600px;
-            background: linear-gradient(180deg, var(--gray-800) 0%, var(--gray-900) 100%);
-            transform: rotateX(60deg) translateZ(-100px);
-            border: 4px solid var(--gray-600);
-            box-shadow: 
-                inset 0 0 100px var(--shadow-dark),
-                0 20px 40px var(--shadow-dark);
+        svg {
+            width: 100%;
+            height: 100%;
         }
 
-        .classroom-back-wall {
-            position: absolute;
-            width: 800px;
-            height: 400px;
-            background: linear-gradient(135deg, var(--gray-800) 0%, var(--gray-700) 100%);
-            transform: translateZ(-200px);
-            border: 4px solid var(--gray-600);
-            top: 50px;
-            box-shadow: 
-                inset 0 0 50px var(--shadow-dark),
-                0 10px 20px var(--shadow-dark);
+        /* AI Brain Glow Animation */
+        @keyframes brainGlow {
+            0%, 100% { 
+                filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.5)); 
+            }
+            50% { 
+                filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.9)); 
+            }
         }
 
-        .blackboard {
-            position: absolute;
-            width: 300px;
-            height: 200px;
-            background: var(--gray-900);
-            border: 6px solid var(--gray-500);
-            top: 100px;
-            left: 250px;
-            transform: translateZ(-195px);
-            box-shadow: 
-                inset 0 0 30px var(--shadow-dark),
-                0 5px 10px var(--shadow-dark);
+        .ai-brain-active {
+            animation: brainGlow 2s ease-in-out infinite;
         }
 
-        .teacher-3d {
-            position: absolute;
-            width: 60px;
-            height: 120px;
-            background: var(--gray-600);
-            border: 3px solid var(--gray-500);
-            transform: translateZ(-150px) rotateY(180deg);
-            top: 300px;
-            left: 370px;
-            transition: all 2s ease;
-            box-shadow: 
-                0 10px 20px var(--shadow-dark),
-                inset 0 0 20px var(--shadow-dark);
+        /* Student Glow Animation */
+        @keyframes studentGlow {
+            0% { 
+                fill: #404040;
+                filter: none;
+            }
+            100% { 
+                fill: #e0e0e0;
+                filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8));
+            }
         }
 
-        .teacher-3d::before {
-            content: '';
-            position: absolute;
-            top: -30px;
-            left: 15px;
-            width: 30px;
-            height: 30px;
-            background: var(--gray-500);
-            border: 2px solid var(--gray-400);
-            border-radius: 0;
+        .student-enlightened {
+            animation: studentGlow 1s ease-in-out forwards;
         }
 
-        /* 3D Student Desks and Students */
-        .student-desk {
-            position: absolute;
-            width: 80px;
-            height: 50px;
-            background: var(--gray-700);
-            border: 3px solid var(--gray-600);
-            transform-style: preserve-3d;
-            transition: all 1.5s ease;
-            box-shadow: 
-                0 8px 16px var(--shadow-dark),
-                inset 0 0 20px var(--shadow-dark);
+        /* Laptop Screen Glow */
+        @keyframes screenGlow {
+            0% { 
+                fill: #2d2d2d;
+            }
+            100% { 
+                fill: #b3b3b3;
+                filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.6));
+            }
         }
 
-        .student-3d {
-            position: absolute;
-            width: 40px;
-            height: 80px;
-            background: var(--gray-700);
-            border: 3px solid var(--gray-600);
-            top: -80px;
-            left: 20px;
-            transition: all 2s ease;
-            transform-origin: bottom center;
-            box-shadow: 
-                0 6px 12px var(--shadow-dark),
-                inset 0 0 15px var(--shadow-dark);
+        .laptop-screen-active {
+            animation: screenGlow 0.5s ease-in-out forwards;
         }
 
-        .student-3d::before {
-            content: '';
-            position: absolute;
-            top: -20px;
-            left: 10px;
-            width: 20px;
-            height: 20px;
-            background: var(--gray-600);
-            border: 2px solid var(--gray-500);
+        /* Connection Line Animation */
+        @keyframes connectionFlow {
+            0% { 
+                stroke-dashoffset: 1000;
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% { 
+                stroke-dashoffset: 0;
+                opacity: 1;
+            }
         }
 
-        .student-3d.enlightened {
-            background: var(--gray-200);
-            border-color: var(--white);
-            box-shadow: 
-                0 0 30px var(--ai-glow),
-                0 6px 12px var(--shadow-dark),
-                inset 0 0 15px rgba(255, 255, 255, 0.2);
-            animation: studentGlow 3s ease-in-out infinite alternate;
-        }
-
-        .laptop-3d {
-            position: absolute;
-            width: 40px;
-            height: 25px;
-            background: var(--gray-800);
-            border: 2px solid var(--gray-600);
-            top: 10px;
-            left: 20px;
-            transform: rotateX(-20deg);
-            transition: all 1s ease;
-            box-shadow: 
-                0 4px 8px var(--shadow-dark),
-                inset 0 0 10px var(--shadow-dark);
-        }
-
-        .laptop-3d.open {
-            background: var(--gray-200);
-            border-color: var(--white);
-            box-shadow: 
-                0 0 20px var(--ai-glow),
-                0 4px 8px var(--shadow-dark),
-                inset 0 0 10px rgba(255, 255, 255, 0.3);
-        }
-
-        /* AI Brain 3D */
-        .ai-brain-3d {
-            position: absolute;
-            width: 120px;
-            height: 120px;
-            background: var(--gray-800);
-            border: 4px solid var(--gray-600);
-            transform: translateZ(100px) rotateX(-30deg) rotateY(30deg);
-            top: 50px;
-            right: 50px;
-            transition: all 3s ease;
-            transform-style: preserve-3d;
-            box-shadow: 
-                0 15px 30px var(--shadow-dark),
-                inset 0 0 30px var(--shadow-dark);
-        }
-
-        .ai-brain-3d.active {
-            background: var(--white);
-            border-color: var(--gray-200);
-            box-shadow: 
-                0 0 60px var(--ai-glow),
-                0 15px 30px var(--shadow-dark),
-                inset 0 0 30px rgba(255, 255, 255, 0.5);
-            animation: brainPulse 2s ease-in-out infinite alternate;
-        }
-
-        .brain-circuits {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            bottom: 20px;
-            border: 2px solid var(--gray-500);
-            transition: all 2s ease;
-        }
-
-        .ai-brain-3d.active .brain-circuits {
-            border-color: var(--gray-800);
-            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .brain-circuits::before,
-        .brain-circuits::after {
-            content: '';
-            position: absolute;
-            background: var(--gray-500);
-            transition: all 2s ease;
-        }
-
-        .brain-circuits::before {
-            top: 20px;
-            left: -2px;
-            right: -2px;
-            height: 2px;
-        }
-
-        .brain-circuits::after {
-            left: 20px;
-            top: -2px;
-            bottom: -2px;
-            width: 2px;
-        }
-
-        .ai-brain-3d.active .brain-circuits::before,
-        .ai-brain-3d.active .brain-circuits::after {
-            background: var(--gray-800);
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-        }
-
-        /* AI Connection Lines 3D */
-        .ai-connection-3d {
-            position: absolute;
-            height: 4px;
-            background: var(--gray-700);
+        .connection-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
             opacity: 0;
-            transition: all 1.5s ease;
-            transform-style: preserve-3d;
-            box-shadow: 0 2px 4px var(--shadow-dark);
         }
 
-        .ai-connection-3d.active {
-            background: var(--white);
-            opacity: 1;
-            box-shadow: 
-                0 0 15px var(--ai-glow),
-                0 2px 4px var(--shadow-dark);
-            animation: connectionFlow 2s linear infinite;
+        .connection-active {
+            animation: connectionFlow 1.5s ease-in-out forwards;
         }
-
-        /* Position students in 3D classroom */
-        .desk-1 { transform: translateZ(0px) rotateY(0deg); top: 350px; left: 200px; }
-        .desk-2 { transform: translateZ(0px) rotateY(0deg); top: 350px; left: 320px; }
-        .desk-3 { transform: translateZ(0px) rotateY(0deg); top: 350px; left: 440px; }
-        .desk-4 { transform: translateZ(0px) rotateY(0deg); top: 350px; left: 560px; }
-        .desk-5 { transform: translateZ(50px) rotateY(0deg); top: 420px; left: 180px; }
-        .desk-6 { transform: translateZ(50px) rotateY(0deg); top: 420px; left: 300px; }
-        .desk-7 { transform: translateZ(50px) rotateY(0deg); top: 420px; left: 420px; }
-        .desk-8 { transform: translateZ(50px) rotateY(0deg); top: 420px; left: 540px; }
 
         /* Loading Text */
-        .loading-text {
+        .loading-container {
             position: absolute;
-            bottom: 100px;
+            bottom: 80px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 2rem;
-            font-weight: bold;
+            text-align: center;
+            width: 500px;
+        }
+
+        .loading-text {
+            font-size: 1.5rem;
+            font-weight: 300;
             color: var(--white);
-            text-shadow: 0 4px 8px var(--shadow-dark);
-            opacity: 0;
-            animation: fadeInOut 3s ease-in-out infinite;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+            opacity: 0.9;
         }
 
         .progress-bar {
-            position: absolute;
-            bottom: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 400px;
-            height: 6px;
-            background: var(--gray-800);
-            border: 2px solid var(--gray-600);
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
             overflow: hidden;
+            position: relative;
         }
 
         .progress-fill {
             height: 100%;
-            background: var(--white);
+            background: linear-gradient(90deg, transparent, var(--white), transparent);
             width: 0%;
             transition: width 0.5s ease;
-            box-shadow: 0 0 20px var(--ai-glow);
+            border-radius: 2px;
         }
 
-        /* Animations */
-        @keyframes studentGlow {
-            0% { box-shadow: 0 0 20px var(--ai-glow), 0 6px 12px var(--shadow-dark); }
-            100% { box-shadow: 0 0 40px var(--ai-glow), 0 6px 12px var(--shadow-dark); }
-        }
-
-        @keyframes brainPulse {
-            0% { transform: translateZ(100px) rotateX(-30deg) rotateY(30deg) scale(1); }
-            100% { transform: translateZ(100px) rotateX(-30deg) rotateY(30deg) scale(1.1); }
-        }
-
-        @keyframes connectionFlow {
-            0% { box-shadow: 0 0 15px var(--ai-glow), 0 2px 4px var(--shadow-dark); }
-            50% { box-shadow: 0 0 30px var(--ai-glow), 0 2px 4px var(--shadow-dark); }
-            100% { box-shadow: 0 0 15px var(--ai-glow), 0 2px 4px var(--shadow-dark); }
-        }
-
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
+        /* Pulse Animation for Elements */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
         }
 
         /* Fade out animation */
@@ -363,67 +176,187 @@
 </head>
 <body>
     <div class="preloader-container">
-        <div class="classroom-3d">
-            <!-- Classroom Structure -->
-            <div class="classroom-floor"></div>
-            <div class="classroom-back-wall"></div>
-            <div class="blackboard"></div>
-            <div class="teacher-3d"></div>
-
-            <!-- AI Brain -->
-            <div class="ai-brain-3d">
-                <div class="brain-circuits"></div>
-            </div>
-
-            <!-- Student Desks and Students -->
-            <div class="student-desk desk-1">
-                <div class="student-3d"></div>
-                <div class="laptop-3d"></div>
-            </div>
-            <div class="student-desk desk-2">
-                <div class="student-3d"></div>
-                <div class="laptop-3d"></div>
-            </div>
-            <div class="student-desk desk-3">
-                <div class="student-3d"></div>
-                <div class="laptop-3d"></div>
-            </div>
-            <div class="student-desk desk-4">
-                <div class="student-3d"></div>
-                <div class="laptop-3d"></div>
-            </div>
-            <div class="student-desk desk-5">
-                <div class="student-3d"></div>
-                <div class="laptop-3d"></div>
-            </div>
-            <div class="student-desk desk-6">
-                <div class="student-3d"></div>
-                <div class="laptop-3d"></div>
-            </div>
-            <div class="student-desk desk-7">
-                <div class="student-3d"></div>
-                <div class="laptop-3d"></div>
-            </div>
-            <div class="student-desk desk-8">
-                <div class="student-3d"></div>
-                <div class="laptop-3d"></div>
-            </div>
-
-            <!-- AI Connection Lines -->
-            <div class="ai-connection-3d" style="top: 170px; right: 110px; width: 200px; transform: rotate(-15deg);"></div>
-            <div class="ai-connection-3d" style="top: 180px; right: 150px; width: 180px; transform: rotate(-25deg);"></div>
-            <div class="ai-connection-3d" style="top: 190px; right: 200px; width: 160px; transform: rotate(-35deg);"></div>
-            <div class="ai-connection-3d" style="top: 200px; right: 250px; width: 140px; transform: rotate(-45deg);"></div>
-            <div class="ai-connection-3d" style="top: 220px; right: 120px; width: 220px; transform: rotate(15deg);"></div>
-            <div class="ai-connection-3d" style="top: 230px; right: 160px; width: 200px; transform: rotate(25deg);"></div>
-            <div class="ai-connection-3d" style="top: 240px; right: 210px; width: 180px; transform: rotate(35deg);"></div>
-            <div class="ai-connection-3d" style="top: 250px; right: 260px; width: 160px; transform: rotate(45deg);"></div>
+        <div class="scene-container">
+            <svg viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+                <!-- Background Elements -->
+                <rect x="0" y="0" width="900" height="600" fill="transparent"/>
+                
+                <!-- Classroom Floor -->
+                <path d="M 100 400 L 800 400 L 850 550 L 50 550 Z" 
+                      fill="#1a1a1a" 
+                      stroke="#333" 
+                      stroke-width="2"/>
+                
+                <!-- Back Wall -->
+                <rect x="100" y="100" width="700" height="300" 
+                      fill="#262626" 
+                      stroke="#333" 
+                      stroke-width="2"/>
+                
+                <!-- Blackboard -->
+                <rect x="300" y="150" width="300" height="150" 
+                      fill="#1a1a1a" 
+                      stroke="#404040" 
+                      stroke-width="3" 
+                      rx="2" ry="2"/>
+                
+                <!-- Teacher Figure (Infographic Style) -->
+                <g id="teacher" transform="translate(450, 250)">
+                    <!-- Body -->
+                    <rect x="-20" y="0" width="40" height="60" fill="#4a4a4a" rx="3" ry="3"/>
+                    <!-- Head -->
+                    <circle cx="0" cy="-20" r="18" fill="#4a4a4a"/>
+                    <!-- Arms -->
+                    <rect x="-20" y="10" width="10" height="30" fill="#4a4a4a" rx="5" ry="5"/>
+                    <rect x="10" y="10" width="10" height="30" fill="#4a4a4a" rx="5" ry="5"/>
+                </g>
+                
+                <!-- Students Row 1 -->
+                <g id="student1" class="student-group" transform="translate(250, 350)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <!-- Laptop -->
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student2" class="student-group" transform="translate(350, 350)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student3" class="student-group" transform="translate(450, 350)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student4" class="student-group" transform="translate(550, 350)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student5" class="student-group" transform="translate(650, 350)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <!-- Students Row 2 -->
+                <g id="student6" class="student-group" transform="translate(300, 430)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student7" class="student-group" transform="translate(400, 430)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student8" class="student-group" transform="translate(500, 430)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <g id="student9" class="student-group" transform="translate(600, 430)">
+                    <rect x="-15" y="0" width="30" height="45" fill="#404040" rx="2" ry="2" class="student-body"/>
+                    <circle cx="0" cy="-15" r="12" fill="#404040" class="student-head"/>
+                    <rect x="-18" y="30" width="36" height="3" fill="#2d2d2d" rx="1" ry="1"/>
+                    <rect x="-15" y="20" width="30" height="18" fill="#2d2d2d" rx="1" ry="1" class="laptop-screen"/>
+                </g>
+                
+                <!-- AI Brain (Clean Vector Style) -->
+                <g id="ai-brain" transform="translate(750, 150)">
+                    <!-- Outer Circle -->
+                    <circle cx="0" cy="0" r="50" fill="#404040" stroke="#666" stroke-width="3" class="brain-outer"/>
+                    
+                    <!-- Brain Pattern -->
+                    <path d="M -30 0 Q -30 -20, -10 -20 T 10 -20 Q 30 -20, 30 0" 
+                          fill="none" 
+                          stroke="#666" 
+                          stroke-width="2"/>
+                    <path d="M -30 0 Q -30 20, -10 20 T 10 20 Q 30 20, 30 0" 
+                          fill="none" 
+                          stroke="#666" 
+                          stroke-width="2"/>
+                    
+                    <!-- Center Core -->
+                    <circle cx="0" cy="0" r="8" fill="#666" class="brain-core"/>
+                    
+                    <!-- Circuit Lines -->
+                    <line x1="-50" y1="0" x2="-60" y2="0" stroke="#666" stroke-width="2"/>
+                    <line x1="50" y1="0" x2="60" y2="0" stroke="#666" stroke-width="2"/>
+                    <line x1="0" y1="-50" x2="0" y2="-60" stroke="#666" stroke-width="2"/>
+                    <line x1="0" y1="50" x2="0" y2="60" stroke="#666" stroke-width="2"/>
+                </g>
+                
+                <!-- Connection Lines (Will be animated) -->
+                <line x1="700" y1="150" x2="250" y2="335" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn1"/>
+                <line x1="700" y1="150" x2="350" y2="335" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn2"/>
+                <line x1="700" y1="150" x2="450" y2="335" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn3"/>
+                <line x1="700" y1="150" x2="550" y2="335" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn4"/>
+                <line x1="700" y1="150" x2="650" y2="335" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn5"/>
+                <line x1="700" y1="170" x2="300" y2="415" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn6"/>
+                <line x1="700" y1="170" x2="400" y2="415" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn7"/>
+                <line x1="700" y1="170" x2="500" y2="415" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn8"/>
+                <line x1="700" y1="170" x2="600" y2="415" 
+                      stroke="#808080" 
+                      stroke-width="2" 
+                      class="connection-line" 
+                      id="conn9"/>
+            </svg>
         </div>
 
         <!-- Loading UI -->
-        <div class="loading-text">Initializing AI Education Platform...</div>
-        <div class="progress-bar">
-            <div class="progress-fill"></div>
+        <div class="loading-container">
+            <div class="loading-text">Initializing AI Education Platform...</div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
         </div>
     </div>
 
@@ -432,10 +365,10 @@
         let currentStep = 0;
         const steps = [
             "Initializing AI Education Platform...",
-            "Connecting AI Brain to Classroom...",
-            "Activating Student Learning Nodes...",
+            "Activating AI Neural Network...",
+            "Connecting to Student Interfaces...",
             "Personalizing Learning Experiences...",
-            "Launching EduAI..."
+            "Launching EduAI System..."
         ];
 
         function updateProgress() {
@@ -452,14 +385,16 @@
         }
 
         function startAnimation() {
-            const aiBrain = document.querySelector('.ai-brain-3d');
-            const students = document.querySelectorAll('.student-3d');
-            const laptops = document.querySelectorAll('.laptop-3d');
-            const connections = document.querySelectorAll('.ai-connection-3d');
+            const brainOuter = document.querySelector('.brain-outer');
+            const brainCore = document.querySelector('.brain-core');
+            const students = document.querySelectorAll('.student-group');
+            const connections = document.querySelectorAll('.connection-line');
 
             // Step 1: Activate AI Brain (1s)
             setTimeout(() => {
-                aiBrain.classList.add('active');
+                brainOuter.setAttribute('fill', '#e0e0e0');
+                brainCore.setAttribute('fill', '#ffffff');
+                document.querySelector('#ai-brain').classList.add('ai-brain-active');
                 updateProgress();
             }, 1000);
 
@@ -467,7 +402,8 @@
             setTimeout(() => {
                 connections.forEach((connection, index) => {
                     setTimeout(() => {
-                        connection.classList.add('active');
+                        connection.classList.add('connection-active');
+                        connection.setAttribute('stroke', '#ffffff');
                     }, index * 100);
                 });
                 updateProgress();
@@ -477,19 +413,24 @@
             setTimeout(() => {
                 students.forEach((student, index) => {
                     setTimeout(() => {
-                        student.classList.add('enlightened');
-                        laptops[index].classList.add('open');
-                        if (index === 3) updateProgress(); // Mid-way through students
-                    }, index * 500);
+                        // Enlighten student body and head
+                        student.querySelector('.student-body').classList.add('student-enlightened');
+                        student.querySelector('.student-head').classList.add('student-enlightened');
+                        
+                        // Activate laptop screen
+                        student.querySelector('.laptop-screen').classList.add('laptop-screen-active');
+                        
+                        if (index === 4) updateProgress(); // Mid-way through students
+                    }, index * 400);
                 });
-            }, 3000);
+            }, 3500);
 
-            // Step 4: Complete activation (7s)
+            // Step 4: Complete activation (8s)
             setTimeout(() => {
                 updateProgress();
-            }, 7000);
+            }, 7500);
 
-            // Step 5: Final step and transition (8s)
+            // Step 5: Final step and transition (9s)
             setTimeout(() => {
                 updateProgress();
                 
@@ -499,8 +440,8 @@
                     setTimeout(() => {
                         window.location.href = '/main';
                     }, 1000);
-                }, 1000);
-            }, 8000);
+                }, 1500);
+            }, 9000);
         }
 
         // Start the animation sequence
