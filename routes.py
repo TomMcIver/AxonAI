@@ -8,7 +8,12 @@ from datetime import datetime
 
 @app.route('/')
 def index():
-    """Landing page"""
+    """Preloader page"""
+    return render_template('preloader.html')
+
+@app.route('/main')
+def main_landing():
+    """Main landing page"""
     return render_template('landing.html')
 
 @app.route('/demo')
