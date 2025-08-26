@@ -364,7 +364,7 @@
                     </g>
                     
                     <!-- Row 2 -->
-                    <g id="student6" transform="translate(275, 480)">
+                    <g id="student6" transform="translate(200, 480)">
                         <rect x="-25" y="30" width="50" height="35" fill="#1a1a1a" stroke="#333" stroke-width="2" rx="3" ry="3"/>
                         <rect x="-22" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
                         <rect x="16" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
@@ -376,7 +376,7 @@
                         <rect x="-15" y="27" width="30" height="15" fill="#0d0d0d" stroke="#1a1a1a" stroke-width="1" rx="1" ry="1" class="laptop-screen"/>
                     </g>
                     
-                    <g id="student7" transform="translate(425, 480)">
+                    <g id="student7" transform="translate(350, 480)">
                         <rect x="-25" y="30" width="50" height="35" fill="#1a1a1a" stroke="#333" stroke-width="2" rx="3" ry="3"/>
                         <rect x="-22" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
                         <rect x="16" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
@@ -400,7 +400,7 @@
                         <rect x="-15" y="27" width="30" height="15" fill="#0d0d0d" stroke="#1a1a1a" stroke-width="1" rx="1" ry="1" class="laptop-screen"/>
                     </g>
                     
-                    <g id="student9" transform="translate(575, 480)">
+                    <g id="student9" transform="translate(650, 480)">
                         <rect x="-25" y="30" width="50" height="35" fill="#1a1a1a" stroke="#333" stroke-width="2" rx="3" ry="3"/>
                         <rect x="-22" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
                         <rect x="16" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
@@ -412,7 +412,7 @@
                         <rect x="-15" y="27" width="30" height="15" fill="#0d0d0d" stroke="#1a1a1a" stroke-width="1" rx="1" ry="1" class="laptop-screen"/>
                     </g>
                     
-                    <g id="student10" transform="translate(725, 480)">
+                    <g id="student10" transform="translate(800, 480)">
                         <rect x="-25" y="30" width="50" height="35" fill="#1a1a1a" stroke="#333" stroke-width="2" rx="3" ry="3"/>
                         <rect x="-22" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
                         <rect x="16" y="65" width="6" height="25" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
@@ -460,13 +460,13 @@
                           filter="url(#glow)"/>
                     
                     <!-- Row 2 -->
-                    <line x1="500" y1="250" x2="275" y2="480" 
+                    <line x1="500" y1="250" x2="200" y2="480" 
                           stroke="url(#harmonyGradient)" 
                           stroke-width="4" 
                           opacity="0" 
                           class="beam-line" 
                           filter="url(#glow)"/>
-                    <line x1="500" y1="250" x2="425" y2="480" 
+                    <line x1="500" y1="250" x2="350" y2="480" 
                           stroke="url(#harmonyGradient)" 
                           stroke-width="4" 
                           opacity="0" 
@@ -478,13 +478,13 @@
                           opacity="0" 
                           class="beam-line" 
                           filter="url(#glow)"/>
-                    <line x1="500" y1="250" x2="575" y2="480" 
+                    <line x1="500" y1="250" x2="650" y2="480" 
                           stroke="url(#harmonyGradient)" 
                           stroke-width="4" 
                           opacity="0" 
                           class="beam-line" 
                           filter="url(#glow)"/>
-                    <line x1="500" y1="250" x2="725" y2="480" 
+                    <line x1="500" y1="250" x2="800" y2="480" 
                           stroke="url(#harmonyGradient)" 
                           stroke-width="4" 
                           opacity="0" 
@@ -564,12 +564,21 @@
 
             // Step 3: Beam out to students (6s)
             setTimeout(() => {
-                beamLines.forEach((beam, index) => {
-                    setTimeout(() => {
-                        beam.style.opacity = '1';
-                        beam.style.transition = 'opacity 0.8s ease-out';
-                    }, index * 150);
+                // Set all beams to animate at once with CSS transitions
+                beamLines.forEach((beam) => {
+                    beam.style.transition = 'opacity 2s cubic-bezier(0.4, 0, 0.2, 1), stroke-dashoffset 2s cubic-bezier(0.4, 0, 0.2, 1)';
+                    beam.style.strokeDasharray = '500';
+                    beam.style.strokeDashoffset = '500';
                 });
+                
+                // Trigger animation
+                setTimeout(() => {
+                    beamLines.forEach((beam) => {
+                        beam.style.opacity = '1';
+                        beam.style.strokeDashoffset = '0';
+                    });
+                }, 50);
+                
                 updateProgress();
             }, 6000);
 
