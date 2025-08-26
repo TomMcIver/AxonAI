@@ -1,6 +1,6 @@
-# 🎓 AI-Enhanced School Management System
+# 🎓 TMC Learning - AI-Enhanced Learning Platform
 
-A comprehensive Flask-based school management web application with advanced AI tutoring capabilities, multi-provider AI support, and sophisticated data management tools.
+A comprehensive Flask-based learning management web application with advanced AI tutoring capabilities, multi-provider AI support, and sophisticated data management tools.
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-green)

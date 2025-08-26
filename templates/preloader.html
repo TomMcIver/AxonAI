@@ -235,16 +235,24 @@
                     <!-- Body -->
                     <rect x="-20" y="20" width="40" height="70" fill="url(#humanGradient)" stroke="#303030" stroke-width="2" rx="5" ry="5"/>
                     <!-- Head -->
-                    <ellipse cx="0" cy="0" rx="22" ry="26" fill="#404040" stroke="#303030" stroke-width="2"/>
+                    <ellipse cx="0" cy="0" rx="22" ry="26" fill="#484848" stroke="#303030" stroke-width="2"/>
+                    <!-- Hair -->
+                    <path d="M -22 -20 Q -30 -35, -10 -32 Q 0 -38, 10 -32 Q 30 -35, 22 -20" fill="#333333" stroke="#2a2a2a" stroke-width="1"/>
                     <!-- Eyes -->
-                    <circle cx="-8" cy="-5" r="3" fill="#2a2a2a"/>
-                    <circle cx="8" cy="-5" r="3" fill="#2a2a2a"/>
+                    <ellipse cx="-8" cy="-5" rx="4" ry="3" fill="#ffffff"/>
+                    <circle cx="-8" cy="-5" r="2" fill="#2a2a2a"/>
+                    <ellipse cx="8" cy="-5" rx="4" ry="3" fill="#ffffff"/>
+                    <circle cx="8" cy="-5" r="2" fill="#2a2a2a"/>
+                    <!-- Nose -->
+                    <path d="M 0 -2 L -2 2 L 0 4 L 2 2 Z" fill="#3a3a3a" stroke="#2a2a2a" stroke-width="0.5"/>
+                    <!-- Mouth -->
+                    <path d="M -6 8 Q 0 12, 6 8" stroke="#2a2a2a" stroke-width="1.5" fill="none"/>
                     <!-- Arms -->
-                    <rect x="-35" y="35" width="12" height="35" fill="#404040" stroke="#303030" stroke-width="2" rx="6" ry="6"/>
-                    <rect x="23" y="35" width="12" height="35" fill="#404040" stroke="#303030" stroke-width="2" rx="6" ry="6"/>
+                    <rect x="-35" y="35" width="12" height="35" fill="#484848" stroke="#303030" stroke-width="2" rx="6" ry="6"/>
+                    <rect x="23" y="35" width="12" height="35" fill="#484848" stroke="#303030" stroke-width="2" rx="6" ry="6"/>
                     <!-- Legs -->
-                    <rect x="-15" y="90" width="12" height="30" fill="#404040" stroke="#303030" stroke-width="2" rx="6" ry="6"/>
-                    <rect x="3" y="90" width="12" height="30" fill="#404040" stroke="#303030" stroke-width="2" rx="6" ry="6"/>
+                    <rect x="-15" y="90" width="12" height="30" fill="#3a3a3a" stroke="#303030" stroke-width="2" rx="6" ry="6"/>
+                    <rect x="3" y="90" width="12" height="30" fill="#3a3a3a" stroke="#303030" stroke-width="2" rx="6" ry="6"/>
                 </g>
                 
                 <!-- AI Robot (Right) -->
@@ -470,7 +478,7 @@
                 
                 <!-- Harmony Text -->
                 <text x="500" y="100" font-family="Arial, sans-serif" font-size="24" fill="#808080" text-anchor="middle" opacity="0" id="harmony-text">
-                    Human + AI = Harmony
+                    Teacher + AI = Every Student Seen
                 </text>
             </svg>
         </div>
@@ -516,39 +524,39 @@
             const beamLines = document.querySelectorAll('.beam-line');
             const students = document.querySelectorAll('#students g');
 
-            // Step 1: Show connection lines from teacher and robot simultaneously (1s)
+            // Step 1: Show connection lines from teacher and robot simultaneously (2s)
             setTimeout(() => {
-                teacherLine.style.transition = 'opacity 0.8s ease-out, stroke 0.8s ease-out';
-                robotLine.style.transition = 'opacity 0.8s ease-out, stroke 0.8s ease-out';
+                teacherLine.style.transition = 'opacity 2s ease-out, stroke 2s ease-out';
+                robotLine.style.transition = 'opacity 2s ease-out, stroke 2s ease-out';
                 teacherLine.style.opacity = '1';
                 robotLine.style.opacity = '1';
                 teacherLine.style.stroke = '#ffffff';
                 robotLine.style.stroke = '#ffffff';
                 updateProgress();
-            }, 1000);
+            }, 2000);
 
-            // Step 2: Grow central harmony dot (2s)
+            // Step 2: Grow central harmony dot (5s)
             setTimeout(() => {
-                harmonyDot.style.transition = 'all 1s ease-out';
+                harmonyDot.style.transition = 'all 2.5s ease-out';
                 harmonyDot.style.r = '20';
                 harmonyDot.style.opacity = '1';
                 harmonyDot.style.filter = 'drop-shadow(0 0 30px rgba(255, 255, 255, 0.8))';
                 harmonyText.style.opacity = '0.8';
                 updateProgress();
-            }, 2000);
+            }, 5000);
 
-            // Step 3: Beam out to students (3.5s)
+            // Step 3: Beam out to students (8s)
             setTimeout(() => {
                 beamLines.forEach((beam, index) => {
                     setTimeout(() => {
                         beam.style.opacity = '1';
-                        beam.style.transition = 'opacity 0.5s ease-out';
-                    }, index * 100);
+                        beam.style.transition = 'opacity 1s ease-out';
+                    }, index * 200);
                 });
                 updateProgress();
-            }, 3500);
+            }, 8000);
 
-            // Step 4: Enlighten students (5s)
+            // Step 4: Enlighten students (11s)
             setTimeout(() => {
                 students.forEach((student, index) => {
                     setTimeout(() => {
@@ -557,11 +565,11 @@
                         student.querySelector('.laptop-screen').classList.add('laptop-active');
                         
                         if (index === 4) updateProgress();
-                    }, index * 200);
+                    }, index * 400);
                 });
-            }, 5000);
+            }, 11000);
 
-            // Step 5: Final and redirect (8s)
+            // Step 5: Final and redirect (15s)
             setTimeout(() => {
                 updateProgress();
                 
@@ -570,8 +578,8 @@
                     setTimeout(() => {
                         window.location.href = '/main';
                     }, 1000);
-                }, 1500);
-            }, 8000);
+                }, 2000);
+            }, 15000);
         }
 
         // Start animation

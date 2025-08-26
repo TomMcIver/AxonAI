@@ -1,8 +1,8 @@
-# School Management System
+# TMC Learning
 
 ## Overview
 
-This is a Flask-based school management system that provides role-based access control for administrators, teachers, and students. The application uses SQLAlchemy with SQLite for data persistence and implements session-based authentication with bcrypt password hashing.
+This is a Flask-based learning management platform that provides role-based access control for administrators, teachers, and students. The application uses SQLAlchemy with SQLite for data persistence and implements session-based authentication with bcrypt password hashing.
 
 ## User Preferences
 
@@ -143,6 +143,14 @@ Design preferences: Grayscale color scheme, flat 2D design with depth (like 2D g
 - **Cross-Platform Support**: Created requirements-windows.txt and WINDOWS_SETUP.md for Windows users
 - **Enhanced Troubleshooting**: Platform-specific troubleshooting guides for Windows, Linux, and macOS
 - **PostgreSQL 17 Support**: Updated all configuration and setup instructions for PostgreSQL version 17
+
+### August 2025 Updates
+- **Brand Evolution**: Rebranded from "School Management System" to "TMC Learning" across all project files
+- **Premium Preloader Animation**: Created professional Kurzgesagt-style loading animation showing teacher-AI collaboration
+- **Enhanced Visual Design**: Improved human teacher design with realistic features (hair, detailed eyes, nose, mouth)
+- **Slower Loading Experience**: Extended animation timing to create proper loading bar experience (15-second duration)
+- **Updated Messaging**: Changed harmony message from "Human + AI = Harmony" to "Teacher + AI = Every Student Seen"
+- **Professional Animation Flow**: Teacher and robot connect, form central harmony dot, then beam knowledge to realistic students with desks
 
 ### AI Enhancement Features (January 2025)
 - **Multi-Provider Support**: Configurable AI providers (OpenAI GPT-4o, AWS-hosted models, local Ollama)

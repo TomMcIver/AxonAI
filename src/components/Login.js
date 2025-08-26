@@ -70,7 +70,7 @@ function Login({ onLogin }) {
         <Col xs={12} sm={10} md={8} lg={6} xl={5}>
           <div className="text-center mb-4">
             <FontAwesomeIcon icon={faGraduationCap} size="3x" className="text-primary mb-3" />
-            <h2 className="fw-bold">School Management System</h2>
+            <h2 className="fw-bold">TMC Learning</h2>
             <p className="text-muted">Please select your role and sign in</p>
           </div>
           

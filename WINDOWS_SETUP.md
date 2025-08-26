@@ -1,6 +1,6 @@
 # 🖥️ Windows Setup Guide
 
-Complete setup guide for running the AI-Enhanced School Management System on Windows.
+Complete setup guide for running TMC Learning on Windows.
 
 ## Prerequisites
 
