@@ -8,6 +8,8 @@ This is a Flask-based school management system that provides role-based access c
 
 Preferred communication style: Simple, everyday language.
 
+Design preferences: Grayscale color scheme, flat 2D design with depth (like 2D games), no rounded buttons, everything angular and geometric.
+
 ## System Architecture
 
 ### Backend Architecture
