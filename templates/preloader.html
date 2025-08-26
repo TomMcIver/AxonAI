@@ -516,8 +516,10 @@
             const beamLines = document.querySelectorAll('.beam-line');
             const students = document.querySelectorAll('#students g');
 
-            // Step 1: Show connection lines from teacher and robot (1s)
+            // Step 1: Show connection lines from teacher and robot simultaneously (1s)
             setTimeout(() => {
+                teacherLine.style.transition = 'opacity 0.8s ease-out, stroke 0.8s ease-out';
+                robotLine.style.transition = 'opacity 0.8s ease-out, stroke 0.8s ease-out';
                 teacherLine.style.opacity = '1';
                 robotLine.style.opacity = '1';
                 teacherLine.style.stroke = '#ffffff';
