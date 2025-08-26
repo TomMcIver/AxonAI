@@ -9,7 +9,7 @@ from datetime import datetime
 @app.route('/')
 def index():
     """Preloader page"""
-    return render_template('preloader_optimized.html')
+    return render_template('preloader.html')
 
 @app.route('/main')
 def main_landing():
