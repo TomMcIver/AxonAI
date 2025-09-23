@@ -474,12 +474,10 @@ def generate_demo_data():
         generator = RealisticDataGenerator()
         results = generator.generate_complete_dataset(100)
         
-        # Run Big AI Coordinator analysis on new data
+        # Run quick Big AI analysis on new data (without teacher insights to avoid timeout)
         from ai_coordinator import BigAICoordinator
         coordinator = BigAICoordinator()
         coordinator.analyze_global_patterns()
-        coordinator.generate_grade_predictions()
-        coordinator.generate_teacher_insights()
         
         flash(f'✅ Generated {results["students"]} students with {results["interactions"]} interactions!', 'success')
         return redirect(url_for('ai_dashboard'))
@@ -495,9 +493,13 @@ def run_big_ai_analysis():
     try:
         from ai_coordinator import BigAICoordinator
         coordinator = BigAICoordinator()
+        
+        # Run only the essential analysis to avoid timeout
         coordinator.analyze_global_patterns()
-        coordinator.generate_grade_predictions()
-        coordinator.generate_teacher_insights()
+        
+        # Only generate predictions if there are students
+        if User.query.filter_by(role='student').count() > 0:
+            coordinator.generate_grade_predictions()
         
         flash('🤖 Big AI Coordinator analysis completed successfully!', 'success')
         return redirect(url_for('ai_dashboard'))

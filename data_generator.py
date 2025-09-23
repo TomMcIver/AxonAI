@@ -474,11 +474,19 @@ class RealisticDataGenerator:
         try:
             # Clear existing data (optional)
             print("Clearing existing student data...")
-            User.query.filter_by(role='student').delete()
+            
+            # First, clear many-to-many relationships (class enrollments)
+            students = User.query.filter_by(role='student').all()
+            for student in students:
+                student.classes.clear()
+            db.session.commit()
+            
+            # Now clear the related data
             AIInteraction.query.delete()
             OptimizedProfile.query.delete()
             FailedStrategy.query.delete()
             ChatMessage.query.delete()
+            User.query.filter_by(role='student').delete()
             db.session.commit()
             
             # Generate all components

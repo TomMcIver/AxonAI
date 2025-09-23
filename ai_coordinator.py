@@ -423,13 +423,21 @@ class BigAICoordinator:
         """Generate insights for teachers about their students"""
         classes = Class.query.all()
         
+        count = 0
         for class_obj in classes:
-            for student in class_obj.users:
-                if student.role == 'student':
-                    self._generate_insight_for_student(class_obj, student)
+            # Process students in batches
+            students = [u for u in class_obj.users if u.role == 'student']
+            
+            for i, student in enumerate(students):
+                self._generate_insight_for_student(class_obj, student)
+                count += 1
+                
+                # Commit every 10 students to avoid timeout
+                if i % 10 == 0:
+                    db.session.commit()
         
         db.session.commit()
-        print("Generated teacher insights for all classes")
+        print(f"Generated teacher insights for {count} students across all classes")
     
     def _generate_insight_for_student(self, class_obj: Class, student: User):
         """Generate specific insights for a student in a class"""
