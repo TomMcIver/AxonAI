@@ -519,7 +519,7 @@ def generate_demo_data():
         
     except Exception as e:
         flash(f'Error generating data: {str(e)}', 'danger')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('ai_dashboard'))
 
 @app.route('/admin/run-big-ai', methods=['POST'])
 @admin_required
