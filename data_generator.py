@@ -262,12 +262,6 @@ class RealisticDataGenerator:
         
         db.session.commit()
         
-        # Enroll students in classes (each student in 3-5 classes)
-        students = User.query.filter_by(role='student').all()
-        for student in students:
-            enrolled_classes = random.sample(classes, random.randint(3, 5))
-            student.classes.extend(enrolled_classes)
-        
         # Create assignments
         for class_obj in classes:
             for i in range(8):  # 8 assignments per class
@@ -294,8 +288,8 @@ class RealisticDataGenerator:
         for student in students:
             student_classes = student.classes
             
-            # Generate 15-25 interactions per student
-            for _ in range(random.randint(15, 25)):
+            # Generate fewer interactions to avoid timeout (5-10 per student)
+            for _ in range(random.randint(5, 10)):
                 class_obj = random.choice(student_classes)
                 subject = class_obj.subject
                 
@@ -493,8 +487,18 @@ class RealisticDataGenerator:
             students = self.generate_students(student_count)
             classes = self.generate_classes_and_assignments()
             
+            # Enroll all students in classes first (after generating both students and classes)
+            print("Enrolling students in classes...")
+            for student in students:
+                # Refresh student in session
+                db.session.add(student)
+                enrolled_classes = random.sample(classes, random.randint(3, 5))
+                student.classes.extend(enrolled_classes)
+            db.session.commit()
+            print("✓ Students enrolled in classes")
+            
             # Process in smaller batches to avoid timeout
-            batch_size = 20
+            batch_size = 10  # Smaller batch size to avoid timeout
             for i in range(0, len(students), batch_size):
                 batch = students[i:i+batch_size]
                 print(f"Processing batch {i//batch_size + 1} of {(len(students) + batch_size - 1)//batch_size}...")
