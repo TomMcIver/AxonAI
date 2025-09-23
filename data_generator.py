@@ -213,40 +213,52 @@ class RealisticDataGenerator:
         """Create classes with teachers and assignments"""
         print("Creating classes and assignments...")
         
-        # Create teacher
-        teacher = User(
-            email="teacher@school.edu",
-            password_hash=generate_password_hash("teacher123"),
-            role="teacher",
-            first_name="Sarah",
-            last_name="Mitchell"
-        )
-        db.session.add(teacher)
-        db.session.commit()
+        # Check if teacher exists, if not create one
+        teacher = User.query.filter_by(email="teacher@school.edu").first()
+        if not teacher:
+            teacher = User(
+                email="teacher@school.edu",
+                password_hash=generate_password_hash("teacher123"),
+                role="teacher",
+                first_name="Sarah",
+                last_name="Mitchell"
+            )
+            db.session.add(teacher)
+            db.session.commit()
+        else:
+            print("Using existing teacher account")
         
         classes = []
         for subject in self.subjects:
-            # Create AI model for each subject
-            ai_model = AIModel(
-                subject=subject,
-                model_name="gpt-4o-mini",
-                prompt_template=f"You are a specialized {subject} AI tutor. Help students learn {subject} concepts.",
-                max_tokens=800,
-                temperature=0.7
-            )
-            db.session.add(ai_model)
-            db.session.flush()
+            # Check if class already exists
+            class_name = f"{subject} - Year 12"
+            existing_class = Class.query.filter_by(name=class_name).first()
             
-            # Create class
-            class_obj = Class(
-                name=f"{subject} - Year 12",
-                subject=subject,
-                description=f"Comprehensive {subject} course covering NCEA Level 2",
-                teacher_id=teacher.id,
-                ai_model_id=ai_model.id
-            )
-            db.session.add(class_obj)
-            classes.append(class_obj)
+            if existing_class:
+                classes.append(existing_class)
+                print(f"Using existing class: {class_name}")
+            else:
+                # Create AI model for each subject
+                ai_model = AIModel(
+                    subject=subject,
+                    model_name="gpt-4o-mini",
+                    prompt_template=f"You are a specialized {subject} AI tutor. Help students learn {subject} concepts.",
+                    max_tokens=800,
+                    temperature=0.7
+                )
+                db.session.add(ai_model)
+                db.session.flush()
+                
+                # Create class
+                class_obj = Class(
+                    name=class_name,
+                    subject=subject,
+                    description=f"Comprehensive {subject} course covering NCEA Level 2",
+                    teacher_id=teacher.id,
+                    ai_model_id=ai_model.id
+                )
+                db.session.add(class_obj)
+                classes.append(class_obj)
         
         db.session.commit()
         
