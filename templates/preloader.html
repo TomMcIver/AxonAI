@@ -67,7 +67,8 @@
             /* Scale down SVG content on mobile */
             svg {
                 transform: scale(0.6);
-                transform-origin: center;
+                transform-origin: 50% 50%;
+                transform-box: view-box;
             }
         }
 
@@ -78,6 +79,8 @@
             
             svg {
                 transform: scale(0.5);
+                transform-origin: 50% 50%;
+                transform-box: view-box;
             }
             
             .loading-text {
@@ -230,19 +233,24 @@
             will-change: auto;
         }
         
-        svg {
-            will-change: transform;
-        }
+        /* SVG performance hint removed to avoid conflicts with positioning */
         
         .progress-fill {
             will-change: width;
         }
         
         /* Use GPU acceleration for animations */
-        .teacher-ai-side,
+        .teacher-ai-side {
+            will-change: filter, opacity;
+            backface-visibility: hidden;
+        }
+        
         .student-enlightened,
         .laptop-active,
-        .harmony-active,
+        .harmony-active {
+            backface-visibility: hidden;
+        }
+        
         .particle {
             transform: translateZ(0);
             backface-visibility: hidden;
@@ -555,11 +563,7 @@
                 });
             }
             
-            // Force GPU acceleration
-            const svg = document.querySelector('svg');
-            if (svg) {
-                svg.style.transform = 'translateZ(0)';
-            }
+            // Remove forced GPU acceleration on SVG to prevent positioning conflicts
         });
         
         let progress = 0;
