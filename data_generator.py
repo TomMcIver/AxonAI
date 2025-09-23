@@ -275,7 +275,7 @@ class RealisticDataGenerator:
                     title=f"{class_obj.subject} Assignment {i+1}",
                     description=f"Complete tasks related to {class_obj.subject} concepts",
                     due_date=datetime.utcnow() + timedelta(days=random.randint(1, 30)),
-                    max_grade=100,
+                    max_points=100,
                     class_id=class_obj.id
                 )
                 db.session.add(assignment)
