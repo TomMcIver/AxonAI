@@ -388,7 +388,13 @@ class RealisticDataGenerator:
         """Create optimized profiles based on interactions"""
         print("Building optimized student profiles...")
         
+        # Pre-fetch all classes to avoid repeated queries
+        all_classes = {c.id: c for c in Class.query.all()}
+        
         for student in students:
+            # Ensure student is in current session
+            db.session.merge(student)
+            
             # Get student's interactions
             interactions = AIInteraction.query.filter_by(user_id=student.id).all()
             
@@ -421,7 +427,9 @@ class RealisticDataGenerator:
             # Identify struggle and strength areas
             subject_performance = {}
             for interaction in interactions:
-                class_obj = Class.query.get(interaction.class_id)
+                class_obj = all_classes.get(interaction.class_id)
+                if not class_obj:
+                    continue
                 subject = class_obj.subject
                 if subject not in subject_performance:
                     subject_performance[subject] = {"success": 0, "total": 0}
@@ -463,30 +471,59 @@ class RealisticDataGenerator:
         """Generate complete realistic dataset"""
         print(f"🚀 Starting complete dataset generation for {student_count} students...")
         
-        # Clear existing data (optional)
-        print("Clearing existing student data...")
-        User.query.filter_by(role='student').delete()
-        db.session.commit()
-        
-        # Generate all components
-        students = self.generate_students(student_count)
-        classes = self.generate_classes_and_assignments()
-        self.generate_ai_interactions(students, classes)
-        self.build_optimized_profiles(students)
-        
-        print("🎉 Dataset generation complete!")
-        print(f"Generated:")
-        print(f"  • {len(students)} students with diverse profiles")
-        print(f"  • {len(classes)} classes with AI models")
-        print(f"  • {AIInteraction.query.count()} AI interactions")
-        print(f"  • {OptimizedProfile.query.count()} optimized profiles")
-        print(f"  • Ready for Big AI Coordinator analysis!")
-        
-        return {
-            'students': len(students),
-            'interactions': AIInteraction.query.count(),
-            'profiles': OptimizedProfile.query.count()
-        }
+        try:
+            # Clear existing data (optional)
+            print("Clearing existing student data...")
+            User.query.filter_by(role='student').delete()
+            AIInteraction.query.delete()
+            OptimizedProfile.query.delete()
+            FailedStrategy.query.delete()
+            ChatMessage.query.delete()
+            db.session.commit()
+            
+            # Generate all components
+            students = self.generate_students(student_count)
+            classes = self.generate_classes_and_assignments()
+            
+            # Process in smaller batches to avoid timeout
+            batch_size = 20
+            for i in range(0, len(students), batch_size):
+                batch = students[i:i+batch_size]
+                print(f"Processing batch {i//batch_size + 1} of {(len(students) + batch_size - 1)//batch_size}...")
+                
+                # Generate AI interactions for this batch
+                self.generate_ai_interactions(batch, classes)
+                
+                # Build optimized profiles for this batch  
+                self.build_optimized_profiles(batch)
+                
+                # Commit after each batch to avoid timeout
+                db.session.commit()
+                print(f"✓ Batch {i//batch_size + 1} completed")
+            
+            # Run Big AI Coordinator analysis
+            from ai_coordinator import BigAICoordinator, PatternInsight
+            coordinator = BigAICoordinator()
+            coordinator.analyze_global_patterns()
+            
+            print("🎉 Dataset generation complete!")
+            print(f"Generated:")
+            print(f"  • {len(students)} students with diverse profiles")
+            print(f"  • {len(classes)} classes with AI models")
+            print(f"  • {AIInteraction.query.count()} AI interactions")
+            print(f"  • {OptimizedProfile.query.count()} optimized profiles")
+            print(f"  • {PatternInsight.query.count()} AI insights discovered!")
+            
+            return {
+                'students': len(students),
+                'interactions': AIInteraction.query.count(),
+                'profiles': OptimizedProfile.query.count(),
+                'insights': PatternInsight.query.count()
+            }
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error during data generation: {str(e)}")
+            raise
 
 # CLI interface for easy generation
 if __name__ == "__main__":
