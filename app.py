@@ -24,9 +24,11 @@ db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 
-# Debug: Print environment variables
-print(f"DATABASE_URL from env: {os.environ.get('DATABASE_URL')}")
-print(f"SESSION_SECRET from env: {os.environ.get('SESSION_SECRET')}")
+# Security: Never log sensitive credentials
+if os.environ.get('DATABASE_URL'):
+    print("DATABASE_URL configured successfully")
+if os.environ.get('SESSION_SECRET'):
+    print("SESSION_SECRET configured successfully")
 
 # Configure the database with automatic fallback
 database_url = os.environ.get("DATABASE_URL")
@@ -55,7 +57,11 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-print(f"Final DATABASE_URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
+# Only show type of database, not the full connection string
+if 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI']:
+    print("Using PostgreSQL database")
+else:
+    print("Using SQLite database")
 
 # Initialize the app with the extension
 db.init_app(app)
@@ -71,6 +77,14 @@ with app.app_context():
     
     # Create database tables
     db.create_all()
+    
+    # Initialize background task scheduler for Big AI Coordinator
+    try:
+        from scheduler_config import init_scheduler
+        scheduler = init_scheduler(app)
+        print("Big AI Coordinator scheduler initialized")
+    except Exception as e:
+        print(f"Warning: Could not initialize scheduler: {e}")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
