@@ -468,6 +468,7 @@ def ai_dashboard_data():
 @admin_required
 def clear_all_data():
     """Clear all student and AI data"""
+    print("DEBUG: Clear data route called")
     try:
         # Clear all student-related data
         AIInteraction.query.delete()
@@ -489,9 +490,11 @@ def clear_all_data():
         User.query.filter_by(role='student').delete()
         db.session.commit()
         
+        print("DEBUG: Data cleared successfully")
         flash('✅ All data cleared successfully!', 'success')
     except Exception as e:
         db.session.rollback()
+        print(f"DEBUG: Error clearing data: {str(e)}")
         flash(f'Error clearing data: {str(e)}', 'danger')
     
     return redirect(url_for('ai_dashboard'))

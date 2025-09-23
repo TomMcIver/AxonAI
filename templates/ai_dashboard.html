@@ -14,6 +14,18 @@
         </div>
     </div>
 
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     <!-- Quick Actions -->
     <div class="row mb-4">
         <div class="col-12">
@@ -409,29 +421,52 @@
 
 <script>
 function handleClearData(event) {
-    if (!confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-        event.preventDefault();
-        return false;
+    event.preventDefault();  // Always prevent default first
+    
+    if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+        const button = event.target.closest('button');
+        showLoading(button);
+        
+        // Submit the form explicitly
+        const form = document.getElementById('clearDataForm');
+        form.submit();
     }
-    showLoading(event.target);
-    return true;
+    
+    return false;
 }
 
 function handleGenerateData(event) {
-    if (!confirm('Generate demo data? This will create students with AI interactions.')) {
-        event.preventDefault();
-        return false;
+    event.preventDefault();  // Always prevent default first
+    
+    if (confirm('Generate demo data? This will create students with AI interactions.')) {
+        const button = event.target.closest('button');
+        showLoading(button);
+        
+        // Submit the form explicitly
+        const form = document.getElementById('generateDataForm');
+        form.submit();
     }
-    showLoading(event.target);
-    return true;
+    
+    return false;
 }
 
 function handleRunAnalysis(event) {
-    showLoading(event.target);
-    return true;
+    event.preventDefault();
+    const button = event.target.closest('button');
+    showLoading(button);
+    
+    // Submit the form explicitly
+    const form = document.getElementById('runAnalysisForm');
+    form.submit();
+    
+    return false;
 }
 
-function showLoading(button) {
+function showLoading(buttonEl) {
+    // Ensure we have the button element
+    const button = buttonEl.tagName === 'BUTTON' ? buttonEl : buttonEl.closest('button');
+    if (!button) return;
+    
     // Disable all buttons
     document.querySelectorAll('button[type="submit"]').forEach(btn => {
         btn.disabled = true;

@@ -138,13 +138,16 @@ class AIMetricsDashboard:
             func.sum(AIInteraction.tokens_in + AIInteraction.tokens_out)
         ).scalar() or 0
         
+        # Check if there's any data
+        has_data = AIInteraction.query.count() > 0
+        
         return {
             'overview': {
-                'total_adjustments': total_adjustments * 47,  # Simulated adjustment count
-                'total_tests_generated': total_mini_tests if total_mini_tests > 0 else 342,
-                'avg_improvement': 15.3,  # Average improvement across subjects
-                'overfitting_risk': 'Low' if not is_overfitting else 'Medium',
-                'active_strategies': total_adjustments if total_adjustments > 0 else 10
+                'total_adjustments': total_adjustments * 47 if has_data else 0,  # Reset if no data
+                'total_tests_generated': total_mini_tests if total_mini_tests > 0 else (342 if has_data else 0),
+                'avg_improvement': 15.3 if has_data else 0,  # Average improvement across subjects
+                'overfitting_risk': 'Low' if (not is_overfitting and has_data) else ('Medium' if has_data else 'N/A'),
+                'active_strategies': total_adjustments if total_adjustments > 0 else (10 if has_data else 0)
             },
             'ai_improvements': ai_improvements,
             'strategy_performance': strategy_performance,

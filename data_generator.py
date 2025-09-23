@@ -383,6 +383,20 @@ class RealisticDataGenerator:
         print("Generating quick demo interactions...")
         interactions_count = 0
         
+        # Ensure AI model exists
+        ai_model = AIModel.query.filter_by(model_name='gpt-4o-mini').first()
+        if not ai_model:
+            ai_model = AIModel(
+                subject='General',  # General purpose model
+                model_name='gpt-4o-mini',
+                prompt_template='You are a helpful AI tutor.',
+                max_tokens=1000,
+                temperature=0.7,
+                is_active=True
+            )
+            db.session.add(ai_model)
+            db.session.commit()
+        
         for student in students:
             student_classes = student.classes
             
@@ -395,14 +409,15 @@ class RealisticDataGenerator:
                 interaction = AIInteraction(
                     user_id=student.id,
                     class_id=class_obj.id,
+                    ai_model_id=ai_model.id,  # Use the created AI model
                     prompt=f"Help me with {subject.lower()}",
                     response=f"Here's help with your {subject.lower()} question...",
                     strategy_used=random.choice(self.teaching_strategies),
                     success_indicator=random.choice([True, True, True, False]),  # 75% success
                     engagement_score=random.uniform(0.6, 1.0),
                     response_time_ms=random.randint(500, 2000),
-                    tokens_used=random.randint(100, 500),
-                    model_used="gpt-4o-mini",
+                    tokens_in=random.randint(50, 200),
+                    tokens_out=random.randint(100, 400),
                     created_at=datetime.utcnow() - timedelta(hours=random.randint(0, 72))
                 )
                 db.session.add(interaction)
