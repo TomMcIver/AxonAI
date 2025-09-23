@@ -34,15 +34,55 @@
 
         /* Scene Container */
         .scene-container {
-            width: 1000px;
+            width: 100%;
+            max-width: 1000px;
             height: 600px;
             position: relative;
+            padding: 0 20px;
         }
 
         svg {
             width: 100%;
             height: 100%;
             filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.8));
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .scene-container {
+                height: 400px;
+                padding: 0 10px;
+            }
+            
+            .loading-container {
+                width: 90%;
+                bottom: 30px;
+            }
+            
+            .loading-text {
+                font-size: 1rem;
+                letter-spacing: 1px;
+            }
+            
+            /* Scale down SVG content on mobile */
+            svg {
+                transform: scale(0.6);
+                transform-origin: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .scene-container {
+                height: 350px;
+            }
+            
+            svg {
+                transform: scale(0.5);
+            }
+            
+            .loading-text {
+                font-size: 0.9rem;
+            }
         }
 
         /* Glow Animations */
@@ -128,7 +168,8 @@
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
-            width: 600px;
+            width: 90%;
+            max-width: 600px;
         }
 
         .loading-text {
@@ -182,6 +223,29 @@
 
         .particle {
             animation: floatParticle 6s ease-in-out infinite;
+        }
+        
+        /* Performance optimizations */
+        .preloader-container * {
+            will-change: auto;
+        }
+        
+        svg {
+            will-change: transform;
+        }
+        
+        .progress-fill {
+            will-change: width;
+        }
+        
+        /* Use GPU acceleration for animations */
+        .teacher-ai-side,
+        .student-enlightened,
+        .laptop-active,
+        .harmony-active,
+        .particle {
+            transform: translateZ(0);
+            backface-visibility: hidden;
         }
     </style>
 </head>
@@ -475,6 +539,29 @@
     </div>
 
     <script>
+        // Preload optimization for smoother animations
+        window.addEventListener('DOMContentLoaded', function() {
+            // Reduce animation complexity on mobile for better performance
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+                // Reduce particle animations on mobile
+                document.querySelectorAll('.particle').forEach(particle => {
+                    particle.style.animationDuration = '8s';
+                });
+                // Reduce animation duration on mobile
+                const animationElements = document.querySelectorAll('.teacher-ai-side, .student-enlightened, .laptop-active');
+                animationElements.forEach(el => {
+                    el.style.animationDuration = '2s';
+                });
+            }
+            
+            // Force GPU acceleration
+            const svg = document.querySelector('svg');
+            if (svg) {
+                svg.style.transform = 'translateZ(0)';
+            }
+        });
+        
         let progress = 0;
         let currentStep = 0;
         const steps = [
