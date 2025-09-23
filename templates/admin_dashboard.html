@@ -104,11 +104,11 @@
         </button>
     </div>
     <div class="col-md-6 col-lg-3 mb-3">
-        <button class="btn btn-outline-info w-100 p-3" onclick="openAIInsights()">
-            <i class="fas fa-robot fa-2x d-block mb-2"></i>
-            <h6>AI Analytics</h6>
-            <small class="text-muted">View student engagement insights</small>
-        </button>
+        <a href="{{ url_for('ai_dashboard') }}" class="btn btn-outline-info w-100 p-3 text-decoration-none">
+            <i class="fas fa-brain fa-2x d-block mb-2"></i>
+            <h6>AI Performance Dashboard</h6>
+            <small class="text-muted">Individual AI Tutors & Big AI Coordinator metrics</small>
+        </a>
     </div>
 </div>
 

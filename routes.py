@@ -1,10 +1,11 @@
 from flask import render_template, request, redirect, url_for, flash, session, send_file
 from app import app, db
-from models import User, Class, Assignment, AssignmentSubmission, Grade, ContentFile, ChatMessage
+from models import User, Class, Assignment, AssignmentSubmission, Grade, ContentFile, ChatMessage, AIInteraction, OptimizedProfile
 from auth import hash_password, check_password, login_required, admin_required, get_current_user, role_required
 import os
 from werkzeug.utils import secure_filename
 from datetime import datetime
+import json
 
 @app.route('/')
 def index():
@@ -438,6 +439,72 @@ def delete_class(class_id):
         app.logger.error(f'Error deleting class: {e}')
     
     return redirect(url_for('manage_classes'))
+
+# === AI DASHBOARD ROUTES ===
+
+@app.route('/admin/ai-dashboard')
+@admin_required
+def ai_dashboard():
+    """Admin AI Dashboard - Shows Individual AI Tutors and Big AI Coordinator metrics"""
+    from admin_ai_dashboard import AIMetricsDashboard
+    
+    dashboard = AIMetricsDashboard()
+    metrics = dashboard.generate_complete_dashboard()
+    
+    return render_template('ai_dashboard.html', metrics=metrics)
+
+@app.route('/admin/ai-dashboard/data')
+@admin_required
+def ai_dashboard_data():
+    """API endpoint for AI dashboard data"""
+    from admin_ai_dashboard import AIMetricsDashboard
+    
+    dashboard = AIMetricsDashboard()
+    metrics = dashboard.generate_complete_dashboard()
+    
+    return metrics
+
+@app.route('/admin/generate-data', methods=['POST'])
+@admin_required
+def generate_demo_data():
+    """Generate realistic demo data for AI system"""
+    from data_generator import RealisticDataGenerator
+    
+    try:
+        generator = RealisticDataGenerator()
+        results = generator.generate_complete_dataset(100)
+        
+        # Run Big AI Coordinator analysis on new data
+        from ai_coordinator import BigAICoordinator
+        coordinator = BigAICoordinator()
+        coordinator.analyze_global_patterns()
+        coordinator.generate_grade_predictions()
+        coordinator.generate_teacher_insights()
+        
+        flash(f'✅ Generated {results["students"]} students with {results["interactions"]} interactions!', 'success')
+        return redirect(url_for('ai_dashboard'))
+        
+    except Exception as e:
+        flash(f'Error generating data: {str(e)}', 'danger')
+        return redirect(url_for('dashboard'))
+
+@app.route('/admin/run-big-ai', methods=['POST'])
+@admin_required
+def run_big_ai_analysis():
+    """Manually trigger Big AI Coordinator analysis"""
+    try:
+        from ai_coordinator import BigAICoordinator
+        coordinator = BigAICoordinator()
+        coordinator.analyze_global_patterns()
+        coordinator.generate_grade_predictions()
+        coordinator.generate_teacher_insights()
+        
+        flash('🤖 Big AI Coordinator analysis completed successfully!', 'success')
+        return redirect(url_for('ai_dashboard'))
+        
+    except Exception as e:
+        flash(f'Error running Big AI analysis: {str(e)}', 'danger')
+        return redirect(url_for('ai_dashboard'))
 
 # === TEACHER ROUTES ===
 

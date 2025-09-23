@@ -1,0 +1,392 @@
+{% extends "layout.html" %}
+
+{% block title %}AI Performance Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4">
+                <i class="fas fa-brain text-primary me-3"></i>
+                AI Performance Dashboard
+            </h1>
+            <p class="lead text-muted">Real-time metrics for Individual AI Tutors and Big AI Coordinator</p>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <form method="POST" action="{{ url_for('generate_demo_data') }}" class="d-inline">
+                            <button type="submit" class="btn btn-success btn-lg me-2" onclick="return confirm('Generate 100 students with realistic interactions? This may take a few minutes.')">
+                                <i class="fas fa-users me-2"></i>Generate Demo Data
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('run_big_ai_analysis') }}" class="d-inline">
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                <i class="fas fa-robot me-2"></i>Run Big AI Analysis
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Individual AI Tutors Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-primary mb-4">
+                <i class="fas fa-user-graduate me-2"></i>Individual AI Tutors Performance
+            </h2>
+        </div>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ metrics.individual_tutors.overview.total_interactions }}</h3>
+                    <p class="mb-0">Total Interactions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-success">{{ metrics.individual_tutors.overview.success_rate }}%</h3>
+                    <p class="mb-0">Success Rate</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-info">{{ metrics.individual_tutors.overview.avg_engagement }}</h3>
+                    <p class="mb-0">Avg Engagement</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-warning">{{ metrics.individual_tutors.overview.avg_response_time }}ms</h3>
+                    <p class="mb-0">Response Time</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-secondary">{{ metrics.individual_tutors.overview.total_tokens_used }}</h3>
+                    <p class="mb-0">Total Tokens Used</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Strategy Performance -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar me-2"></i>Teaching Strategy Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Strategy</th>
+                                    <th>Success Rate</th>
+                                    <th>Engagement</th>
+                                    <th>Uses</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for strategy in metrics.individual_tutors.strategy_performance %}
+                                <tr>
+                                    <td>{{ strategy.strategy }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar 
+                                                {% if strategy.success_rate >= 80 %}bg-success
+                                                {% elif strategy.success_rate >= 60 %}bg-warning
+                                                {% else %}bg-danger{% endif %}"
+                                                 role="progressbar" style="width: {{ strategy.success_rate }}%">
+                                                {{ strategy.success_rate }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ strategy.avg_engagement }}</td>
+                                    <td><span class="badge bg-primary">{{ strategy.total_uses }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Performing Students -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-trophy me-2"></i>Top Performing Students</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Current</th>
+                                    <th>Predicted</th>
+                                    <th>Engagement</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in metrics.individual_tutors.top_students %}
+                                <tr>
+                                    <td>{{ student.name }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if student.current_pass_rate >= 80 %}bg-success
+                                            {% elif student.current_pass_rate >= 60 %}bg-warning
+                                            {% else %}bg-danger{% endif %}">
+                                            {{ student.current_pass_rate }}%
+                                        </span>
+                                    </td>
+                                    <td>{{ student.predicted_pass_rate }}%</td>
+                                    <td>{{ student.engagement_level }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Big AI Coordinator Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-success mb-4">
+                <i class="fas fa-globe me-2"></i>Big AI Coordinator Insights
+            </h2>
+        </div>
+    </div>
+
+    <!-- Big AI Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ metrics.big_ai_coordinator.overview.patterns_discovered }}</h3>
+                    <p class="mb-0">Patterns Discovered</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-info">{{ metrics.big_ai_coordinator.overview.teacher_insights_generated }}</h3>
+                    <p class="mb-0">Teacher Insights</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-danger">{{ metrics.big_ai_coordinator.overview.at_risk_students }}</h3>
+                    <p class="mb-0">At-Risk Students</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-success">+{{ metrics.big_ai_coordinator.overview.avg_predicted_improvement }}%</h3>
+                    <p class="mb-0">Avg Improvement</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Discovered Patterns -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-search me-2"></i>Discovered Learning Patterns</h5>
+                </div>
+                <div class="card-body">
+                    {% if metrics.big_ai_coordinator.discovered_patterns %}
+                        {% for pattern in metrics.big_ai_coordinator.discovered_patterns %}
+                        <div class="border-start border-primary ps-3 mb-3">
+                            <h6 class="text-primary">{{ pattern.type }}</h6>
+                            <p class="mb-2">{{ pattern.description }}</p>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-success me-2">{{ pattern.success_rate }}% success</span>
+                                <span class="badge bg-info me-2">{{ pattern.sample_size }} students</span>
+                                <span class="badge bg-warning">{{ (pattern.confidence * 100)|round }}% confidence</span>
+                            </div>
+                            {% if pattern.strategies %}
+                            <div class="mt-2">
+                                <strong>Recommended strategies:</strong>
+                                {% for strategy in pattern.strategies %}
+                                <span class="badge bg-secondary me-1">{{ strategy }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No patterns discovered yet. Generate demo data and run Big AI analysis to see insights.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- At-Risk Students -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Students At Risk</h5>
+                </div>
+                <div class="card-body">
+                    {% if metrics.big_ai_coordinator.at_risk_students %}
+                        {% for student in metrics.big_ai_coordinator.at_risk_students %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ student.name }}</strong><br>
+                                <small class="text-muted">Current: {{ student.current_rate }}% → Predicted: {{ student.predicted_rate }}%</small>
+                            </div>
+                            <span class="badge 
+                                {% if student.risk_level == 'High' %}bg-danger
+                                {% else %}bg-warning{% endif %}">
+                                {{ student.risk_level }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No at-risk students identified.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject Performance -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-books me-2"></i>Subject Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Success Rate</th>
+                                    <th>Engagement</th>
+                                    <th>Interactions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subject in metrics.subject_performance %}
+                                <tr>
+                                    <td>{{ subject.subject }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar 
+                                                {% if subject.success_rate >= 80 %}bg-success
+                                                {% elif subject.success_rate >= 60 %}bg-warning
+                                                {% else %}bg-danger{% endif %}"
+                                                 role="progressbar" style="width: {{ subject.success_rate }}%">
+                                                {{ subject.success_rate }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ subject.engagement }}</td>
+                                    <td>{{ subject.interactions }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Analysis -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-clock me-2"></i>Learning Time Patterns</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Time Slot</th>
+                                    <th>Success Rate</th>
+                                    <th>Engagement</th>
+                                    <th>Sessions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for time_data in metrics.time_analysis %}
+                                <tr>
+                                    <td>
+                                        {{ time_data.time_slot }}
+                                        <small class="text-muted">({{ time_data.hour }}:00)</small>
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar 
+                                                {% if time_data.success_rate >= 80 %}bg-success
+                                                {% elif time_data.success_rate >= 60 %}bg-warning
+                                                {% else %}bg-danger{% endif %}"
+                                                 role="progressbar" style="width: {{ time_data.success_rate }}%">
+                                                {{ time_data.success_rate }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ time_data.engagement }}</td>
+                                    <td>{{ time_data.interactions }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Dashboard Updated:</strong> {{ metrics.last_updated }}
+                <br>
+                <small>This dashboard shows real-time metrics from the dual-AI architecture. Individual AI Tutors learn from each student interaction while the Big AI Coordinator discovers patterns across all students to improve the system globally.</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
