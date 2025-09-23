@@ -288,8 +288,8 @@ class RealisticDataGenerator:
         for student in students:
             student_classes = student.classes
             
-            # Generate fewer interactions to avoid timeout (5-10 per student)
-            for _ in range(random.randint(5, 10)):
+            # Generate very few interactions to avoid timeout (2-3 per student)
+            for _ in range(random.randint(2, 3)):
                 class_obj = random.choice(student_classes)
                 subject = class_obj.subject
                 
@@ -386,8 +386,6 @@ class RealisticDataGenerator:
         all_classes = {c.id: c for c in Class.query.all()}
         
         for student in students:
-            # Ensure student is in current session
-            db.session.merge(student)
             
             # Get student's interactions
             interactions = AIInteraction.query.filter_by(user_id=student.id).all()
@@ -497,21 +495,19 @@ class RealisticDataGenerator:
             db.session.commit()
             print("✓ Students enrolled in classes")
             
-            # Process in smaller batches to avoid timeout
-            batch_size = 10  # Smaller batch size to avoid timeout
-            for i in range(0, len(students), batch_size):
-                batch = students[i:i+batch_size]
-                print(f"Processing batch {i//batch_size + 1} of {(len(students) + batch_size - 1)//batch_size}...")
-                
-                # Generate AI interactions for this batch
-                self.generate_ai_interactions(batch, classes)
-                
-                # Build optimized profiles for this batch  
-                self.build_optimized_profiles(batch)
-                
-                # Commit after each batch to avoid timeout
-                db.session.commit()
-                print(f"✓ Batch {i//batch_size + 1} completed")
+            # Process only first 20 students to avoid timeout
+            sample_students = students[:20]  # Only process 20 students for demo
+            print(f"Processing {len(sample_students)} students for demo...")
+            
+            # Generate AI interactions
+            self.generate_ai_interactions(sample_students, classes)
+            
+            # Build optimized profiles 
+            self.build_optimized_profiles(sample_students)
+            
+            # Commit changes
+            db.session.commit()
+            print(f"✓ Demo data generated for {len(sample_students)} students")
             
             # Run Big AI Coordinator analysis
             from ai_coordinator import BigAICoordinator, PatternInsight
