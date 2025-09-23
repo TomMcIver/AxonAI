@@ -1,6 +1,11 @@
 from flask import render_template, request, redirect, url_for, flash, session, send_file
 from app import app, db
-from models import User, Class, Assignment, AssignmentSubmission, Grade, ContentFile, ChatMessage, AIInteraction, OptimizedProfile
+from models import (
+    User, Class, Assignment, AssignmentSubmission, Grade, ContentFile, 
+    ChatMessage, AIInteraction, OptimizedProfile, FailedStrategy,
+    MiniTest, MiniTestResponse, PatternInsight, PredictedGrade, 
+    TeacherAIInsight, AIModel
+)
 from auth import hash_password, check_password, login_required, admin_required, get_current_user, role_required
 import os
 from werkzeug.utils import secure_filename
