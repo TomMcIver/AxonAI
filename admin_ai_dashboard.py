@@ -2,7 +2,7 @@
 Admin AI Dashboard - Real-time metrics for Individual AI Tutors and Big AI Coordinator
 Shows actual performance data based on generated interactions
 """
-from sqlalchemy import func, desc, asc
+from sqlalchemy import func, case, desc, asc
 from models import (
     User, Class, AIInteraction, OptimizedProfile, PatternInsight,
     TeacherAIInsight, FailedStrategy, MiniTest, PredictedGrade
@@ -31,7 +31,10 @@ class AIMetricsDashboard:
         strategy_stats = db.session.query(
             AIInteraction.strategy_used,
             func.count(AIInteraction.id).label('total_uses'),
-            func.sum(func.cast(AIInteraction.success_indicator, db.Integer)).label('successes'),
+            func.sum(case(
+                (AIInteraction.success_indicator == True, 1),
+                else_=0
+            ).cast(db.Integer)).label('successes'),
             func.avg(AIInteraction.engagement_score).label('avg_engagement')
         ).filter(
             AIInteraction.strategy_used.isnot(None)
@@ -217,7 +220,10 @@ class AIMetricsDashboard:
         subject_stats = db.session.query(
             Class.subject,
             func.count(AIInteraction.id).label('total_interactions'),
-            func.avg(func.cast(AIInteraction.success_indicator, db.Float)).label('success_rate'),
+            func.avg(case(
+                (AIInteraction.success_indicator == True, 1),
+                else_=0
+            ).cast(db.Float)).label('success_rate'),
             func.avg(AIInteraction.engagement_score).label('avg_engagement')
         ).join(AIInteraction, Class.id == AIInteraction.class_id)\
          .group_by(Class.subject).all()
@@ -239,7 +245,10 @@ class AIMetricsDashboard:
         time_performance = db.session.query(
             func.extract('hour', AIInteraction.created_at).label('hour'),
             func.count(AIInteraction.id).label('interactions'),
-            func.avg(func.cast(AIInteraction.success_indicator, db.Float)).label('success_rate'),
+            func.avg(case(
+                (AIInteraction.success_indicator == True, 1),
+                else_=0
+            ).cast(db.Float)).label('success_rate'),
             func.avg(AIInteraction.engagement_score).label('engagement')
         ).group_by(func.extract('hour', AIInteraction.created_at)).all()
         
