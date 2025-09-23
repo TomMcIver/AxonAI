@@ -148,10 +148,18 @@ class BigAICoordinator:
         
         for slot_name, (start_hour, end_hour) in time_slots.items():
             # Get interactions in this time slot
-            interactions = AIInteraction.query.filter(
-                func.extract('hour', AIInteraction.created_at) >= start_hour,
-                func.extract('hour', AIInteraction.created_at) < end_hour
-            ).all()
+            if slot_name == 'night':  # Handle wraparound for night hours
+                interactions = AIInteraction.query.filter(
+                    db.or_(
+                        func.extract('hour', AIInteraction.created_at) >= 22,
+                        func.extract('hour', AIInteraction.created_at) < 6
+                    )
+                ).all()
+            else:
+                interactions = AIInteraction.query.filter(
+                    func.extract('hour', AIInteraction.created_at) >= start_hour,
+                    func.extract('hour', AIInteraction.created_at) < end_hour
+                ).all()
             
             if len(interactions) < 100:  # Need sufficient data
                 continue

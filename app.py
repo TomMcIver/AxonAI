@@ -22,7 +22,14 @@ db = SQLAlchemy(model_class=Base)
 
 # Create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
+
+# Add ProxyFix for proper HTTPS handling behind proxy
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+# Security: No fallback for secret key - must be set in environment
+app.secret_key = os.environ.get("SESSION_SECRET")
+if not app.secret_key:
+    raise ValueError("SESSION_SECRET environment variable must be set for security")
 
 # Security: Never log sensitive credentials
 if os.environ.get('DATABASE_URL'):
@@ -79,12 +86,15 @@ with app.app_context():
     db.create_all()
     
     # Initialize background task scheduler for Big AI Coordinator
-    try:
-        from scheduler_config import init_scheduler
-        scheduler = init_scheduler(app)
-        print("Big AI Coordinator scheduler initialized")
-    except Exception as e:
-        print(f"Warning: Could not initialize scheduler: {e}")
+    # Only run scheduler in main process to avoid duplicates
+    import os
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
+        try:
+            from scheduler_config import init_scheduler
+            scheduler = init_scheduler(app)
+            print("Big AI Coordinator scheduler initialized")
+        except Exception as e:
+            print(f"Warning: Could not initialize scheduler: {e}")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

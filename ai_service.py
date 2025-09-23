@@ -27,9 +27,16 @@ class AIService:
     def setup_provider(self):
         """Initialize the appropriate AI provider"""
         if self.provider == "openai":
+            api_key = os.environ.get("OPENAI_API_KEY")
+            if not api_key or api_key == "demo-key":
+                print("OpenAI API key not configured, falling back to local provider")
+                self.provider = "local"
+                self.setup_local_provider()
+                return
+            
             try:
                 from openai import OpenAI
-                self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", "demo-key"))
+                self.client = OpenAI(api_key=api_key)
                 # Using gpt-4o-mini for cost optimization as requested by user
                 self.default_model = "gpt-4o-mini"
                 print("Using OpenAI provider")
