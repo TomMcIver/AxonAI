@@ -3,7 +3,11 @@ import os
 import requests
 import tiktoken
 from datetime import datetime, date
-from models import AIModel, ChatMessage, User, Class, StudentProfile, ContentFile, TokenUsage
+from models import (
+    AIModel, ChatMessage, User, Class, StudentProfile, ContentFile, TokenUsage,
+    AIInteraction, FailedStrategy, OptimizedProfile, MiniTest, MiniTestResponse,
+    PredictedGrade
+)
 from app import db
 
 # AI Provider Configuration
@@ -14,7 +18,7 @@ from app import db
 AI_PROVIDER = "openai"  # Force OpenAI provider for this implementation
 
 class AIService:
-    """Service for handling AI chatbot interactions with multiple providers"""
+    """Individual AI Tutor - Self-optimizing AI that learns from each interaction"""
     
     def __init__(self):
         self.provider = AI_PROVIDER
@@ -222,7 +226,19 @@ Provide personalized {subject} help based on this student's learning style, curr
             total_tokens = prompt_tokens + response_tokens
             self.update_token_usage(student_id, total_tokens)
             
-            # Store chat message
+            # Store chat message and AI interaction
+            self.store_interaction(
+                user_id=student_id,
+                class_id=class_id,
+                ai_model_id=ai_model.id,
+                message=message,
+                response=ai_response,
+                tokens_in=prompt_tokens,
+                tokens_out=response_tokens,
+                context_data=json.dumps(context)
+            )
+            
+            # Store basic chat message for compatibility
             try:
                 chat_message = ChatMessage(
                     user_id=student_id,
@@ -581,3 +597,295 @@ Goals: {student_info.get('academic_goals', 'General improvement')[:100]}..."""
         except Exception as e:
             print(f"Error getting all chat data: {e}")
             return []
+    
+    def store_interaction(self, user_id, class_id, ai_model_id, message, response, 
+                         tokens_in, tokens_out, context_data=None, strategy_used=None):
+        """Store detailed AI interaction for learning and optimization"""
+        import time
+        start_time = time.time()
+        
+        # Choose teaching strategy if not provided
+        if not strategy_used:
+            strategy_used = self.choose_teaching_strategy(user_id, class_id)
+        
+        # Calculate initial engagement (will be updated based on user response)
+        engagement_score = self.calculate_engagement_score(message, response)
+        
+        interaction = AIInteraction(
+            user_id=user_id,
+            class_id=class_id,
+            ai_model_id=ai_model_id,
+            prompt=message,
+            response=response,
+            strategy_used=strategy_used,
+            engagement_score=engagement_score,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+            response_time_ms=int((time.time() - start_time) * 1000),
+            temperature=0.7,
+            context_data=context_data
+        )
+        
+        db.session.add(interaction)
+        db.session.commit()
+        
+        # Update optimized profile
+        self.update_optimized_profile(user_id, class_id)
+        
+        return interaction
+    
+    def choose_teaching_strategy(self, user_id, class_id):
+        """Choose the best teaching strategy based on student profile and history"""
+        # Get optimized profile
+        profile = OptimizedProfile.query.filter_by(user_id=user_id).first()
+        
+        if not profile:
+            # Create initial profile
+            profile = self.create_initial_profile(user_id)
+        
+        # Get preferred strategies from profile
+        if profile.preferred_strategies:
+            strategies = json.loads(profile.preferred_strategies)
+            if strategies:
+                return strategies[0]  # Use top strategy
+        
+        # Get failed strategies to avoid
+        failed = FailedStrategy.query.filter_by(
+            user_id=user_id,
+            class_id=class_id
+        ).order_by(FailedStrategy.failure_count.desc()).all()
+        
+        failed_names = [f.strategy_name for f in failed]
+        
+        # Available strategies
+        all_strategies = [
+            "socratic_method",
+            "direct_instruction",
+            "example_based",
+            "problem_solving",
+            "visual_learning",
+            "storytelling",
+            "gamification",
+            "step_by_step",
+            "collaborative",
+            "inquiry_based"
+        ]
+        
+        # Filter out failed strategies
+        available = [s for s in all_strategies if s not in failed_names]
+        
+        if available:
+            # Try a new strategy
+            return available[0]
+        else:
+            # All strategies have failed, retry the least failed one
+            if failed:
+                return failed[-1].strategy_name
+            return "direct_instruction"  # Default
+    
+    def calculate_engagement_score(self, message, response):
+        """Calculate engagement score based on interaction quality"""
+        # Simple heuristics for engagement
+        score = 0.5  # Base score
+        
+        # Longer messages indicate more engagement
+        if len(message) > 100:
+            score += 0.2
+        elif len(message) > 50:
+            score += 0.1
+        
+        # Questions indicate engagement
+        if '?' in message:
+            score += 0.1
+        
+        # Multiple sentences indicate thoughtful interaction
+        if message.count('.') > 1:
+            score += 0.1
+        
+        # Cap at 1.0
+        return min(1.0, score)
+    
+    def create_initial_profile(self, user_id):
+        """Create initial optimized profile for a student"""
+        student = User.query.get(user_id)
+        if not student:
+            return None
+        
+        profile = OptimizedProfile(
+            user_id=user_id,
+            current_pass_rate=student.get_average_grade() or 0,
+            predicted_pass_rate=student.get_average_grade() or 50,
+            engagement_level=0.5,
+            mastery_scores=json.dumps({}),
+            preferred_strategies=json.dumps(["direct_instruction", "example_based"]),
+            avoided_strategies=json.dumps([])
+        )
+        
+        db.session.add(profile)
+        db.session.commit()
+        return profile
+    
+    def update_optimized_profile(self, user_id, class_id):
+        """Update optimized profile based on recent interactions"""
+        profile = OptimizedProfile.query.filter_by(user_id=user_id).first()
+        
+        if not profile:
+            profile = self.create_initial_profile(user_id)
+        
+        # Get recent interactions
+        recent = AIInteraction.query.filter_by(
+            user_id=user_id,
+            class_id=class_id
+        ).order_by(AIInteraction.created_at.desc()).limit(10).all()
+        
+        if recent:
+            # Calculate average engagement
+            avg_engagement = sum([i.engagement_score or 0 for i in recent]) / len(recent)
+            profile.engagement_level = avg_engagement
+            
+            # Update recent topics
+            topics = list(set([i.prompt[:30] for i in recent[:5]]))
+            profile.recent_topics = json.dumps(topics)
+            
+            # Find successful strategies
+            successful = [i for i in recent if i.success_indicator]
+            if successful:
+                strategies = list(set([i.strategy_used for i in successful if i.strategy_used]))
+                profile.preferred_strategies = json.dumps(strategies)
+        
+        # Update pass rate
+        student = User.query.get(user_id)
+        if student:
+            profile.current_pass_rate = student.get_class_average(class_id) or 0
+        
+        profile.last_updated = datetime.utcnow()
+        db.session.commit()
+    
+    def log_failed_strategy(self, user_id, class_id, strategy_name, reason=None):
+        """Log a strategy that didn't work for a student"""
+        # Check if already logged
+        failed = FailedStrategy.query.filter_by(
+            user_id=user_id,
+            class_id=class_id,
+            strategy_name=strategy_name
+        ).first()
+        
+        if failed:
+            failed.failure_count += 1
+            failed.last_attempted = datetime.utcnow()
+        else:
+            failed = FailedStrategy(
+                user_id=user_id,
+                class_id=class_id,
+                strategy_name=strategy_name,
+                failure_reason=reason,
+                failure_count=1
+            )
+            db.session.add(failed)
+        
+        db.session.commit()
+        
+        # Update optimized profile to avoid this strategy
+        profile = OptimizedProfile.query.filter_by(user_id=user_id).first()
+        if profile:
+            avoided = json.loads(profile.avoided_strategies) if profile.avoided_strategies else []
+            if strategy_name not in avoided:
+                avoided.append(strategy_name)
+                profile.avoided_strategies = json.dumps(avoided)
+                db.session.commit()
+    
+    def generate_mini_test(self, user_id, class_id, test_type="diagnostic"):
+        """Generate adaptive mini-test for student assessment"""
+        try:
+            # Get student profile
+            profile = OptimizedProfile.query.filter_by(user_id=user_id).first()
+            class_obj = Class.query.get(class_id)
+            
+            # Determine difficulty based on performance
+            if profile and profile.current_pass_rate:
+                if profile.current_pass_rate > 80:
+                    difficulty = "hard"
+                elif profile.current_pass_rate > 60:
+                    difficulty = "medium"
+                else:
+                    difficulty = "easy"
+            else:
+                difficulty = "medium"
+            
+            # Get AI model for this class
+            ai_model = class_obj.ai_model or AIModel.query.filter_by(subject=class_obj.subject).first()
+            
+            # Generate questions based on subject
+            questions = self._generate_test_questions(class_obj.subject, difficulty, test_type)
+            
+            # Create mini-test
+            test = MiniTest(
+                class_id=class_id,
+                created_by_ai=ai_model.id if ai_model else 1,
+                test_type=test_type,
+                difficulty_level=difficulty,
+                skills_tested=json.dumps([class_obj.subject]),
+                questions=json.dumps(questions)
+            )
+            
+            db.session.add(test)
+            db.session.commit()
+            
+            return test
+            
+        except Exception as e:
+            print(f"Error generating mini-test: {e}")
+            return None
+    
+    def _generate_test_questions(self, subject, difficulty, test_type):
+        """Generate test questions based on parameters"""
+        # This would normally use AI to generate questions
+        # For now, return sample questions
+        questions = []
+        
+        if test_type == "diagnostic":
+            questions.append({
+                "question": f"What is your current understanding of {subject}?",
+                "type": "open_ended"
+            })
+            questions.append({
+                "question": f"What topics in {subject} do you find most challenging?",
+                "type": "open_ended"
+            })
+        elif test_type == "quiz":
+            questions.append({
+                "question": f"Sample {subject} question for {difficulty} level",
+                "type": "multiple_choice",
+                "options": ["A", "B", "C", "D"],
+                "correct": "A"
+            })
+        
+        return questions
+    
+    def get_predicted_pass_rate(self, user_id, class_id):
+        """Get AI-predicted pass rate for a student in a class"""
+        prediction = PredictedGrade.query.filter_by(
+            user_id=user_id,
+            class_id=class_id
+        ).order_by(PredictedGrade.prediction_date.desc()).first()
+        
+        if prediction:
+            return {
+                'current': prediction.current_trajectory,
+                'predicted': prediction.predicted_final_grade,
+                'confidence': prediction.confidence_level,
+                'factors': json.loads(prediction.factors_analyzed) if prediction.factors_analyzed else {}
+            }
+        
+        # Return default if no prediction
+        student = User.query.get(user_id)
+        if student:
+            current = student.get_class_average(class_id) or 0
+            return {
+                'current': current,
+                'predicted': current,  # Same as current if no prediction
+                'confidence': 0.5,
+                'factors': {}
+            }
+        
+        return None
