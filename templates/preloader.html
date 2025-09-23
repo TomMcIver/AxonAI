@@ -160,7 +160,8 @@
             animation: laptopActivate 1s ease-in-out forwards;
         }
 
-        .teacher-ai-side {
+        .teacher-ai-side,
+        .teacher-human-side {
             animation: pulseGlow 3s ease-in-out infinite;
         }
 
@@ -240,7 +241,8 @@
         }
         
         /* Use GPU acceleration for animations */
-        .teacher-ai-side {
+        .teacher-ai-side,
+        .teacher-human-side {
             will-change: filter, opacity;
             backface-visibility: hidden;
         }
@@ -303,7 +305,7 @@
                 <rect x="50" y="380" width="900" height="200" fill="#0f0f0f" opacity="0.5" rx="10" ry="10"/>
                 
                 <!-- Human Teacher (Left) -->
-                <g id="human-teacher" transform="translate(400, 180)">
+                <g id="human-teacher" transform="translate(400, 180)" class="teacher-human-side">
                     <!-- Body -->
                     <rect x="-20" y="20" width="40" height="70" fill="url(#humanGradient)" stroke="#303030" stroke-width="2" rx="5" ry="5"/>
                     <!-- Head -->
@@ -557,7 +559,7 @@
                     particle.style.animationDuration = '8s';
                 });
                 // Reduce animation duration on mobile
-                const animationElements = document.querySelectorAll('.teacher-ai-side, .student-enlightened, .laptop-active');
+                const animationElements = document.querySelectorAll('.teacher-ai-side, .teacher-human-side, .student-enlightened, .laptop-active');
                 animationElements.forEach(el => {
                     el.style.animationDuration = '2s';
                 });
