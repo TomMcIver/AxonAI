@@ -378,6 +378,72 @@ class RealisticDataGenerator:
         db.session.commit()
         print(f"✓ Generated {interactions_count} realistic AI interactions")
     
+    def generate_quick_demo_interactions(self, students, classes):
+        """Generate quick demo interactions without calling OpenAI"""
+        print("Generating quick demo interactions...")
+        interactions_count = 0
+        
+        for student in students:
+            student_classes = student.classes
+            
+            # Generate 2-3 quick interactions per student
+            for i in range(random.randint(2, 3)):
+                class_obj = random.choice(student_classes)
+                subject = class_obj.subject
+                
+                # Create demo interaction without API call
+                interaction = AIInteraction(
+                    user_id=student.id,
+                    class_id=class_obj.id,
+                    prompt=f"Help me with {subject.lower()}",
+                    response=f"Here's help with your {subject.lower()} question...",
+                    strategy_used=random.choice(self.teaching_strategies),
+                    success_indicator=random.choice([True, True, True, False]),  # 75% success
+                    engagement_score=random.uniform(0.6, 1.0),
+                    response_time_ms=random.randint(500, 2000),
+                    tokens_used=random.randint(100, 500),
+                    model_used="gpt-4o-mini",
+                    created_at=datetime.utcnow() - timedelta(hours=random.randint(0, 72))
+                )
+                db.session.add(interaction)
+                interactions_count += 1
+        
+        db.session.commit()
+        print(f"✓ Generated {interactions_count} quick demo interactions")
+    
+    def build_simple_profiles(self, students):
+        """Build simple profiles for quick demo"""
+        print("Building simple student profiles...")
+        
+        for student in students:
+            # Calculate basic metrics
+            interactions = AIInteraction.query.filter_by(user_id=student.id).all()
+            if not interactions:
+                continue
+                
+            success_rate = len([i for i in interactions if i.success_indicator]) / len(interactions) * 100
+            avg_engagement = sum([i.engagement_score or 0 for i in interactions]) / len(interactions)
+            
+            # Create simple profile
+            profile = OptimizedProfile(
+                user_id=student.id,
+                current_pass_rate=success_rate,
+                predicted_pass_rate=min(100, success_rate + random.uniform(5, 15)),  # AI improvement
+                engagement_level=avg_engagement,
+                mastery_scores=json.dumps({"Math": 75, "English": 80, "Science": 70}),
+                best_time_of_day=random.choice(["morning", "afternoon", "evening"]),
+                optimal_session_length=random.randint(20, 40),
+                preferred_strategies=json.dumps(self.teaching_strategies[:3]),
+                avoided_strategies=json.dumps([]),
+                recent_topics=json.dumps(["algebra", "essay writing", "chemistry"]),
+                struggle_areas=json.dumps(["complex equations", "grammar"]),
+                strength_areas=json.dumps(["reading comprehension", "basic math"])
+            )
+            db.session.add(profile)
+        
+        db.session.commit()
+        print("✓ Built simple profiles for demo students")
+    
     def build_optimized_profiles(self, students):
         """Create optimized profiles based on interactions"""
         print("Building optimized student profiles...")
@@ -495,19 +561,19 @@ class RealisticDataGenerator:
             db.session.commit()
             print("✓ Students enrolled in classes")
             
-            # Process only first 20 students to avoid timeout
-            sample_students = students[:20]  # Only process 20 students for demo
-            print(f"Processing {len(sample_students)} students for demo...")
+            # Process only first 10 students to avoid timeout
+            sample_students = students[:10]  # Only process 10 students for demo
+            print(f"Processing {len(sample_students)} students for quick demo...")
             
-            # Generate AI interactions
-            self.generate_ai_interactions(sample_students, classes)
+            # Generate minimal AI interactions (don't call OpenAI, just create demo data)
+            self.generate_quick_demo_interactions(sample_students, classes)
             
-            # Build optimized profiles 
-            self.build_optimized_profiles(sample_students)
+            # Build simple profiles 
+            self.build_simple_profiles(sample_students)
             
             # Commit changes
             db.session.commit()
-            print(f"✓ Demo data generated for {len(sample_students)} students")
+            print(f"✓ Quick demo data generated for {len(sample_students)} students")
             
             # Run Big AI Coordinator analysis
             from ai_coordinator import BigAICoordinator, PatternInsight

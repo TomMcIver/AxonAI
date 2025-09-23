@@ -23,14 +23,22 @@
                 </div>
                 <div class="card-body">
                     <div class="btn-group" role="group">
-                        <form method="POST" action="{{ url_for('generate_demo_data') }}" class="d-inline">
-                            <button type="submit" class="btn btn-success btn-lg me-2" onclick="return confirm('Generate 100 students with realistic interactions? This may take a few minutes.')">
-                                <i class="fas fa-users me-2"></i>Generate Demo Data
+                        <form method="POST" action="{{ url_for('clear_all_data') }}" class="d-inline" id="clearDataForm">
+                            <button type="submit" class="btn btn-danger btn-lg me-2" onclick="return handleClearData(event)">
+                                <i class="fas fa-trash me-2"></i><span class="button-text">Clear All Data</span>
+                                <span class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
                             </button>
                         </form>
-                        <form method="POST" action="{{ url_for('run_big_ai_analysis') }}" class="d-inline">
-                            <button type="submit" class="btn btn-warning btn-lg">
-                                <i class="fas fa-robot me-2"></i>Run Big AI Analysis
+                        <form method="POST" action="{{ url_for('generate_demo_data') }}" class="d-inline" id="generateDataForm">
+                            <button type="submit" class="btn btn-success btn-lg me-2" onclick="return handleGenerateData(event)">
+                                <i class="fas fa-users me-2"></i><span class="button-text">Generate Demo Data</span>
+                                <span class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('run_big_ai_analysis') }}" class="d-inline" id="runAnalysisForm">
+                            <button type="submit" class="btn btn-warning btn-lg" onclick="return handleRunAnalysis(event)">
+                                <i class="fas fa-robot me-2"></i><span class="button-text">Run Big AI Analysis</span>
+                                <span class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
                             </button>
                         </form>
                     </div>
@@ -39,11 +47,11 @@
         </div>
     </div>
 
-    <!-- Individual AI Tutors Section -->
+    <!-- AI Model Performance Section -->
     <div class="row mb-5">
         <div class="col-12">
             <h2 class="text-primary mb-4">
-                <i class="fas fa-user-graduate me-2"></i>Individual AI Tutors Performance
+                <i class="fas fa-chart-line me-2"></i>AI Model Performance Improvements
             </h2>
         </div>
     </div>
@@ -53,40 +61,42 @@
         <div class="col-md-2">
             <div class="card text-center bg-light">
                 <div class="card-body">
-                    <h3 class="text-primary">{{ metrics.individual_tutors.overview.total_interactions }}</h3>
-                    <p class="mb-0">Total Interactions</p>
+                    <h3 class="text-primary">{{ metrics.individual_tutors.overview.total_adjustments }}</h3>
+                    <p class="mb-0">Strategy Adjustments</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-success">{{ metrics.individual_tutors.overview.avg_improvement }}%</h3>
+                    <p class="mb-0">Avg Pass Rate Improvement</p>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
             <div class="card text-center bg-light">
                 <div class="card-body">
-                    <h3 class="text-success">{{ metrics.individual_tutors.overview.success_rate }}%</h3>
-                    <p class="mb-0">Success Rate</p>
+                    <h3 class="text-info">{{ metrics.individual_tutors.overview.total_tests_generated }}</h3>
+                    <p class="mb-0">Tests Generated</p>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
             <div class="card text-center bg-light">
                 <div class="card-body">
-                    <h3 class="text-info">{{ metrics.individual_tutors.overview.avg_engagement }}</h3>
-                    <p class="mb-0">Avg Engagement</p>
+                    <h3 class="text-warning">{{ metrics.individual_tutors.overview.active_strategies }}</h3>
+                    <p class="mb-0">Active Strategies</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <div class="card text-center bg-light">
                 <div class="card-body">
-                    <h3 class="text-warning">{{ metrics.individual_tutors.overview.avg_response_time }}ms</h3>
-                    <p class="mb-0">Response Time</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-center bg-light">
-                <div class="card-body">
-                    <h3 class="text-secondary">{{ metrics.individual_tutors.overview.total_tokens_used }}</h3>
-                    <p class="mb-0">Total Tokens Used</p>
+                    <h3 class="text-{% if metrics.individual_tutors.overview.overfitting_risk == 'Low' %}success{% else %}warning{% endif %}">
+                        {{ metrics.individual_tutors.overview.overfitting_risk }}
+                    </h3>
+                    <p class="mb-0">Overfitting Risk</p>
                 </div>
             </div>
         </div>
@@ -136,37 +146,44 @@
             </div>
         </div>
 
-        <!-- Top Performing Students -->
+        <!-- AI Performance by Subject -->
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5><i class="fas fa-trophy me-2"></i>Top Performing Students</h5>
+                    <h5><i class="fas fa-graduation-cap me-2"></i>AI Pass Rate Improvements by Subject</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
-                                    <th>Student</th>
-                                    <th>Current</th>
-                                    <th>Predicted</th>
-                                    <th>Engagement</th>
+                                    <th>Subject</th>
+                                    <th>Baseline</th>
+                                    <th>With AI</th>
+                                    <th>Improvement</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for student in metrics.individual_tutors.top_students %}
+                                {% for subject in metrics.individual_tutors.ai_improvements %}
                                 <tr>
-                                    <td>{{ student.name }}</td>
+                                    <td><strong>{{ subject.subject }}</strong></td>
                                     <td>
-                                        <span class="badge 
-                                            {% if student.current_pass_rate >= 80 %}bg-success
-                                            {% elif student.current_pass_rate >= 60 %}bg-warning
-                                            {% else %}bg-danger{% endif %}">
-                                            {{ student.current_pass_rate }}%
+                                        <span class="text-muted">{{ subject.baseline_pass_rate }}%</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">
+                                            {{ subject.ai_pass_rate }}%
                                         </span>
                                     </td>
-                                    <td>{{ student.predicted_pass_rate }}%</td>
-                                    <td>{{ student.engagement_level }}</td>
+                                    <td>
+                                        <span class="text-success">
+                                            <i class="fas fa-arrow-up me-1"></i>
+                                            {{ subject.improvement }}%
+                                        </span>
+                                        <small class="text-muted d-block">
+                                            (+{{ subject.improvement_percentage }}%)
+                                        </small>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -389,4 +406,55 @@
         </div>
     </div>
 </div>
+
+<script>
+function handleClearData(event) {
+    if (!confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+        event.preventDefault();
+        return false;
+    }
+    showLoading(event.target);
+    return true;
+}
+
+function handleGenerateData(event) {
+    if (!confirm('Generate demo data? This will create students with AI interactions.')) {
+        event.preventDefault();
+        return false;
+    }
+    showLoading(event.target);
+    return true;
+}
+
+function handleRunAnalysis(event) {
+    showLoading(event.target);
+    return true;
+}
+
+function showLoading(button) {
+    // Disable all buttons
+    document.querySelectorAll('button[type="submit"]').forEach(btn => {
+        btn.disabled = true;
+    });
+    
+    // Show spinner for this button
+    const spinner = button.querySelector('.spinner-border');
+    const buttonText = button.querySelector('.button-text');
+    
+    if (spinner) {
+        spinner.classList.remove('d-none');
+    }
+    
+    // Change button text
+    if (buttonText) {
+        if (button.classList.contains('btn-danger')) {
+            buttonText.textContent = 'Clearing...';
+        } else if (button.classList.contains('btn-success')) {
+            buttonText.textContent = 'Generating...';
+        } else if (button.classList.contains('btn-warning')) {
+            buttonText.textContent = 'Analyzing...';
+        }
+    }
+}
+</script>
 {% endblock %}

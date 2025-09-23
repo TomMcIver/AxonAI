@@ -464,6 +464,38 @@ def ai_dashboard_data():
     
     return metrics
 
+@app.route('/admin/clear-data', methods=['POST'])
+@admin_required
+def clear_all_data():
+    """Clear all student and AI data"""
+    try:
+        # Clear all student-related data
+        AIInteraction.query.delete()
+        OptimizedProfile.query.delete()
+        FailedStrategy.query.delete()
+        ChatMessage.query.delete()
+        MiniTest.query.delete()
+        MiniTestResponse.query.delete()
+        PatternInsight.query.delete()
+        PredictedGrade.query.delete()
+        TeacherAIInsight.query.delete()
+        
+        # Clear student enrollments
+        students = User.query.filter_by(role='student').all()
+        for student in students:
+            student.classes.clear()
+        
+        # Delete students
+        User.query.filter_by(role='student').delete()
+        db.session.commit()
+        
+        flash('✅ All data cleared successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error clearing data: {str(e)}', 'danger')
+    
+    return redirect(url_for('ai_dashboard'))
+
 @app.route('/admin/generate-data', methods=['POST'])
 @admin_required
 def generate_demo_data():
