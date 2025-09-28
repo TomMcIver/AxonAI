@@ -590,11 +590,6 @@ class RealisticDataGenerator:
             db.session.commit()
             print(f"✓ Quick demo data generated for {len(sample_students)} students")
             
-            # Run Big AI Coordinator analysis
-            from ai_coordinator import BigAICoordinator, PatternInsight
-            coordinator = BigAICoordinator()
-            coordinator.analyze_global_patterns()
-            
             print("🎉 Dataset generation complete!")
             print(f"Generated:")
             print(f"  • {len(students)} students with diverse profiles")

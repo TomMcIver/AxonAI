@@ -119,10 +119,10 @@ class BigAICoordinator:
         for interaction in recent_interactions:
             interaction_data = {
                 'user_id': interaction.user_id,
-                'strategy_used': interaction.strategy_used,
-                'success_indicator': interaction.success_indicator,
-                'engagement_score': interaction.engagement_score,
-                'subject': interaction.subject_context
+                'strategy_used': getattr(interaction, 'strategy_used', None),
+                'success_indicator': getattr(interaction, 'success_indicator', False),
+                'engagement_score': getattr(interaction, 'engagement_score', 0),
+                'subject': getattr(interaction, 'subject_context', 'general')
             }
             data['interactions'].append(interaction_data)
         
@@ -130,10 +130,10 @@ class BigAICoordinator:
         failed_strategies = FailedStrategy.query.all()
         for fs in failed_strategies:
             data['failed_strategies'].append({
-                'user_id': fs.user_id,
-                'strategy_name': fs.strategy_name,
-                'failure_reason': fs.failure_reason,
-                'subject': fs.subject_context
+                'user_id': getattr(fs, 'user_id', None),
+                'strategy_name': getattr(fs, 'strategy_name', 'unknown'),
+                'failure_reason': getattr(fs, 'failure_reason', 'unknown'),
+                'subject': getattr(fs, 'subject_context', 'general')
             })
         
         return data
