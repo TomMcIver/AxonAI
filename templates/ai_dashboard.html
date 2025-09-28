@@ -71,7 +71,7 @@
     <!-- Overview Cards -->
     <div class="row mb-4">
         <div class="col-md-2">
-            <div class="card text-center bg-light">
+            <div class="card text-center bg-light text-dark">
                 <div class="card-body">
                     <h3 class="text-primary">{{ metrics.individual_tutors.overview.total_adjustments }}</h3>
                     <p class="mb-0">Strategy Adjustments</p>
@@ -79,7 +79,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-center bg-light">
+            <div class="card text-center bg-light text-dark">
                 <div class="card-body">
                     <h3 class="text-success">{{ metrics.individual_tutors.overview.avg_improvement }}%</h3>
                     <p class="mb-0">Avg Pass Rate Improvement</p>
@@ -87,7 +87,7 @@
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card text-center bg-light">
+            <div class="card text-center bg-light text-dark">
                 <div class="card-body">
                     <h3 class="text-info">{{ metrics.individual_tutors.overview.total_tests_generated }}</h3>
                     <p class="mb-0">Tests Generated</p>
@@ -95,7 +95,7 @@
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card text-center bg-light">
+            <div class="card text-center bg-light text-dark">
                 <div class="card-body">
                     <h3 class="text-warning">{{ metrics.individual_tutors.overview.active_strategies }}</h3>
                     <p class="mb-0">Active Strategies</p>
@@ -103,7 +103,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-center bg-light">
+            <div class="card text-center bg-light text-dark">
                 <div class="card-body">
                     <h3 class="text-{% if metrics.individual_tutors.overview.overfitting_risk == 'Low' %}success{% else %}warning{% endif %}">
                         {{ metrics.individual_tutors.overview.overfitting_risk }}
@@ -218,7 +218,7 @@
     <!-- Big AI Overview -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card text-center bg-light">
+            <div class="card text-center bg-light text-dark">
                 <div class="card-body">
                     <h3 class="text-primary">{{ metrics.big_ai_coordinator.overview.patterns_discovered }}</h3>
                     <p class="mb-0">Patterns Discovered</p>
@@ -226,7 +226,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-center bg-light">
+            <div class="card text-center bg-light text-dark">
                 <div class="card-body">
                     <h3 class="text-info">{{ metrics.big_ai_coordinator.overview.teacher_insights_generated }}</h3>
                     <p class="mb-0">Teacher Insights</p>
@@ -234,7 +234,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-center bg-light">
+            <div class="card text-center bg-light text-dark">
                 <div class="card-body">
                     <h3 class="text-danger">{{ metrics.big_ai_coordinator.overview.at_risk_students }}</h3>
                     <p class="mb-0">At-Risk Students</p>
@@ -242,7 +242,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-center bg-light">
+            <div class="card text-center bg-light text-dark">
                 <div class="card-body">
                     <h3 class="text-success">+{{ metrics.big_ai_coordinator.overview.avg_predicted_improvement }}%</h3>
                     <p class="mb-0">Avg Improvement</p>
