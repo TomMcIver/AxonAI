@@ -164,13 +164,63 @@ class AIMetricsDashboard:
         
         patterns = []
         for insight in pattern_insights:
+            # Parse strategies properly - they're detailed paragraphs, not simple names
+            strategies = json.loads(insight.recommended_strategies) if insight.recommended_strategies else []
+            
+            # Extract key points from detailed AI analysis for display
+            strategy_summary = []
+            for strategy_text in strategies:
+                if isinstance(strategy_text, str) and len(strategy_text) > 100:
+                    # This is detailed AI analysis - extract key points with robust fallback
+                    text_lower = strategy_text.lower()
+                    
+                    # Primary keyword matching
+                    if "individualized" in text_lower or "personalized" in text_lower or "tutoring" in text_lower:
+                        strategy_summary.append("Personalized Learning")
+                    if "engagement" in text_lower or "motivation" in text_lower:
+                        strategy_summary.append("Boost Engagement")
+                    if "study skills" in text_lower or "time management" in text_lower:
+                        strategy_summary.append("Study Skills")
+                    if "foundational" in text_lower or "baseline" in text_lower or "basic" in text_lower:
+                        strategy_summary.append("Foundation Building")
+                    if "goal" in text_lower or "milestone" in text_lower:
+                        strategy_summary.append("Goal Setting")
+                    if "intervention" in text_lower or "support" in text_lower:
+                        strategy_summary.append("Targeted Support")
+                    if "feedback" in text_lower or "assessment" in text_lower:
+                        strategy_summary.append("Progress Tracking")
+                    if "collaboration" in text_lower or "group" in text_lower:
+                        strategy_summary.append("Collaborative Learning")
+                    
+                    # Fallback: If no keywords matched, extract meaningful summary
+                    if not strategy_summary:
+                        # Extract first meaningful sentence or key phrases
+                        sentences = strategy_text.split('.')
+                        for sentence in sentences[:3]:  # Check first 3 sentences
+                            sentence = sentence.strip()
+                            if len(sentence) > 20:  # Skip very short fragments
+                                # Extract key action words
+                                if any(word in sentence.lower() for word in ['implement', 'provide', 'create', 'develop', 'establish']):
+                                    strategy_summary.append(sentence[:40] + "..." if len(sentence) > 40 else sentence)
+                                    break
+                        
+                        # Ultimate fallback: Use first part of text
+                        if not strategy_summary:
+                            first_part = strategy_text[:60].strip()
+                            if first_part:
+                                strategy_summary.append(first_part + "...")
+                else:
+                    # Short text - use directly
+                    strategy_summary.append(str(strategy_text)[:30] + "..." if len(str(strategy_text)) > 30 else str(strategy_text))
+            
             patterns.append({
                 'type': insight.pattern_type.replace('_', ' ').title(),
                 'description': insight.pattern_description,
                 'success_rate': round(float(insight.success_rate or 0), 1),
                 'sample_size': insight.sample_size,
                 'confidence': round(float(insight.confidence_level or 0), 2),
-                'strategies': json.loads(insight.recommended_strategies) if insight.recommended_strategies else []
+                'strategies': strategy_summary[:4],  # Limit to 4 key strategies for display
+                'full_analysis': strategies  # Keep full detailed analysis
             })
         
         # Teacher insights generated
