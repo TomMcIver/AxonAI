@@ -514,12 +514,7 @@ def generate_demo_data():
         generator = RealisticDataGenerator()
         results = generator.generate_complete_dataset(100)
         
-        # Run quick Big AI analysis on new data (without teacher insights to avoid timeout)
-        from ai_coordinator import BigAICoordinator
-        coordinator = BigAICoordinator()
-        coordinator.analyze_global_patterns()
-        
-        flash(f'✅ Generated {results["students"]} students with {results["interactions"]} interactions!', 'success')
+        flash(f'✅ Generated {results["students"]} students with {results["interactions"]} interactions! Ready for AI analysis.', 'success')
         return redirect(url_for('ai_dashboard'))
         
     except Exception as e:
