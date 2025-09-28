@@ -318,11 +318,13 @@
                                 <strong>{{ student.name }}</strong><br>
                                 <small class="text-muted">Current: {{ student.current_rate }}% → Predicted: {{ student.predicted_rate }}%</small>
                             </div>
-                            <span class="badge 
-                                {% if student.risk_level == 'High' %}bg-danger
-                                {% else %}bg-warning{% endif %}">
-                                {{ student.risk_level }}
-                            </span>
+                            <div>
+                                <span class="badge 
+                                    {% if student.risk_level == 'High' %}bg-danger
+                                    {% else %}bg-warning{% endif %}">
+                                    {{ student.risk_level }}
+                                </span>
+                            </div>
                         </div>
                         {% endfor %}
                     {% else %}

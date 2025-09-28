@@ -447,6 +447,20 @@ def delete_class(class_id):
 
 # === AI DASHBOARD ROUTES ===
 
+@app.route('/admin/student-ai-insights/<int:student_id>')
+@admin_required
+def student_ai_insights(student_id):
+    """Deep dive into a specific student's AI learning data"""
+    from student_ai_analyzer import StudentAIAnalyzer
+    
+    student = User.query.get_or_404(student_id)
+    analyzer = StudentAIAnalyzer()
+    insights = analyzer.generate_student_insights(student_id)
+    
+    return render_template('student_ai_insights.html', 
+                         student=student, 
+                         insights=insights)
+
 @app.route('/admin/ai-dashboard')
 @admin_required
 def ai_dashboard():
