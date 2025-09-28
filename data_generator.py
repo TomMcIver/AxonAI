@@ -10,7 +10,7 @@ from app import app, db
 from models import (
     User, Class, Assignment, AssignmentSubmission, Grade, AIModel, 
     AIInteraction, FailedStrategy, OptimizedProfile, MiniTest, 
-    MiniTestResponse, ChatMessage
+    MiniTestResponse, ChatMessage, PatternInsight
 )
 from ai_service import AIService
 from ai_coordinator import BigAICoordinator
