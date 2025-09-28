@@ -223,15 +223,24 @@ class AIMetricsDashboard:
                 'full_analysis': strategies  # Keep full detailed analysis
             })
         
-        # Teacher insights generated
-        teacher_insights = db.session.query(
-            TeacherAIInsight.insight_type,
-            func.count(TeacherAIInsight.id).label('count')
-        ).group_by(TeacherAIInsight.insight_type).all()
+        # Get average improvement from patterns
+        avg_improvement_pattern = PatternInsight.query.filter_by(pattern_type='average_improvement').first()
+        avg_improvement = avg_improvement_pattern.success_rate if avg_improvement_pattern else 0
         
-        insight_summary = {}
-        for insight_type, count in teacher_insights:
-            insight_summary[insight_type] = count
+        # Teacher insights generated
+        teacher_insights = TeacherAIInsight.query.order_by(desc(TeacherAIInsight.generated_at)).limit(5).all()
+        
+        teacher_insights_data = []
+        for insight in teacher_insights:
+            student = User.query.get(insight.student_id)
+            teacher_insights_data.append({
+                'student_name': f"{student.first_name} {student.last_name}" if student else "Unknown",
+                'insight_type': insight.insight_type.replace('_', ' ').title(),
+                'content': insight.insight_content[:200] + "..." if len(insight.insight_content) > 200 else insight.insight_content,
+                'full_content': insight.insight_content,
+                'priority': insight.priority,
+                'action_items': json.loads(insight.action_items) if insight.action_items else []
+            })
         
         # Student risk analysis
         at_risk_students = db.session.query(
@@ -291,14 +300,15 @@ class AIMetricsDashboard:
         return {
             'overview': {
                 'patterns_discovered': len(patterns),
-                'teacher_insights_generated': sum(insight_summary.values()),
+                'teacher_insights_generated': len(teacher_insights_data),
                 'at_risk_students': len(at_risk_list),
                 'avg_predicted_improvement': round(avg_improvement, 1)
             },
             'discovered_patterns': patterns,
-            'teacher_insights': insight_summary,
+            'teacher_insights': teacher_insights_data,
             'at_risk_students': at_risk_list,
-            'learning_patterns': pattern_discoveries
+            'learning_patterns': pattern_discoveries,
+            'avg_improvement': avg_improvement
         }
     
     def get_subject_performance(self):
