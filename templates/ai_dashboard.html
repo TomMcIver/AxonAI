@@ -637,9 +637,17 @@ if (progressCtx) {
 const distributionCtx = document.getElementById('distributionChart');
 if (distributionCtx) {
     // Calculate actual distribution from patterns if available
-    const highPerformers = {{ metrics.big_ai_coordinator.discovered_patterns[0].applicable_criteria|default('{}') }}?.performance_distribution?.high || 5;
-    const mediumPerformers = {{ metrics.big_ai_coordinator.discovered_patterns[0].applicable_criteria|default('{}') }}?.performance_distribution?.medium || 10;
-    const lowPerformers = {{ metrics.big_ai_coordinator.discovered_patterns[0].applicable_criteria|default('{}') }}?.performance_distribution?.low || 3;
+    {% if metrics.big_ai_coordinator.discovered_patterns and metrics.big_ai_coordinator.discovered_patterns|length > 0 %}
+        const patternData = JSON.parse('{{ metrics.big_ai_coordinator.discovered_patterns[0].applicable_criteria|default("{}") }}');
+        const highPerformers = patternData?.performance_distribution?.high || 5;
+        const mediumPerformers = patternData?.performance_distribution?.medium || 10;
+        const lowPerformers = patternData?.performance_distribution?.low || 3;
+    {% else %}
+        // Default values when no patterns exist yet
+        const highPerformers = 5;
+        const mediumPerformers = 10;
+        const lowPerformers = 3;
+    {% endif %}
     
     new Chart(distributionCtx.getContext('2d'), {
         type: 'doughnut',
