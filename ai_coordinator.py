@@ -73,15 +73,17 @@ class BigAICoordinator:
             # Generate AI insights
             patterns = []
             
-            # Learning effectiveness analysis
-            learning_insights = self.analyze_learning_effectiveness_with_ai(analysis_data)
-            patterns.extend(learning_insights)
+            # Combined comprehensive AI analysis (instead of duplicates)
+            comprehensive_insights = self.analyze_comprehensive_patterns_with_ai(analysis_data)
+            patterns.extend(comprehensive_insights)
             
-            # Student performance analysis
-            performance_insights = self.analyze_performance_patterns_with_ai(analysis_data)
-            patterns.extend(performance_insights)
+            # Calculate and store average improvement metrics
+            self.calculate_average_improvements(analysis_data)
             
-            print(f"AI-powered analysis generated {len(patterns)} insights")
+            # Generate teacher insights with AI
+            self.generate_ai_teacher_insights(analysis_data)
+            
+            print(f"AI-powered analysis generated {len(patterns)} unique insights")
             return patterns
             
         except Exception as e:
@@ -93,7 +95,7 @@ class BigAICoordinator:
         data = {
             'students': [],
             'interactions': [],
-            'grades': [],
+            'grades': {},  # Changed to dict to map student_id to grades list
             'failed_strategies': []
         }
         
@@ -136,7 +138,125 @@ class BigAICoordinator:
                 'subject': getattr(fs, 'subject_context', 'general')
             })
         
+        # Collect grades for each student (for improvement calculation)
+        for student in students:
+            grades = Grade.query.filter_by(student_id=student.id).order_by(Grade.graded_at).all()
+            if grades:
+                data['grades'][student.id] = [g.grade for g in grades]
+        
         return data
+    
+    def analyze_comprehensive_patterns_with_ai(self, data):
+        """Use AI to analyze comprehensive learning and performance patterns"""
+        try:
+            # Calculate key metrics
+            total_students = len(data['students'])
+            total_interactions = len(data['interactions'])
+            
+            # Calculate average improvement
+            improvements = []
+            for student in data['students']:
+                if 'initial_grade' in student and 'current_grade' in student:
+                    improvement = student['current_grade'] - student['initial_grade']
+                    improvements.append(improvement)
+            avg_improvement = sum(improvements) / len(improvements) if improvements else 0
+            
+            # Learning styles analysis
+            learning_styles = {}
+            for student in data['students']:
+                style = student.get('learning_style', 'unknown')
+                if style not in learning_styles:
+                    learning_styles[style] = {'count': 0, 'avg_grade': 0, 'total_grade': 0}
+                learning_styles[style]['count'] += 1
+                learning_styles[style]['total_grade'] += student.get('avg_grade', 0)
+            
+            for style in learning_styles:
+                if learning_styles[style]['count'] > 0:
+                    learning_styles[style]['avg_grade'] = learning_styles[style]['total_grade'] / learning_styles[style]['count']
+            
+            # Performance groups
+            performance_groups = {'high': 0, 'medium': 0, 'low': 0}
+            for student in data['students']:
+                avg_grade = student.get('avg_grade', 0)
+                if avg_grade >= 80:
+                    performance_groups['high'] += 1
+                elif avg_grade >= 60:
+                    performance_groups['medium'] += 1
+                else:
+                    performance_groups['low'] += 1
+            
+            # Success rates calculation
+            success_count = sum(1 for i in data['interactions'] if i.get('success_indicator'))
+            success_rate = (success_count / total_interactions * 100) if total_interactions > 0 else 0
+            
+            # AI prompt for comprehensive analysis
+            prompt = f"""As an AI education expert, analyze this comprehensive student data:
+
+📊 KEY METRICS:
+- Total Students: {total_students}
+- Total AI Interactions: {total_interactions}
+- Overall Success Rate: {success_rate:.1f}%
+- Average Grade Improvement: {avg_improvement:.1f} points
+
+📈 PERFORMANCE DISTRIBUTION:
+- High Performers (80+): {performance_groups['high']} students
+- Medium Performers (60-79): {performance_groups['medium']} students  
+- Low Performers (<60): {performance_groups['low']} students
+
+🎯 LEARNING STYLES ANALYSIS:
+{json.dumps(learning_styles, indent=2)}
+
+💡 SUCCESSFUL STRATEGIES:
+{list(set([i['strategy_used'] for i in data['interactions'][:20] if i.get('success_indicator') and i.get('strategy_used')]))}
+
+⚠️ FAILED STRATEGIES:
+{list(set([fs['strategy_name'] for fs in data['failed_strategies'][:10]]))}
+
+Provide a comprehensive analysis including:
+1. Key learning patterns discovered
+2. Specific intervention recommendations for each performance group
+3. Actionable insights for Individual AI Tutors
+4. Critical areas needing immediate attention
+5. Success metrics and improvement opportunities
+
+Focus on quantitative insights and specific, measurable recommendations."""
+            
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are an AI education data analyst. Provide detailed, quantitative analysis with specific metrics and actionable recommendations."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=1200,
+                temperature=0.7
+            )
+            
+            ai_analysis = response.choices[0].message.content
+            
+            # Create comprehensive pattern with metrics
+            patterns = []
+            patterns.append({
+                'pattern_type': 'comprehensive_ai_analysis',
+                'pattern_description': f'Comprehensive AI Analysis - {total_students} students, {success_rate:.1f}% success rate, {avg_improvement:.1f} point improvement',
+                'applicable_criteria': json.dumps({
+                    'ai_generated': True,
+                    'total_students': total_students,
+                    'success_rate': success_rate,
+                    'avg_improvement': avg_improvement,
+                    'performance_distribution': performance_groups
+                }),
+                'recommended_strategies': json.dumps([ai_analysis]),
+                'success_rate': success_rate,
+                'sample_size': total_students,
+                'confidence_level': 0.85
+            })
+            
+            print("Comprehensive AI analysis completed")
+            return patterns
+            
+        except Exception as e:
+            print(f"Comprehensive AI analysis failed: {e}")
+            return []
     
     def analyze_learning_effectiveness_with_ai(self, data):
         """Use AI to analyze learning effectiveness patterns"""
@@ -260,6 +380,118 @@ Identify at-risk students and recommend intervention strategies. Provide specifi
         except Exception as e:
             print(f"AI performance analysis failed: {e}")
             return []
+    
+    def calculate_average_improvements(self, data):
+        """Calculate and store average improvement metrics"""
+        try:
+            improvements = []
+            for student in data['students']:
+                # Get initial and current grades
+                grades = data['grades'].get(student['id'], [])
+                if len(grades) >= 2:
+                    initial = grades[0]  # First grade
+                    current = grades[-1]  # Latest grade
+                    improvement = current - initial
+                    improvements.append({
+                        'student_id': student['id'],
+                        'improvement': improvement,
+                        'initial': initial,
+                        'current': current
+                    })
+            
+            if improvements:
+                avg_improvement = sum(i['improvement'] for i in improvements) / len(improvements)
+                
+                # Store in database as a special pattern
+                improvement_pattern = {
+                    'pattern_type': 'average_improvement',
+                    'pattern_description': f'Average Student Improvement: {avg_improvement:.1f} points',
+                    'applicable_criteria': json.dumps({
+                        'metric_type': 'improvement',
+                        'calculation': 'average_grade_change',
+                        'sample_size': len(improvements)
+                    }),
+                    'recommended_strategies': json.dumps([f"Students showing average improvement of {avg_improvement:.1f} points"]),
+                    'success_rate': avg_improvement,  # Use improvement as success metric
+                    'sample_size': len(improvements),
+                    'confidence_level': 0.9
+                }
+                
+                # Store pattern
+                self.store_patterns([improvement_pattern])
+                print(f"Calculated average improvement: {avg_improvement:.1f} points")
+            
+        except Exception as e:
+            print(f"Error calculating improvements: {e}")
+    
+    def generate_ai_teacher_insights(self, data):
+        """Generate AI-powered insights specifically for teachers"""
+        try:
+            # Prepare teacher-focused data
+            at_risk_students = []
+            excelling_students = []
+            
+            for student in data['students']:
+                avg_grade = student.get('avg_grade', 0)
+                if avg_grade < 60:
+                    at_risk_students.append(student)
+                elif avg_grade > 85:
+                    excelling_students.append(student)
+            
+            # AI prompt for teacher insights
+            prompt = f"""As an educational advisor, provide specific insights for teachers:
+
+📊 CLASS OVERVIEW:
+- Total Students: {len(data['students'])}
+- At-Risk Students (<60%): {len(at_risk_students)}
+- Excelling Students (>85%): {len(excelling_students)}
+
+🚨 AT-RISK STUDENTS NEED:
+{[s.get('name', 'Student') + f" (Grade: {s.get('avg_grade', 0):.1f})" for s in at_risk_students[:5]]}
+
+⭐ TOP PERFORMERS:
+{[s.get('name', 'Student') + f" (Grade: {s.get('avg_grade', 0):.1f})" for s in excelling_students[:5]]}
+
+Provide:
+1. Immediate interventions for at-risk students
+2. Enrichment strategies for high performers
+3. Classroom management recommendations
+4. Parent communication talking points
+5. Weekly action items for teachers"""
+
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are an educational consultant providing actionable insights for teachers. Be specific and practical."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=800,
+                temperature=0.7
+            )
+            
+            teacher_insights = response.choices[0].message.content
+            
+            # Store as TeacherAIInsight
+            for student in at_risk_students[:5]:  # Store insights for top at-risk students
+                insight = TeacherAIInsight()
+                insight.class_id = 1  # Default class, adjust as needed
+                insight.student_id = student['id']
+                insight.insight_type = 'at_risk'
+                insight.insight_content = teacher_insights
+                insight.action_items = json.dumps([
+                    "Schedule one-on-one meeting",
+                    "Contact parents",
+                    "Create personalized learning plan"
+                ])
+                insight.priority = 'high'
+                insight.generated_at = datetime.utcnow()
+                db.session.add(insight)
+            
+            db.session.commit()
+            print(f"Generated AI teacher insights for {len(at_risk_students)} at-risk students")
+            
+        except Exception as e:
+            print(f"Error generating teacher insights: {e}")
     
     def _calculate_success_rates_by_performance(self, data):
         """Calculate interaction success rates by student performance level"""
