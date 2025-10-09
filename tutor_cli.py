@@ -5,6 +5,7 @@ Simple CLI interface for the Main Tutor Agent
 
 from main_tutor_agent import MainTutorAgent
 from mastery_tracking_agent import MasteryTrackingAgent
+from quiz_builder_agent import QuizBuilderAgent
 from database_setup import create_database
 import os
 
@@ -53,6 +54,13 @@ def print_mastery_report(report):
     else:
         print("\n   No mastery data available yet.")
 
+def print_quiz_results(results):
+    """Print quiz results in a formatted way"""
+    print(f"\n📝 Quiz Results:")
+    print(f"   Correct: {results['correct']}/{results['total']}")
+    print(f"   Score: {results['score']:.1f}%")
+    print(f"   Understanding Score: {results['old_understanding']:.1f} → {results['new_understanding']:.1f}")
+
 def main():
     # Ensure database exists
     if not os.path.exists('school_ai.db'):
@@ -61,8 +69,9 @@ def main():
     
     main_tutor = MainTutorAgent()
     mastery_tracker = MasteryTrackingAgent()
+    quiz_builder = QuizBuilderAgent()
     
-    print_header("🎓 AI Tutoring System - Main Tutor + Mastery Tracking")
+    print_header("🎓 AI Tutoring System - All Three Agents")
     
     while True:
         print("\n" + "-" * 60)
@@ -73,10 +82,13 @@ def main():
         print("4. View chat history")
         print("5. Analyze mastery (run Mastery Tracking Agent)")
         print("6. View mastery report")
-        print("7. Exit")
+        print("7. Generate quiz (Quiz Builder Agent)")
+        print("8. Take quiz")
+        print("9. View quiz history")
+        print("10. Exit")
         print("-" * 60)
         
-        choice = input("\nEnter your choice (1-7): ").strip()
+        choice = input("\nEnter your choice (1-10): ").strip()
         
         if choice == '1':
             print_header("Create New Student")
@@ -172,12 +184,84 @@ def main():
                 print(f"\n❌ Unexpected error: {e}")
         
         elif choice == '7':
+            print_header("Generate Quiz")
+            student_id = input("Enter student ID: ").strip()
+            
+            try:
+                student_id = int(student_id)
+                num_questions = input("Number of questions (default 5): ").strip()
+                num_questions = int(num_questions) if num_questions else 5
+                
+                quiz_id = quiz_builder.generate_quiz(student_id, num_questions)
+                print(f"\n✅ Quiz generated! Quiz ID: {quiz_id}")
+                print("   Use 'Take quiz' (option 8) to complete it.")
+            except ValueError as e:
+                print(f"\n❌ Error: {e}")
+            except Exception as e:
+                print(f"\n❌ Unexpected error: {e}")
+        
+        elif choice == '8':
+            print_header("Take Quiz")
+            quiz_id = input("Enter quiz ID: ").strip()
+            
+            try:
+                quiz_id = int(quiz_id)
+                quiz = quiz_builder.get_quiz(quiz_id)
+                
+                print(f"\n📝 Quiz on {quiz['topic'].capitalize()}")
+                print(f"   Questions: {len(quiz['questions'])}")
+                print("\n" + "-" * 60)
+                
+                answers = []
+                for i, question in enumerate(quiz['questions'], 1):
+                    print(f"\nQuestion {i}: {question['q']}")
+                    if 'choices' in question:
+                        for j, choice in enumerate(question['choices'], 1):
+                            print(f"   {j}. {choice}")
+                    
+                    answer = input("Your answer: ").strip()
+                    answers.append(answer)
+                
+                # Submit quiz
+                print("\n" + "-" * 60)
+                print("Submitting quiz...")
+                results = quiz_builder.submit_quiz(quiz_id, answers)
+                print_quiz_results(results)
+                
+            except ValueError as e:
+                print(f"\n❌ Error: {e}")
+            except Exception as e:
+                print(f"\n❌ Unexpected error: {e}")
+        
+        elif choice == '9':
+            print_header("View Quiz History")
+            student_id = input("Enter student ID: ").strip()
+            
+            try:
+                student_id = int(student_id)
+                quizzes = quiz_builder.get_student_quizzes(student_id)
+                
+                if not quizzes:
+                    print("\n📝 No quizzes found for this student.")
+                else:
+                    print(f"\n📝 Quiz History ({len(quizzes)} quizzes):")
+                    for quiz in quizzes:
+                        print(f"\n   Quiz ID: {quiz['id']}")
+                        print(f"   Topic: {quiz['topic'].capitalize()}")
+                        print(f"   Score: {quiz['score']:.1f}%")
+                        print(f"   Date: {quiz['created_at']}")
+            except ValueError as e:
+                print(f"\n❌ Error: {e}")
+            except Exception as e:
+                print(f"\n❌ Unexpected error: {e}")
+        
+        elif choice == '10':
             print_header("Goodbye!")
             print("Thank you for using the AI Tutoring System! 👋\n")
             break
         
         else:
-            print("\n❌ Invalid choice! Please enter 1-7.")
+            print("\n❌ Invalid choice! Please enter 1-10.")
 
 if __name__ == "__main__":
     main()
