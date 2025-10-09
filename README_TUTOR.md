@@ -1,11 +1,11 @@
-# Simple Local AI Tutoring System
+# AI-Powered Tutoring System
 
-A local tutoring system with SQLite database featuring three agents:
-- **Main Tutor Agent** (Agent 1) - Manages student profiles and chat sessions
+An intelligent tutoring system with SQLite database featuring three agents:
+- **Main Tutor Agent** (Agent 1) - GPT-powered chat tutor with context-aware responses
 - **Mastery Tracking Agent** (Agent 2) - Analyzes learning patterns and tracks topic mastery
 - **Quiz/Exam Builder** (Agent 3) - Generates adaptive quizzes and tracks performance
 
-Fully local with no external API calls.
+Uses OpenAI GPT-4o-mini for intelligent tutoring responses.
 
 ## 📁 Files
 
@@ -24,6 +24,7 @@ Fully local with no external API calls.
 - **`test_tutor.py`** - Test script for Main Tutor Agent
 - **`test_both_agents.py`** - Integration test for Agents 1 & 2
 - **`test_all_three_agents.py`** - Comprehensive test for all three agents
+- **`test_gpt_tutor.py`** - Test script for GPT-powered tutoring
 
 ## 🗄️ Database Schema
 
@@ -53,6 +54,16 @@ Fully local with no external API calls.
 | answers | TEXT (JSON) | Array of student answers |
 | score | REAL | Quiz score (0-100 percentage) |
 | created_at | TEXT | Timestamp when quiz was created |
+
+## ⚙️ Setup Requirements
+
+### Environment Variables
+Set up your OpenAI API key:
+```bash
+export OPENAI_API_KEY='your-api-key-here'
+```
+
+The Main Tutor Agent requires an OpenAI API key to provide intelligent tutoring responses. The system will fall back to generic responses if the API key is not available.
 
 ## 🚀 Quick Start
 
@@ -120,10 +131,17 @@ profile = agent.get_student_profile(student_id=1)
 ```
 
 ### `generate_response(student_id, user_message)`
-Generates a tutor response and automatically records the interaction.
+Generates an AI-powered tutor response using GPT and automatically records the interaction.
 ```python
 response = agent.generate_response(student_id=1, user_message="I need help")
 ```
+
+**How it works:**
+- Builds a context-aware system prompt tailored to the student's subject
+- Includes last 5 chat interactions for conversation continuity
+- Calls OpenAI GPT-4o-mini API (temperature=0.7, max_tokens=300)
+- Falls back to generic response if API fails
+- Automatically records the interaction in database
 
 ## 🔬 Mastery Tracking Agent Functions
 
@@ -250,8 +268,9 @@ The Quiz Builder includes **100+ hardcoded questions** covering:
 
 ## 🎯 Features
 
-- **Fully Local**: No external AI APIs - uses rule-based responses and hardcoded questions
-- **Subject-Aware**: Different response patterns for Math, Science, English, History
+- **AI-Powered Chat**: Uses OpenAI GPT-4o-mini for intelligent, context-aware tutoring responses
+- **Subject-Aware Tutoring**: Personalized system prompts for Math, Science, English, History
+- **Conversation Context**: Maintains last 5 interactions for continuity in chat
 - **Understanding Score**: Automatically increases with each interaction (0.0 to 10.0)
 - **Complete History**: All chat interactions stored in JSON format
 - **Timestamp Tracking**: Tracks creation, updates, and last interaction times
@@ -261,6 +280,7 @@ The Quiz Builder includes **100+ hardcoded questions** covering:
 - **Quiz Scoring**: Automatic grading and understanding score updates
 - **Quiz History**: Tracks all quiz attempts with scores and topics
 - **Simple CLI**: Easy-to-use command-line interface for all three agents
+- **Graceful Fallback**: Continues working even if OpenAI API is unavailable
 
 ## 💡 Understanding Score
 
@@ -323,14 +343,20 @@ print(f"Understanding updated: {results['old_understanding']} → {results['new_
 ## 🔄 System Status
 
 This system now includes:
-- ✅ Agent 1: Main Tutor Agent (chat and interaction management)
+- ✅ Agent 1: Main Tutor Agent (GPT-powered chat with context-aware responses)
 - ✅ Agent 2: Mastery Tracking Agent (learning analysis and trend detection)
 - ✅ Agent 3: Quiz/Exam Builder (adaptive quiz generation and scoring)
 
-All three agents are fully integrated and working together!
+All three agents are fully integrated and working together with AI-powered tutoring!
+
+**Recent Updates:**
+- 🤖 Integrated OpenAI GPT-4o-mini API for intelligent chat responses
+- 💬 Context-aware conversations with last 5 interactions maintained
+- 🎯 Subject-specific tutoring prompts for personalized learning
+- 🛡️ Graceful fallback handling if API is unavailable
 
 Future enhancements:
 - More sophisticated mastery calculations
 - Expanded question bank with more topics
 - Performance analytics and reporting
-- Advanced AI integration (when needed)
+- Additional AI models and providers support
