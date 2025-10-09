@@ -1,13 +1,25 @@
 # Simple Local AI Tutoring System
 
-A basic tutoring system with SQLite database and a Main Tutor Agent that manages student profiles and chat sessions - fully local with no external API calls.
+A local tutoring system with SQLite database featuring two agents:
+- **Main Tutor Agent** - Manages student profiles and chat sessions
+- **Mastery Tracking Agent** - Analyzes learning patterns and tracks topic mastery
+
+Fully local with no external API calls.
 
 ## 📁 Files
 
+### Core System
 - **`database_setup.py`** - Creates the `school_ai.db` SQLite database
-- **`main_tutor_agent.py`** - Main Tutor Agent class with core functionality
-- **`tutor_cli.py`** - Interactive command-line interface
-- **`test_tutor.py`** - Test script demonstrating all features
+- **`migrate_add_mastery_fields.py`** - Adds mastery tracking fields to database
+
+### Agents
+- **`main_tutor_agent.py`** - Main Tutor Agent (Agent 1) - Chat and interaction management
+- **`mastery_tracking_agent.py`** - Mastery Tracking Agent (Agent 2) - Learning analysis
+
+### Interface & Tests
+- **`tutor_cli.py`** - Interactive command-line interface for both agents
+- **`test_tutor.py`** - Test script for Main Tutor Agent
+- **`test_both_agents.py`** - Integration test for both agents
 
 ## 🗄️ Database Schema
 
@@ -21,6 +33,8 @@ A basic tutoring system with SQLite database and a Main Tutor Agent that manages
 | last_interaction | TEXT | Timestamp of last interaction |
 | chat_history | TEXT (JSON) | Complete chat history as JSON array |
 | understanding_score | REAL | Score from 0.0 to 10.0 |
+| **mastery_levels** | **TEXT (JSON)** | **Topic-wise mastery percentages** |
+| **trend** | **TEXT** | **Learning trend: "up", "flat", or "down"** |
 | created_at | TEXT | Timestamp when profile was created |
 | updated_at | TEXT | Timestamp when profile was last updated |
 
@@ -36,9 +50,18 @@ python3 database_setup.py
 python3 tutor_cli.py
 ```
 
-### 3. Or Run Tests
+### 3. Run Tests
 ```bash
+# Test Main Tutor Agent only
 python3 test_tutor.py
+
+# Test both agents integrated
+python3 test_both_agents.py
+```
+
+### 4. Run Database Migration (if needed)
+```bash
+python3 migrate_add_mastery_fields.py
 ```
 
 ## 📚 Main Tutor Agent Functions
@@ -82,6 +105,57 @@ Generates a tutor response and automatically records the interaction.
 response = agent.generate_response(student_id=1, user_message="I need help")
 ```
 
+## 🔬 Mastery Tracking Agent Functions
+
+### `update_student_mastery(student_id)`
+Analyzes chat history and updates mastery tracking fields.
+```python
+from mastery_tracking_agent import MasteryTrackingAgent
+
+tracker = MasteryTrackingAgent()
+tracker.update_student_mastery(student_id=1)
+```
+
+**What it does:**
+- Reads chat_history from database
+- Analyzes interaction quality (positive/negative indicators, engagement)
+- Identifies topics discussed based on subject keywords
+- Calculates topic-wise mastery percentages
+- Detects learning trend (up/flat/down)
+- Updates mastery_levels and trend in database
+
+### `get_mastery_report(student_id)`
+Gets a formatted mastery report for a student.
+```python
+report = tracker.get_mastery_report(student_id=1)
+# Returns: {
+#   'student_id': 1,
+#   'name': '...',
+#   'subject': '...',
+#   'mastery_levels': {'algebra': {'percentage': 65.0, 'interactions': 5}},
+#   'trend': 'up',
+#   ...
+# }
+```
+
+### Analysis Logic
+The Mastery Tracking Agent uses:
+
+**Positive Indicators**: 'yes', 'got it', 'understand', 'thanks', 'clear', 'makes sense', etc.
+
+**Negative Indicators**: 'no', 'confused', "don't understand", 'help', 'stuck', 'lost', etc.
+
+**Topic Keywords**: Subject-specific keywords for:
+- **Math**: algebra, geometry, arithmetic, calculus
+- **Science**: biology, chemistry, physics
+- **English**: grammar, writing, literature
+- **History**: ancient, modern, american
+
+**Trend Detection**: Compares average mastery percentage with previous analysis:
+- **up**: Improved by more than 2%
+- **down**: Declined by more than 2%
+- **flat**: Changed less than 2%
+
 ## 🎯 Features
 
 - **Fully Local**: No external AI APIs - uses rule-based responses
@@ -89,7 +163,9 @@ response = agent.generate_response(student_id=1, user_message="I need help")
 - **Understanding Score**: Automatically increases with each interaction (0.0 to 10.0)
 - **Complete History**: All chat interactions stored in JSON format
 - **Timestamp Tracking**: Tracks creation, updates, and last interaction times
-- **Simple CLI**: Easy-to-use command-line interface for testing
+- **Topic Mastery Tracking**: Analyzes chat to identify topic-specific understanding
+- **Learning Trend Detection**: Detects if student is improving, declining, or staying flat
+- **Simple CLI**: Easy-to-use command-line interface for both agents
 
 ## 💡 Understanding Score
 
@@ -101,26 +177,30 @@ The understanding score is a simple placeholder that:
 
 ## 🔧 Example Usage
 
+### Basic Usage with Both Agents
 ```python
 from main_tutor_agent import MainTutorAgent
+from mastery_tracking_agent import MasteryTrackingAgent
 
-# Initialize agent
-agent = MainTutorAgent()
+# Initialize both agents
+tutor = MainTutorAgent()
+tracker = MasteryTrackingAgent()
 
 # Create a student
-student_id = agent.create_student("Bob Smith", "Science")
+student_id = tutor.create_student("Bob Smith", "Science")
 
 # Have a conversation
-response1 = agent.generate_response(student_id, "What is photosynthesis?")
-response2 = agent.generate_response(student_id, "How does it work?")
+tutor.generate_response(student_id, "What is photosynthesis?")
+tutor.generate_response(student_id, "I understand! It's how plants make energy")
+tutor.generate_response(student_id, "Can you explain cellular respiration?")
 
-# Get chat history
-history = agent.get_chat_history(student_id)
-print(f"Total interactions: {len(history)}")
+# Analyze mastery
+tracker.update_student_mastery(student_id)
 
-# Get profile
-profile = agent.get_student_profile(student_id)
-print(f"Understanding score: {profile['understanding_score']}")
+# Get mastery report
+report = tracker.get_mastery_report(student_id)
+print(f"Learning Trend: {report['trend']}")
+print(f"Topic Mastery: {report['mastery_levels']}")
 ```
 
 ## 📊 Sample Output
@@ -135,8 +215,12 @@ print(f"Understanding score: {profile['understanding_score']}")
 
 ## 🔄 Next Steps
 
-This is the foundation for:
-- Agent 2: Learning Analysis Agent (analyzes patterns, identifies weaknesses)
-- Agent 3: Strategy Optimizer (recommends teaching approaches)
-- More sophisticated understanding score calculations
+This system now includes:
+- ✅ Agent 1: Main Tutor Agent (chat and interaction management)
+- ✅ Agent 2: Mastery Tracking Agent (learning analysis and trend detection)
+
+Future enhancements:
+- Agent 3: Strategy Optimizer (recommends personalized teaching approaches)
+- Quiz generation and assessment tracking
+- More sophisticated mastery calculations
 - Advanced AI integration (when needed)
