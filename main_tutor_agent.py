@@ -1,12 +1,15 @@
 import sqlite3
 import json
+import os
 from datetime import datetime
+from openai import OpenAI
 
 class MainTutorAgent:
     """Main Tutor Agent - handles direct student interactions and stores chat history"""
     
     def __init__(self, db_path='school_ai.db'):
         self.db_path = db_path
+        self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
     
     def _get_connection(self):
         """Get database connection"""
@@ -154,7 +157,7 @@ class MainTutorAgent:
     
     def generate_response(self, student_id, user_message):
         """
-        Generate a tutor response (currently rule-based, no external AI)
+        Generate a tutor response using GPT AI
         
         Args:
             student_id (int): Student's ID
@@ -164,50 +167,52 @@ class MainTutorAgent:
             str: Tutor's response
         """
         profile = self.get_student_profile(student_id)
-        subject = profile['subject'].lower()
-        message_lower = user_message.lower()
+        subject = profile['subject']
+        name = profile['name']
+        chat_history = profile['chat_history']
         
-        # Simple rule-based responses based on subject
-        if subject == 'math' or subject == 'mathematics':
-            if 'help' in message_lower or 'how' in message_lower:
-                response = "I can help you with that! Let's break it down step by step. What specific part are you struggling with?"
-            elif '?' in user_message:
-                response = "That's a great question! In mathematics, we solve problems by identifying what we know and what we need to find. Can you show me your work so far?"
-            else:
-                response = "I see you're working on math. Remember to show your work and check each step carefully. What would you like to focus on?"
+        # Build system prompt for the AI tutor
+        system_prompt = f"""You are an expert {subject} tutor helping a student named {name}. 
+
+Your role:
+- Provide clear, helpful explanations tailored to the student's level
+- Break down complex concepts into simple steps
+- Ask guiding questions to encourage critical thinking
+- Be encouraging and patient
+- Stay focused on {subject} topics
+- Provide examples when helpful
+- Check for understanding before moving forward
+
+Keep responses concise but thorough (2-4 sentences typically).
+Be friendly and supportive while maintaining educational value."""
+
+        # Build conversation history for context
+        messages = [{"role": "system", "content": system_prompt}]
         
-        elif subject == 'science':
-            if 'help' in message_lower or 'how' in message_lower:
-                response = "Science is all about observation and understanding! Let's explore this concept together. What have you learned so far?"
-            elif '?' in user_message:
-                response = "Excellent question! In science, we test our ideas through experiments. What do you think might happen and why?"
-            else:
-                response = "That's an interesting topic in science! Let's think about the key concepts. What observations can we make?"
+        # Add recent chat history for context (last 5 interactions)
+        recent_history = chat_history[-5:] if len(chat_history) > 5 else chat_history
+        for interaction in recent_history:
+            messages.append({"role": "user", "content": interaction['user']})
+            messages.append({"role": "assistant", "content": interaction['tutor']})
         
-        elif subject == 'english':
-            if 'help' in message_lower or 'how' in message_lower:
-                response = "I'm here to help with your English! Let's look at grammar, vocabulary, or writing structure. What do you need help with?"
-            elif '?' in user_message:
-                response = "Good question! In English, we think about meaning, structure, and style. Can you explain what you're trying to understand?"
-            else:
-                response = "English is about clear communication! Let's work on expressing your ideas effectively. What are you working on?"
+        # Add current message
+        messages.append({"role": "user", "content": user_message})
         
-        elif subject == 'history':
-            if 'help' in message_lower or 'how' in message_lower:
-                response = "History helps us understand the past! Let's explore the context and connections. What time period or event interests you?"
-            elif '?' in user_message:
-                response = "Great historical question! Let's consider the causes, effects, and key people involved. What do you already know about this?"
-            else:
-                response = "History is full of fascinating stories! Let's analyze the events and their significance. What would you like to explore?"
-        
-        else:
-            # Generic response for any subject
-            if 'help' in message_lower or 'how' in message_lower:
-                response = f"I'm here to help you with {subject}! Let's work through this together. What specifically do you need assistance with?"
-            elif '?' in user_message:
-                response = f"That's a thoughtful question about {subject}! Let's explore it step by step. What are your initial thoughts?"
-            else:
-                response = f"I see you're studying {subject}. That's great! What would you like to learn or practice today?"
+        # Call OpenAI API
+        try:
+            completion = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=300
+            )
+            
+            response = completion.choices[0].message.content
+            
+        except Exception as e:
+            # Fallback response if API fails
+            response = f"I'm here to help with {subject}! Could you please rephrase your question? I want to make sure I understand what you need help with."
+            print(f"⚠ OpenAI API error: {e}")
         
         # Record the interaction
         self.record_interaction(student_id, user_message, response)
