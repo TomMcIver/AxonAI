@@ -392,6 +392,7 @@ class AIInteraction(db.Model):
     prompt = db.Column(db.Text, nullable=False)
     response = db.Column(db.Text, nullable=False)
     strategy_used = db.Column(db.String(100), nullable=True)  # teaching_strategy
+    sub_topic = db.Column(db.String(50), nullable=True)  # algebra, statistics, calculus
     engagement_score = db.Column(db.Float, nullable=True)  # 0-1 engagement level
     
     # Performance metrics
