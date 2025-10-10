@@ -1,154 +1,129 @@
 {% extends "base.html" %}
 
-{% block title %}Teacher Dashboard - School Management System{% endblock %}
+{% block title %}Teacher Dashboard - TMC Learning{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="fas fa-chalkboard-teacher me-2"></i>Teacher Dashboard</h2>
-            <span class="badge bg-success fs-6">Teacher</span>
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-chalkboard-teacher me-2"></i>Welcome, {{ user.get_full_name() }}</h2>
+            <p class="text-muted">Teacher Dashboard</p>
         </div>
     </div>
-</div>
 
-<!-- Quick Stats -->
-<div class="row">
-    <div class="col-md-4 mb-4">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title">My Classes</h5>
-                        <h3>{{ class_count }}</h3>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-chalkboard fa-2x"></i>
-                    </div>
+    <!-- Key Stats -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-dark border-light">
+                <div class="card-body text-center">
+                    <i class="fas fa-chalkboard fa-3x mb-3 text-success"></i>
+                    <h3 class="mb-0">{{ class_count }}</h3>
+                    <p class="text-muted mb-0">My Classes</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-dark border-light">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-graduate fa-3x mb-3 text-info"></i>
+                    <h3 class="mb-0">{{ total_students }}</h3>
+                    <p class="text-muted mb-0">Total Students</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-4 mb-4">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title">Total Students</h5>
-                        <h3>{{ total_students }}</h3>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-user-graduate fa-2x"></i>
-                    </div>
-                </div>
-            </div>
+    <!-- My Classes Section -->
+    <div class="row">
+        <div class="col-12 mb-3">
+            <h4><i class="fas fa-chalkboard me-2"></i>My Classes</h4>
         </div>
     </div>
 
-    <div class="col-md-4 mb-4">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title">Pending Grades</h5>
-                        <h3>{{ pending_grades }}</h3>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-clipboard-list fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Quick Actions -->
-<div class="row">
-    <div class="col-12">
-        <h4 class="mb-3">Teacher Tools</h4>
-    </div>
-    <div class="col-md-6 col-lg-3 mb-3">
-        <a href="{{ url_for('teacher_students') }}" class="btn btn-outline-primary w-100 p-3 text-decoration-none">
-            <i class="fas fa-users fa-2x d-block mb-2"></i>
-            <h6>My Students</h6>
-            <small class="text-muted">View student roster</small>
-        </a>
-    </div>
-    <div class="col-md-6 col-lg-3 mb-3">
-        <a href="{{ url_for('teacher_gradebook') }}" class="btn btn-outline-success w-100 p-3 text-decoration-none">
-            <i class="fas fa-book fa-2x d-block mb-2"></i>
-            <h6>Gradebook</h6>
-            <small class="text-muted">Manage grades and assignments</small>
-        </a>
-    </div>
-    <div class="col-md-6 col-lg-3 mb-3">
-        <a href="{{ url_for('teacher_classes') }}" class="btn btn-outline-info w-100 p-3 text-decoration-none">
-            <i class="fas fa-calendar-alt fa-2x d-block mb-2"></i>
-            <h6>My Classes</h6>
-            <small class="text-muted">View teaching schedule</small>
-        </a>
-    </div>
-    <div class="col-md-6 col-lg-3 mb-3">
-        <a href="{{ url_for('teacher_content') }}" class="btn btn-outline-warning w-100 p-3 text-decoration-none">
-            <i class="fas fa-file-alt fa-2x d-block mb-2"></i>
-            <h6>Course Content</h6>
-            <small class="text-muted">Upload and manage materials</small>
-        </a>
-    </div>
-</div>
-
-<!-- Recent Activity -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recent Activity</h5>
-            </div>
-            <div class="card-body">
-                <div class="list-group list-group-flush">
-                    <div class="list-group-item d-flex justify-content-between align-items-start">
-                        <div class="ms-2 me-auto">
-                            <div class="fw-bold">Math Quiz - Grade 10A</div>
-                            <small class="text-muted">Graded 25 submissions</small>
+    <!-- Class Buttons -->
+    <div class="row">
+        {% if classes %}
+            {% for class_obj in classes %}
+            <div class="col-md-6 col-lg-4 mb-3">
+                <a href="{{ url_for('teacher_class_detail', class_id=class_obj.id) }}" class="text-decoration-none" onclick="showLoading(event, this)">
+                    <div class="card bg-dark border-light h-100 class-card" data-class-id="{{ class_obj.id }}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    {% if class_obj.subject == 'mathematics' %}
+                                    <i class="fas fa-calculator fa-2x text-primary class-icon"></i>
+                                    {% elif class_obj.subject == 'science' %}
+                                    <i class="fas fa-flask fa-2x text-success class-icon"></i>
+                                    {% elif class_obj.subject == 'english' %}
+                                    <i class="fas fa-book fa-2x text-info class-icon"></i>
+                                    {% elif class_obj.subject == 'history' %}
+                                    <i class="fas fa-landmark fa-2x text-warning class-icon"></i>
+                                    {% else %}
+                                    <i class="fas fa-graduation-cap fa-2x text-secondary class-icon"></i>
+                                    {% endif %}
+                                    <i class="fas fa-spinner fa-spin fa-2x text-primary class-loading" style="display: none;"></i>
+                                </div>
+                                <span class="badge bg-info">
+                                    {{ class_obj.get_student_count() }} students
+                                </span>
+                            </div>
+                            <h5 class="card-title">{{ class_obj.name }}</h5>
+                            <p class="text-muted small mb-2">
+                                <i class="fas fa-tag me-1"></i>{{ class_obj.subject.title() }}
+                            </p>
+                            <p class="text-muted small mb-0">
+                                <i class="fas fa-tasks me-1"></i>{{ class_obj.assignments|length }} assignments
+                            </p>
                         </div>
-                        <span class="badge bg-primary rounded-pill">Today</span>
                     </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-start">
-                        <div class="ms-2 me-auto">
-                            <div class="fw-bold">Science Project - Grade 9B</div>
-                            <small class="text-muted">Assignment posted</small>
-                        </div>
-                        <span class="badge bg-success rounded-pill">Yesterday</span>
-                    </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-start">
-                        <div class="ms-2 me-auto">
-                            <div class="fw-bold">Parent-Teacher Conference</div>
-                            <small class="text-muted">Scheduled for next week</small>
-                        </div>
-                        <span class="badge bg-info rounded-pill">2 days ago</span>
+                </a>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="card bg-dark border-light">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-chalkboard fa-3x text-muted mb-3"></i>
+                        <h4>No Classes Assigned</h4>
+                        <p class="text-muted">You don't have any classes assigned yet.</p>
                     </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
     </div>
 </div>
 
-<!-- Welcome Message -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Welcome, {{ user.get_full_name() }}!</h5>
-                <p class="card-text">
-                    Welcome to your teacher dashboard. Here you can manage your classes, view student progress, 
-                    and access teaching resources. Have a great day of teaching!
-                </p>
-                <p class="card-text">
-                    <small class="text-muted">Remember: Your next class starts at 10:00 AM</small>
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
+<style>
+.class-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.class-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--bs-primary) !important;
+    box-shadow: 0 10px 30px rgba(0, 123, 255, 0.3);
+}
+
+.class-card.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+</style>
+
+<script>
+function showLoading(event, link) {
+    const card = link.querySelector('.class-card');
+    const icon = card.querySelector('.class-icon');
+    const loading = card.querySelector('.class-loading');
+    
+    if (icon && loading) {
+        icon.style.display = 'none';
+        loading.style.display = 'inline-block';
+        card.classList.add('loading');
+    }
+}
+</script>
 {% endblock %}

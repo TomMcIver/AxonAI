@@ -84,20 +84,11 @@ def dashboard():
         teacher_classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
         total_students = sum(cls.get_student_count() for cls in teacher_classes)
         
-        # Calculate pending grades (assignments without grades)
-        pending_grades = 0
-        for cls in teacher_classes:
-            for assignment in cls.assignments:
-                submissions_count = AssignmentSubmission.query.filter_by(assignment_id=assignment.id).count()
-                grades_count = Grade.query.filter_by(assignment_id=assignment.id).count()
-                pending_grades += submissions_count - grades_count
-        
         return render_template('teacher_dashboard.html', 
                              user=user,
                              classes=teacher_classes,
                              class_count=len(teacher_classes),
-                             total_students=total_students,
-                             pending_grades=pending_grades)
+                             total_students=total_students)
     elif user.role == 'student':
         # Get student's classes and overall average
         student_classes = user.classes
