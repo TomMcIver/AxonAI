@@ -17,9 +17,9 @@ client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 ai_service = AIService()
 
 # Student Personas - These define how each GPT-powered student behaves
+# Note: IDs are looked up dynamically from database
 STUDENT_PERSONAS = {
     "Alex": {
-        "id": 3346,  # From database
         "system_prompt": """You are Alex, a high-performing Year 12 student who:
 - Grasps concepts quickly and asks insightful follow-up questions
 - Connects new material to previously learned topics
@@ -39,7 +39,6 @@ Keep questions concise (1-2 sentences). Show intelligence through question quali
         ]
     },
     "Jordan": {
-        "id": 3347,
         "system_prompt": """You are Jordan, an average Year 12 student who:
 - Needs concepts explained clearly before understanding
 - Asks clarifying questions when confused
@@ -59,7 +58,6 @@ Keep questions natural and conversational (1-2 sentences).""",
         ]
     },
     "Taylor": {
-        "id": 3348,
         "system_prompt": """You are Taylor, a struggling Year 12 student who:
 - Finds math challenging and often feels overwhelmed
 - Asks basic questions about fundamental concepts
@@ -79,6 +77,20 @@ Keep questions short and direct (1 sentence). Show you're trying but struggling.
         ]
     }
 }
+
+def get_simulated_students():
+    """
+    Dynamically fetch simulated student IDs from database
+    Returns dict with student names mapped to their user objects
+    """
+    students = {}
+    for name in ["Alex", "Jordan", "Taylor"]:
+        user = User.query.filter_by(first_name=name, last_name='Simulated', is_active=True).first()
+        if user:
+            students[name] = user
+        else:
+            print(f"Warning: {name} Simulated not found in database")
+    return students
 
 def generate_student_question(student_name, topic, conversation_history, ai_response=None):
     """
@@ -136,18 +148,18 @@ Generate ONE natural question to ask your AI tutor about this topic, based on yo
         }
         return fallbacks[student_name]
 
-def simulate_conversation(student_name, class_id, topic, num_exchanges=3):
+def simulate_conversation(student_user, class_id, topic, num_exchanges=3):
     """
     Simulate a natural conversation between a student and AI tutor
     
     Args:
-        student_name: Name of the student persona
+        student_user: User object for the student
         class_id: The class ID
         topic: The topic to discuss
         num_exchanges: Number of back-and-forth exchanges
     """
-    persona = STUDENT_PERSONAS[student_name]
-    student_id = persona["id"]
+    student_name = student_user.first_name
+    student_id = student_user.id
     conversation_history = []
     
     print(f"\n{'='*60}")
@@ -193,34 +205,43 @@ def run_simulation(num_topics_per_student=3, exchanges_per_topic=3):
         exchanges_per_topic: How many Q&A exchanges per topic
     """
     with app.app_context():
-        # Get the class they're enrolled in
-        alex = User.query.get(3346)
-        if not alex or not alex.classes:
-            print("Error: Simulated students not found or not enrolled in a class")
+        # Dynamically get simulated students from database
+        students = get_simulated_students()
+        
+        if not students:
+            print("Error: No simulated students found in database")
             print("Run create_simulated_students.py first")
             return
         
-        class_obj = alex.classes[0]
+        # Get the class from any enrolled student (they should all be in the same class)
+        first_student = next(iter(students.values()))
+        if not first_student.classes:
+            print("Error: Simulated students not enrolled in any class")
+            print("Run create_simulated_students.py first")
+            return
+        
+        class_obj = first_student.classes[0]
         class_id = class_obj.id
         
         print(f"\n🚀 Starting GPT Student Simulation")
         print(f"📚 Class: {class_obj.name}")
-        print(f"👥 Students: Alex, Jordan, Taylor")
+        print(f"👥 Students: {', '.join(students.keys())}")
         print(f"📖 Topics per student: {num_topics_per_student}")
         print(f"💬 Exchanges per topic: {exchanges_per_topic}")
         print(f"\n{'='*60}\n")
         
         # Run simulation for each student
-        for student_name, persona in STUDENT_PERSONAS.items():
+        for student_name, student_user in students.items():
             print(f"\n🎯 Simulating {student_name}'s learning journey...")
             
             # Select topics based on student's interests
+            persona = STUDENT_PERSONAS[student_name]
             topics = persona["topics_of_interest"][:num_topics_per_student]
             
             for topic in topics:
                 try:
                     simulate_conversation(
-                        student_name,
+                        student_user,
                         class_id,
                         topic,
                         exchanges_per_topic
