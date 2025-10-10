@@ -223,7 +223,10 @@ class ProgressionAnalyzer:
     def get_composite_progression(self, student_id, days=60):
         """
         Get overall Math understanding as a composite of all sub-topics
-        This maintains historical knowledge while adapting to new topics
+        Uses adaptive weighted algorithm that prevents drops when switching topics:
+        - New topics need stabilization period (10+ interactions) before full weight
+        - Established topics maintain higher weight to preserve mastery context
+        - Composite reflects overall Math understanding, not just recent topic
         
         Args:
             student_id: The student's user ID
@@ -260,21 +263,35 @@ class ProgressionAnalyzer:
             # Add to sub-topic mastery history
             sub_topic_mastery[sub_topic].append(understanding)
             
-            # Calculate current mastery level for each sub-topic
-            # Recent interactions weighted more heavily
-            current_mastery = {}
-            for topic, scores in sub_topic_mastery.items():
-                if scores:
-                    # Weight: recent interactions matter more (last 10 interactions get full weight)
-                    recent_scores = scores[-10:] if len(scores) >= 10 else scores
-                    current_mastery[topic] = sum(recent_scores) / len(recent_scores)
-                else:
-                    current_mastery[topic] = None
+            # Calculate adaptive weighted composite score
+            # Topics with more interactions get more weight
+            # New topics (<10 interactions) get reduced weight to prevent drops
+            weighted_sum = 0
+            total_weight = 0
             
-            # Calculate composite score (average of topics student has studied)
-            active_topics = [score for score in current_mastery.values() if score is not None]
-            if active_topics:
-                composite_score = sum(active_topics) / len(active_topics)
+            for topic, scores in sub_topic_mastery.items():
+                if not scores:
+                    continue
+                
+                # Calculate current mastery for this topic
+                recent_scores = scores[-10:] if len(scores) >= 10 else scores
+                topic_mastery = sum(recent_scores) / len(recent_scores)
+                
+                # Adaptive weight based on interaction count
+                interaction_count = len(scores)
+                if interaction_count < 10:
+                    # New topic: gradual weight increase (10% per interaction up to 100%)
+                    weight = interaction_count * 0.1
+                else:
+                    # Established topic: full weight
+                    weight = 1.0
+                
+                weighted_sum += topic_mastery * weight
+                total_weight += weight
+            
+            # Calculate composite score
+            if total_weight > 0:
+                composite_score = weighted_sum / total_weight
                 
                 if date_key not in composite_progression:
                     composite_progression[date_key] = []

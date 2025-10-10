@@ -296,7 +296,8 @@ function loadChart(chartType, classId, endpoint) {
     const loading = document.getElementById(`${chartType}Loading`);
     const noData = document.getElementById(`${chartType}NoData`);
     
-    canvas.style.display = 'none';
+    // Hide canvas and noData, show loading
+    canvas.style.opacity = '0';
     loading.style.display = 'block';
     noData.style.display = 'none';
     
@@ -306,26 +307,31 @@ function loadChart(chartType, classId, endpoint) {
             loading.style.display = 'none';
             
             if (data.datasets.length === 0 || data.labels.length === 0) {
+                canvas.style.opacity = '0';
                 noData.style.display = 'block';
                 return;
             }
             
-            canvas.style.display = 'block';
-            
+            // Destroy existing chart if present
             if (charts[chartType]) {
                 charts[chartType].destroy();
             }
             
+            // Create new chart
             const ctx = canvas.getContext('2d');
             charts[chartType] = new Chart(ctx, {
                 type: 'line',
                 data: data,
                 options: createChartOptions()
             });
+            
+            // Show canvas after chart is created
+            canvas.style.opacity = '1';
         })
         .catch(error => {
             console.error(`Error loading ${chartType} data:`, error);
             loading.style.display = 'none';
+            canvas.style.opacity = '0';
             noData.style.display = 'block';
         });
 }
