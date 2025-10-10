@@ -102,6 +102,57 @@ def dashboard():
         flash('Invalid user role.', 'danger')
         return redirect(url_for('login'))
 
+@app.route('/progression-data/<int:class_id>')
+@role_required(['teacher', 'admin'])
+def progression_data(class_id):
+    """API endpoint to get student progression data for visualization"""
+    from progression_analyzer import ProgressionAnalyzer
+    from flask import jsonify
+    
+    analyzer = ProgressionAnalyzer()
+    
+    # Get all students in this class
+    class_obj = Class.query.get_or_404(class_id)
+    student_ids = [enrollment.user_id for enrollment in class_obj.enrollments]
+    
+    # Get progression data for all students
+    progression_results = analyzer.get_multi_student_progression(student_ids, days=30)
+    
+    # Format for Chart.js
+    chart_data = {
+        'labels': [],
+        'datasets': []
+    }
+    
+    # Collect all unique dates
+    all_dates = set()
+    for student_data in progression_results.values():
+        for point in student_data['data']:
+            all_dates.add(point['date'])
+    
+    chart_data['labels'] = sorted(list(all_dates))
+    
+    # Create dataset for each student
+    colors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6c757d']
+    for idx, (student_id, student_data) in enumerate(progression_results.items()):
+        # Create a map of date to understanding score
+        score_map = {point['date']: point['understanding'] for point in student_data['data']}
+        
+        # Fill in scores for all dates (null if no data for that date)
+        scores = [score_map.get(date, None) for date in chart_data['labels']]
+        
+        chart_data['datasets'].append({
+            'label': student_data['name'],
+            'data': scores,
+            'borderColor': colors[idx % len(colors)],
+            'backgroundColor': colors[idx % len(colors)] + '20',
+            'fill': False,
+            'tension': 0.3,
+            'spanGaps': True
+        })
+    
+    return jsonify(chart_data)
+
 @app.route('/manage-users')
 @admin_required
 def manage_users():

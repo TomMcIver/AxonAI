@@ -34,6 +34,42 @@
         </div>
     </div>
 
+    <!-- Student Progression Chart -->
+    {% if classes %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-dark border-light">
+                <div class="card-header bg-dark border-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Student Understanding Progression</h5>
+                        <select id="classSelect" class="form-select form-select-sm bg-dark text-light border-light" style="width: auto;">
+                            {% for class_obj in classes %}
+                            <option value="{{ class_obj.id }}">{{ class_obj.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        <i class="fas fa-info-circle me-1"></i>AI-analyzed understanding progression based on student interactions
+                    </p>
+                    <div style="position: relative; height: 400px;">
+                        <canvas id="progressionChart"></canvas>
+                    </div>
+                    <div id="chartLoading" class="text-center py-5">
+                        <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+                        <p class="mt-3 text-muted">Loading progression data...</p>
+                    </div>
+                    <div id="chartNoData" class="text-center py-5" style="display: none;">
+                        <i class="fas fa-chart-line fa-3x text-muted"></i>
+                        <p class="mt-3 text-muted">No interaction data available yet. Students need to use the AI tutor to generate progression data.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- My Classes Section -->
     <div class="row">
         <div class="col-12 mb-3">
@@ -113,6 +149,7 @@
 }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 <script>
 function showLoading(event, link) {
     const card = link.querySelector('.class-card');
@@ -125,5 +162,118 @@ function showLoading(event, link) {
         card.classList.add('loading');
     }
 }
+
+let progressionChart = null;
+
+function loadProgressionData(classId) {
+    const canvas = document.getElementById('progressionChart');
+    const loading = document.getElementById('chartLoading');
+    const noData = document.getElementById('chartNoData');
+    
+    canvas.style.display = 'none';
+    loading.style.display = 'block';
+    noData.style.display = 'none';
+    
+    fetch(`/progression-data/${classId}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.datasets.length === 0 || data.labels.length === 0) {
+                noData.style.display = 'block';
+                return;
+            }
+            
+            canvas.style.display = 'block';
+            
+            if (progressionChart) {
+                progressionChart.destroy();
+            }
+            
+            const ctx = canvas.getContext('2d');
+            progressionChart = new Chart(ctx, {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#adb5bd',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        title: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#007bff',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Understanding Score (%)',
+                                color: '#adb5bd'
+                            },
+                            ticks: {
+                                color: '#6c757d'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                color: '#adb5bd'
+                            },
+                            ticks: {
+                                color: '#6c757d',
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error loading progression data:', error);
+            loading.style.display = 'none';
+            noData.style.display = 'block';
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const classSelect = document.getElementById('classSelect');
+    if (classSelect) {
+        const firstClassId = classSelect.value;
+        if (firstClassId) {
+            loadProgressionData(firstClassId);
+        }
+        
+        classSelect.addEventListener('change', function() {
+            loadProgressionData(this.value);
+        });
+    }
+});
 </script>
 {% endblock %}
