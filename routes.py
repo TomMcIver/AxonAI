@@ -143,8 +143,8 @@ def progression_data(class_id):
     students = class_obj.get_students()
     student_ids = [student.id for student in students]
     
-    # Get progression data for all students
-    progression_results = analyzer.get_multi_student_progression(student_ids, days=30)
+    # Get progression data for all students (3-day intervals for cleaner charts)
+    progression_results = analyzer.get_multi_student_progression(student_ids, days=30, interval_days=3)
     
     # Format for Chart.js
     chart_data = {
@@ -195,8 +195,8 @@ def sub_topic_progression_data(class_id, sub_topic):
     students = class_obj.get_students()
     student_ids = [student.id for student in students]
     
-    # Get progression data for this sub-topic
-    progression_results = analyzer.get_multi_student_sub_topic_progression(student_ids, sub_topic, days=60)
+    # Get progression data for this sub-topic (3-day intervals for cleaner charts)
+    progression_results = analyzer.get_multi_student_sub_topic_progression(student_ids, sub_topic, days=60, interval_days=3)
     
     # Format for Chart.js
     chart_data = {'labels': [], 'datasets': []}
@@ -241,8 +241,8 @@ def composite_progression_data(class_id):
     students = class_obj.get_students()
     student_ids = [student.id for student in students]
     
-    # Get composite progression data
-    progression_results = analyzer.get_multi_student_composite_progression(student_ids, days=60)
+    # Get composite progression data (3-day intervals for cleaner charts)
+    progression_results = analyzer.get_multi_student_composite_progression(student_ids, days=60, interval_days=3)
     
     # Format for Chart.js
     chart_data = {'labels': [], 'datasets': []}

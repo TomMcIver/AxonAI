@@ -73,8 +73,11 @@ class ProgressionAnalyzer:
         
         # Apply sigmoid learning curve for realistic progression
         import math
-        x = (progress_ratio - 0.5) * 10
-        curve_value = 1 / (1 + math.exp(-x * profile['learning_rate']))
+        # Scale x to create smooth S-curve: progress_ratio 0→1 maps to curve_value 0→1
+        # Use steepness based on learning rate (higher rate = steeper curve)
+        steepness = 8  # Base steepness for smooth transition
+        x = (progress_ratio - 0.5) * steepness
+        curve_value = 1 / (1 + math.exp(-x))
         
         # Calculate base mastery
         mastery_range = profile['target_mastery'] - profile['starting_mastery']
@@ -108,13 +111,15 @@ class ProgressionAnalyzer:
         # Clamp to 0-100 range
         return min(100, max(0, final_score))
     
-    def get_progression_data(self, student_id, days=30):
+    def get_progression_data(self, student_id, days=30, interval_days=3):
         """
         Get understanding progression over time for a student
+        Groups data into intervals (e.g., every 3 days) for cleaner visualization
         
         Args:
             student_id: The student's user ID
             days: Number of days to analyze (default 30)
+            interval_days: Number of days per interval (default 3)
         
         Returns:
             List of data points: [{'date': '2025-10-10', 'understanding': 75.5}, ...]
@@ -130,21 +135,25 @@ class ProgressionAnalyzer:
         if not interactions:
             return []
         
-        # Group interactions by date and calculate average understanding per day
-        progression_by_date = {}
+        # Group interactions by interval (every N days) for cleaner charts
+        progression_by_interval = {}
         
         for interaction in interactions:
-            date_key = interaction.created_at.strftime('%Y-%m-%d')
+            # Calculate which interval this interaction falls into
+            days_from_cutoff = (interaction.created_at - cutoff_date).days
+            interval_num = days_from_cutoff // interval_days
+            interval_date = (cutoff_date + timedelta(days=interval_num * interval_days)).strftime('%Y-%m-%d')
+            
             understanding = self.calculate_understanding_score(interaction)
             
-            if date_key not in progression_by_date:
-                progression_by_date[date_key] = []
+            if interval_date not in progression_by_interval:
+                progression_by_interval[interval_date] = []
             
-            progression_by_date[date_key].append(understanding)
+            progression_by_interval[interval_date].append(understanding)
         
-        # Calculate average understanding per date
+        # Calculate average understanding per interval
         progression_data = []
-        for date, scores in sorted(progression_by_date.items()):
+        for date, scores in sorted(progression_by_interval.items()):
             avg_understanding = sum(scores) / len(scores)
             progression_data.append({
                 'date': date,
@@ -157,7 +166,7 @@ class ProgressionAnalyzer:
     def get_student_improvement(self, student_id, days=60):
         """
         Calculate improvement percentage from start to current for a student
-        Using realistic learning curve progression
+        Using actual database interactions and calculate_understanding_score
         
         Args:
             student_id: The student's user ID
@@ -172,7 +181,7 @@ class ProgressionAnalyzer:
                 'days_active': 60
             }
         """
-        # Get student name for profile lookup
+        # Get student
         student = User.query.get(student_id)
         if not student:
             return {
@@ -183,39 +192,29 @@ class ProgressionAnalyzer:
                 'days_active': 0
             }
         
-        student_name = student.first_name
+        # Get ALL interactions for this student, ordered by time
+        all_interactions = AIInteraction.query.filter(
+            AIInteraction.user_id == student_id
+        ).order_by(AIInteraction.created_at).all()
         
-        # Define realistic learning profiles - must match calculate_understanding_score
-        learning_profiles = {
-            'Alex': {
-                'starting_mastery': 45,   # Start at 45%
-                'target_mastery': 92,      # End at 92%
-                'actual_start': 45,        # For display
-                'actual_current': 88       # Realistic current position (not quite at target yet)
-            },
-            'Jordan': {
-                'starting_mastery': 35,    # Start at 35%
-                'target_mastery': 78,       # End at 78%
-                'actual_start': 35,
-                'actual_current': 72        # Realistic current position
-            },
-            'Taylor': {
-                'starting_mastery': 25,    # Start at 25%
-                'target_mastery': 65,       # End at 65%
-                'actual_start': 25,
-                'actual_current': 58        # Realistic current position
+        if not all_interactions:
+            return {
+                'starting_score': 0,
+                'current_score': 0,
+                'improvement_percentage': 0,
+                'improvement_points': 0,
+                'days_active': 0
             }
-        }
         
-        # Get profile or use default
-        profile = learning_profiles.get(student_name, {
-            'actual_start': 40,
-            'actual_current': 70
-        })
+        # Calculate starting score from first few interactions (average first 5)
+        first_interactions = all_interactions[:5]
+        starting_scores = [self.calculate_understanding_score(i) for i in first_interactions]
+        starting_score = sum(starting_scores) / len(starting_scores)
         
-        # Use the realistic values
-        starting_score = profile['actual_start']
-        current_score = profile['actual_current']
+        # Calculate current score from last few interactions (average last 10)
+        last_interactions = all_interactions[-10:]
+        current_scores = [self.calculate_understanding_score(i) for i in last_interactions]
+        current_score = sum(current_scores) / len(current_scores)
         
         # Calculate improvement
         improvement_points = current_score - starting_score
@@ -282,13 +281,14 @@ class ProgressionAnalyzer:
             'current_level': round(recent_avg, 1)
         }
     
-    def get_multi_student_progression(self, student_ids, days=30):
+    def get_multi_student_progression(self, student_ids, days=30, interval_days=3):
         """
         Get progression data for multiple students for comparison
         
         Args:
             student_ids: List of student user IDs
             days: Number of days to analyze
+            interval_days: Number of days per interval for grouping (default 3)
         
         Returns:
             dict: {student_id: {'name': 'Alex', 'data': [progression points]}}
@@ -298,7 +298,7 @@ class ProgressionAnalyzer:
         for student_id in student_ids:
             student = User.query.get(student_id)
             if student:
-                progression = self.get_progression_data(student_id, days)
+                progression = self.get_progression_data(student_id, days, interval_days)
                 results[student_id] = {
                     'name': student.first_name,
                     'data': progression,
@@ -307,14 +307,16 @@ class ProgressionAnalyzer:
         
         return results
     
-    def get_sub_topic_progression_data(self, student_id, sub_topic, days=60):
+    def get_sub_topic_progression_data(self, student_id, sub_topic, days=60, interval_days=3):
         """
         Get understanding progression for a specific sub-topic (algebra, statistics, calculus)
+        Groups data into intervals for cleaner visualization
         
         Args:
             student_id: The student's user ID
             sub_topic: The sub-topic to analyze ('algebra', 'statistics', 'calculus')
             days: Number of days to analyze (default 60)
+            interval_days: Number of days per interval (default 3)
         
         Returns:
             List of data points: [{'date': '2025-10-10', 'understanding': 75.5}, ...]
@@ -331,21 +333,25 @@ class ProgressionAnalyzer:
         if not interactions:
             return []
         
-        # Group by date
-        progression_by_date = {}
+        # Group by interval (every N days)
+        progression_by_interval = {}
         
         for interaction in interactions:
-            date_key = interaction.created_at.strftime('%Y-%m-%d')
+            # Calculate which interval this interaction falls into
+            days_from_cutoff = (interaction.created_at - cutoff_date).days
+            interval_num = days_from_cutoff // interval_days
+            interval_date = (cutoff_date + timedelta(days=interval_num * interval_days)).strftime('%Y-%m-%d')
+            
             understanding = self.calculate_understanding_score(interaction)
             
-            if date_key not in progression_by_date:
-                progression_by_date[date_key] = []
+            if interval_date not in progression_by_interval:
+                progression_by_interval[interval_date] = []
             
-            progression_by_date[date_key].append(understanding)
+            progression_by_interval[interval_date].append(understanding)
         
-        # Calculate averages
+        # Calculate averages per interval
         progression_data = []
-        for date, scores in sorted(progression_by_date.items()):
+        for date, scores in sorted(progression_by_interval.items()):
             avg_understanding = sum(scores) / len(scores)
             progression_data.append({
                 'date': date,
@@ -378,7 +384,7 @@ class ProgressionAnalyzer:
         
         return results
     
-    def get_composite_progression(self, student_id, days=60):
+    def get_composite_progression(self, student_id, days=60, interval_days=3):
         """
         Get overall Math understanding as a composite of all sub-topics
         Uses adaptive weighted algorithm that prevents drops when switching topics:
@@ -389,6 +395,7 @@ class ProgressionAnalyzer:
         Args:
             student_id: The student's user ID
             days: Number of days to analyze
+            interval_days: Number of days per interval (default 3)
         
         Returns:
             List of data points with composite understanding score
@@ -409,7 +416,11 @@ class ProgressionAnalyzer:
         composite_progression = {}
         
         for interaction in interactions:
-            date_key = interaction.created_at.strftime('%Y-%m-%d')
+            # Calculate which interval this interaction falls into
+            days_from_cutoff = (interaction.created_at - cutoff_date).days
+            interval_num = days_from_cutoff // interval_days
+            interval_date = (cutoff_date + timedelta(days=interval_num * interval_days)).strftime('%Y-%m-%d')
+            
             sub_topic = interaction.sub_topic
             
             if sub_topic not in sub_topic_mastery:
@@ -451,11 +462,11 @@ class ProgressionAnalyzer:
             if total_weight > 0:
                 composite_score = weighted_sum / total_weight
                 
-                if date_key not in composite_progression:
-                    composite_progression[date_key] = []
-                composite_progression[date_key].append(composite_score)
+                if interval_date not in composite_progression:
+                    composite_progression[interval_date] = []
+                composite_progression[interval_date].append(composite_score)
         
-        # Average scores per day
+        # Average scores per interval
         progression_data = []
         for date, scores in sorted(composite_progression.items()):
             avg_score = sum(scores) / len(scores)
@@ -467,7 +478,7 @@ class ProgressionAnalyzer:
         
         return progression_data
     
-    def get_multi_student_sub_topic_progression(self, student_ids, sub_topic, days=60):
+    def get_multi_student_sub_topic_progression(self, student_ids, sub_topic, days=60, interval_days=3):
         """
         Get progression data for multiple students for a specific sub-topic
         
@@ -475,6 +486,7 @@ class ProgressionAnalyzer:
             student_ids: List of student user IDs
             sub_topic: The sub-topic to analyze ('algebra', 'statistics', 'calculus')
             days: Number of days to analyze
+            interval_days: Number of days per interval (default 3)
         
         Returns:
             dict: {student_id: {'name': 'Alex', 'data': [progression points]}}
@@ -484,7 +496,7 @@ class ProgressionAnalyzer:
         for student_id in student_ids:
             student = User.query.get(student_id)
             if student:
-                progression = self.get_sub_topic_progression_data(student_id, sub_topic, days)
+                progression = self.get_sub_topic_progression_data(student_id, sub_topic, days, interval_days)
                 results[student_id] = {
                     'name': student.first_name,
                     'data': progression
@@ -492,13 +504,14 @@ class ProgressionAnalyzer:
         
         return results
     
-    def get_multi_student_composite_progression(self, student_ids, days=60):
+    def get_multi_student_composite_progression(self, student_ids, days=60, interval_days=3):
         """
         Get composite (overall Math) progression for multiple students
         
         Args:
             student_ids: List of student user IDs
             days: Number of days to analyze
+            interval_days: Number of days per interval (default 3)
         
         Returns:
             dict: {student_id: {'name': 'Alex', 'data': [progression points]}}
@@ -508,7 +521,7 @@ class ProgressionAnalyzer:
         for student_id in student_ids:
             student = User.query.get(student_id)
             if student:
-                progression = self.get_composite_progression(student_id, days)
+                progression = self.get_composite_progression(student_id, days, interval_days)
                 results[student_id] = {
                     'name': student.first_name,
                     'data': progression
