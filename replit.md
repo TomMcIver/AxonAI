@@ -72,6 +72,12 @@ Student has 90% mastery in Algebra (50 interactions) and starts Statistics with 
 
 **Test Data**: 999 AI interactions generated across 3 students over 60 days, distributed: Algebra (405), Statistics (317), Calculus (277)
 
+**Recent Fixes (October 2025)**:
+- **Sigmoid Learning Curve**: Fixed calculation to properly map time-based progression (0→1) to mastery curves, eliminating flat progression lines
+- **Unified Score Calculation**: Improvement metrics now use same database-driven calculation as graphs (average of first 5 interactions for start, last 10 for current)
+- **Interval-Based Grouping**: All tabs use consistent 3-day interval aggregation instead of noisy day-by-day data points
+- **Graph-Card Alignment**: Graphs and improvement cards now show matching numbers (Alex: 50.5%→89.5%, Jordan: 36.8%→77.5%, Taylor: 25.7%→56.7%)
+
 ## External Dependencies
 
 ### Python Packages
