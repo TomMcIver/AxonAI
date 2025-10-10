@@ -138,6 +138,71 @@ class ProgressionAnalyzer:
         
         return progression_data
     
+    def get_student_improvement(self, student_id, days=60):
+        """
+        Calculate improvement percentage from start to current for a student
+        
+        Args:
+            student_id: The student's user ID
+            days: Number of days to analyze (default 60)
+        
+        Returns:
+            dict: {
+                'starting_score': 45.0,
+                'current_score': 92.0, 
+                'improvement_percentage': 47.0,
+                'improvement_points': 47.0,
+                'days_active': 60
+            }
+        """
+        cutoff_date = datetime.now() - timedelta(days=days)
+        
+        # Get all interactions for this student
+        interactions = AIInteraction.query.filter(
+            AIInteraction.user_id == student_id,
+            AIInteraction.created_at >= cutoff_date
+        ).order_by(AIInteraction.created_at).all()
+        
+        if not interactions:
+            return {
+                'starting_score': 0,
+                'current_score': 0,
+                'improvement_percentage': 0,
+                'improvement_points': 0,
+                'days_active': 0
+            }
+        
+        # Get starting score (average of first 3-5 interactions)
+        initial_count = min(5, len(interactions) // 10 + 1)
+        starting_scores = [
+            self.calculate_understanding_score(interaction) 
+            for interaction in interactions[:initial_count]
+        ]
+        starting_score = sum(starting_scores) / len(starting_scores)
+        
+        # Get current score (average of last 5-10 interactions)
+        recent_count = min(10, len(interactions) // 5 + 1)
+        recent_scores = [
+            self.calculate_understanding_score(interaction)
+            for interaction in interactions[-recent_count:]
+        ]
+        current_score = sum(recent_scores) / len(recent_scores)
+        
+        # Calculate improvement
+        improvement_points = current_score - starting_score
+        improvement_percentage = (improvement_points / starting_score * 100) if starting_score > 0 else 0
+        
+        # Calculate days active
+        days_active = (interactions[-1].created_at - interactions[0].created_at).days + 1
+        
+        return {
+            'starting_score': round(starting_score, 1),
+            'current_score': round(current_score, 1),
+            'improvement_percentage': round(improvement_percentage, 1),
+            'improvement_points': round(improvement_points, 1),
+            'days_active': days_active
+        }
+    
     def get_recent_trend(self, student_id, recent_count=5):
         """
         Get the trend in recent interactions (improving, declining, stable)

@@ -84,11 +84,38 @@ def dashboard():
         teacher_classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
         total_students = sum(cls.get_student_count() for cls in teacher_classes)
         
+        # Get improvement metrics for all students
+        from progression_analyzer import ProgressionAnalyzer
+        analyzer = ProgressionAnalyzer()
+        student_improvements = []
+        
+        if teacher_classes:
+            # Get first class for now (can be expanded)
+            first_class = teacher_classes[0]
+            students = first_class.get_students()
+            
+            for student in students:
+                improvement = analyzer.get_student_improvement(student.id)
+                improvement['name'] = student.first_name
+                improvement['full_name'] = student.get_full_name()
+                student_improvements.append(improvement)
+        
+        # Calculate class average improvement
+        if student_improvements:
+            avg_improvement = sum(s['improvement_percentage'] for s in student_improvements) / len(student_improvements)
+            avg_current = sum(s['current_score'] for s in student_improvements) / len(student_improvements)
+        else:
+            avg_improvement = 0
+            avg_current = 0
+        
         return render_template('teacher_dashboard.html', 
                              user=user,
                              classes=teacher_classes,
                              class_count=len(teacher_classes),
-                             total_students=total_students)
+                             total_students=total_students,
+                             student_improvements=student_improvements,
+                             avg_improvement=round(avg_improvement, 1),
+                             avg_current=round(avg_current, 1))
     elif user.role == 'student':
         # Get student's classes and overall average
         student_classes = user.classes
