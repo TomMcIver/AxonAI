@@ -50,9 +50,25 @@ class ProgressionAnalyzer:
         })
         
         # Calculate time-based progression (0 to 1 over 60 days)
+        # Use the OLDEST interaction for this student as the starting point
         from datetime import datetime, timedelta
-        start_date = datetime.now() - timedelta(days=60)
+        
+        # Get the first interaction for this student to establish baseline
+        first_interaction = AIInteraction.query.filter(
+            AIInteraction.user_id == interaction.user_id
+        ).order_by(AIInteraction.created_at).first()
+        
+        if not first_interaction:
+            # Fallback if no first interaction found
+            start_date = datetime.now() - timedelta(days=60)
+        else:
+            start_date = first_interaction.created_at
+        
+        # Calculate how many days have passed since the student's first interaction
         days_elapsed = (interaction.created_at - start_date).days
+        
+        # Progress ratio based on elapsed time (0 at start, approaching 1 over time)
+        # Use 60 days as the learning period
         progress_ratio = min(1.0, days_elapsed / 60)
         
         # Apply sigmoid learning curve for realistic progression
