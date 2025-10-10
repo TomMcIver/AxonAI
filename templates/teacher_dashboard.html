@@ -40,8 +40,8 @@
         <div class="col-12">
             <div class="card bg-dark border-light">
                 <div class="card-header bg-dark border-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Student Understanding Progression</h5>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <h5 class="mb-2 mb-md-0"><i class="fas fa-chart-line me-2"></i>Student Understanding Progression</h5>
                         <select id="classSelect" class="form-select form-select-sm bg-dark text-light border-light" style="width: auto;">
                             {% for class_obj in classes %}
                             <option value="{{ class_obj.id }}">{{ class_obj.name }}</option>
@@ -50,19 +50,103 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted small mb-3">
-                        <i class="fas fa-info-circle me-1"></i>AI-analyzed understanding progression based on student interactions
-                    </p>
-                    <div style="position: relative; height: 400px;">
-                        <canvas id="progressionChart"></canvas>
-                    </div>
-                    <div id="chartLoading" class="text-center py-5">
-                        <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
-                        <p class="mt-3 text-muted">Loading progression data...</p>
-                    </div>
-                    <div id="chartNoData" class="text-center py-5" style="display: none;">
-                        <i class="fas fa-chart-line fa-3x text-muted"></i>
-                        <p class="mt-3 text-muted">No interaction data available yet. Students need to use the AI tutor to generate progression data.</p>
+                    <!-- Tabs for different views -->
+                    <ul class="nav nav-tabs mb-3" id="progressionTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active bg-dark text-light" id="overall-tab" data-bs-toggle="tab" data-bs-target="#overall-pane" type="button" role="tab">
+                                <i class="fas fa-calculator me-1"></i>Overall Math
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link bg-dark text-light" id="algebra-tab" data-bs-toggle="tab" data-bs-target="#algebra-pane" type="button" role="tab">
+                                <i class="fas fa-square-root-alt me-1"></i>Algebra
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link bg-dark text-light" id="statistics-tab" data-bs-toggle="tab" data-bs-target="#statistics-pane" type="button" role="tab">
+                                <i class="fas fa-chart-bar me-1"></i>Statistics
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link bg-dark text-light" id="calculus-tab" data-bs-toggle="tab" data-bs-target="#calculus-pane" type="button" role="tab">
+                                <i class="fas fa-infinity me-1"></i>Calculus
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab content -->
+                    <div class="tab-content" id="progressionTabContent">
+                        <!-- Overall Math Tab -->
+                        <div class="tab-pane fade show active" id="overall-pane" role="tabpanel">
+                            <p class="text-muted small mb-3">
+                                <i class="fas fa-info-circle me-1"></i>Composite understanding across all math topics
+                            </p>
+                            <div style="position: relative; height: 400px;">
+                                <canvas id="overallChart"></canvas>
+                            </div>
+                            <div id="overallLoading" class="text-center py-5">
+                                <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+                                <p class="mt-3 text-muted">Loading overall progression...</p>
+                            </div>
+                            <div id="overallNoData" class="text-center py-5" style="display: none;">
+                                <i class="fas fa-chart-line fa-3x text-muted"></i>
+                                <p class="mt-3 text-muted">No interaction data available yet.</p>
+                            </div>
+                        </div>
+
+                        <!-- Algebra Tab -->
+                        <div class="tab-pane fade" id="algebra-pane" role="tabpanel">
+                            <p class="text-muted small mb-3">
+                                <i class="fas fa-info-circle me-1"></i>Understanding of algebraic concepts
+                            </p>
+                            <div style="position: relative; height: 400px;">
+                                <canvas id="algebraChart"></canvas>
+                            </div>
+                            <div id="algebraLoading" class="text-center py-5">
+                                <i class="fas fa-spinner fa-spin fa-3x text-success"></i>
+                                <p class="mt-3 text-muted">Loading algebra progression...</p>
+                            </div>
+                            <div id="algebraNoData" class="text-center py-5" style="display: none;">
+                                <i class="fas fa-chart-line fa-3x text-muted"></i>
+                                <p class="mt-3 text-muted">No algebra data available yet.</p>
+                            </div>
+                        </div>
+
+                        <!-- Statistics Tab -->
+                        <div class="tab-pane fade" id="statistics-pane" role="tabpanel">
+                            <p class="text-muted small mb-3">
+                                <i class="fas fa-info-circle me-1"></i>Understanding of statistical concepts
+                            </p>
+                            <div style="position: relative; height: 400px;">
+                                <canvas id="statisticsChart"></canvas>
+                            </div>
+                            <div id="statisticsLoading" class="text-center py-5">
+                                <i class="fas fa-spinner fa-spin fa-3x text-info"></i>
+                                <p class="mt-3 text-muted">Loading statistics progression...</p>
+                            </div>
+                            <div id="statisticsNoData" class="text-center py-5" style="display: none;">
+                                <i class="fas fa-chart-line fa-3x text-muted"></i>
+                                <p class="mt-3 text-muted">No statistics data available yet.</p>
+                            </div>
+                        </div>
+
+                        <!-- Calculus Tab -->
+                        <div class="tab-pane fade" id="calculus-pane" role="tabpanel">
+                            <p class="text-muted small mb-3">
+                                <i class="fas fa-info-circle me-1"></i>Understanding of calculus concepts
+                            </p>
+                            <div style="position: relative; height: 400px;">
+                                <canvas id="calculusChart"></canvas>
+                            </div>
+                            <div id="calculusLoading" class="text-center py-5">
+                                <i class="fas fa-spinner fa-spin fa-3x text-warning"></i>
+                                <p class="mt-3 text-muted">Loading calculus progression...</p>
+                            </div>
+                            <div id="calculusNoData" class="text-center py-5" style="display: none;">
+                                <i class="fas fa-chart-line fa-3x text-muted"></i>
+                                <p class="mt-3 text-muted">No calculus data available yet.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -163,18 +247,60 @@ function showLoading(event, link) {
     }
 }
 
-let progressionChart = null;
+let charts = {
+    overall: null,
+    algebra: null,
+    statistics: null,
+    calculus: null
+};
 
-function loadProgressionData(classId) {
-    const canvas = document.getElementById('progressionChart');
-    const loading = document.getElementById('chartLoading');
-    const noData = document.getElementById('chartNoData');
+function createChartOptions() {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { color: '#adb5bd', font: { size: 12 } }
+            },
+            title: { display: false },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                borderColor: '#007bff',
+                borderWidth: 1
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                title: { display: true, text: 'Understanding Score (%)', color: '#adb5bd' },
+                ticks: { color: '#6c757d' },
+                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            },
+            x: {
+                title: { display: true, text: 'Date', color: '#adb5bd' },
+                ticks: { color: '#6c757d', maxRotation: 45, minRotation: 45 },
+                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            }
+        }
+    };
+}
+
+function loadChart(chartType, classId, endpoint) {
+    const canvas = document.getElementById(`${chartType}Chart`);
+    const loading = document.getElementById(`${chartType}Loading`);
+    const noData = document.getElementById(`${chartType}NoData`);
     
     canvas.style.display = 'none';
     loading.style.display = 'block';
     noData.style.display = 'none';
     
-    fetch(`/progression-data/${classId}`)
+    fetch(endpoint)
         .then(response => response.json())
         .then(data => {
             loading.style.display = 'none';
@@ -186,80 +312,29 @@ function loadProgressionData(classId) {
             
             canvas.style.display = 'block';
             
-            if (progressionChart) {
-                progressionChart.destroy();
+            if (charts[chartType]) {
+                charts[chartType].destroy();
             }
             
             const ctx = canvas.getContext('2d');
-            progressionChart = new Chart(ctx, {
+            charts[chartType] = new Chart(ctx, {
                 type: 'line',
                 data: data,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                color: '#adb5bd',
-                                font: {
-                                    size: 12
-                                }
-                            }
-                        },
-                        title: {
-                            display: false
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleColor: '#fff',
-                            bodyColor: '#fff',
-                            borderColor: '#007bff',
-                            borderWidth: 1
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            title: {
-                                display: true,
-                                text: 'Understanding Score (%)',
-                                color: '#adb5bd'
-                            },
-                            ticks: {
-                                color: '#6c757d'
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Date',
-                                color: '#adb5bd'
-                            },
-                            ticks: {
-                                color: '#6c757d',
-                                maxRotation: 45,
-                                minRotation: 45
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        }
-                    }
-                }
+                options: createChartOptions()
             });
         })
         .catch(error => {
-            console.error('Error loading progression data:', error);
+            console.error(`Error loading ${chartType} data:`, error);
             loading.style.display = 'none';
             noData.style.display = 'block';
         });
+}
+
+function loadAllCharts(classId) {
+    loadChart('overall', classId, `/progression-data/${classId}/composite`);
+    loadChart('algebra', classId, `/progression-data/${classId}/algebra`);
+    loadChart('statistics', classId, `/progression-data/${classId}/statistics`);
+    loadChart('calculus', classId, `/progression-data/${classId}/calculus`);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -267,13 +342,27 @@ document.addEventListener('DOMContentLoaded', function() {
     if (classSelect) {
         const firstClassId = classSelect.value;
         if (firstClassId) {
-            loadProgressionData(firstClassId);
+            loadAllCharts(firstClassId);
         }
         
         classSelect.addEventListener('change', function() {
-            loadProgressionData(this.value);
+            loadAllCharts(this.value);
         });
     }
+    
+    // Load chart when tab is shown (for lazy loading)
+    const tabButtons = document.querySelectorAll('#progressionTabs button');
+    tabButtons.forEach(button => {
+        button.addEventListener('shown.bs.tab', function(e) {
+            const classId = classSelect ? classSelect.value : null;
+            if (classId) {
+                // Refresh only the active chart
+                const targetId = e.target.getAttribute('data-bs-target');
+                const chartType = targetId.replace('#', '').replace('-pane', '');
+                // Charts already loaded, just ensure they're visible
+            }
+        });
+    });
 });
 </script>
 {% endblock %}

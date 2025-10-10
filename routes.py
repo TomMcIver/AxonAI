@@ -154,6 +154,98 @@ def progression_data(class_id):
     
     return jsonify(chart_data)
 
+@app.route('/progression-data/<int:class_id>/<sub_topic>')
+@role_required(['teacher', 'admin'])
+def sub_topic_progression_data(class_id, sub_topic):
+    """API endpoint to get sub-topic specific progression data"""
+    from progression_analyzer import ProgressionAnalyzer
+    from flask import jsonify
+    
+    analyzer = ProgressionAnalyzer()
+    
+    # Get all students in this class
+    class_obj = Class.query.get_or_404(class_id)
+    students = class_obj.get_students()
+    student_ids = [student.id for student in students]
+    
+    # Get progression data for this sub-topic
+    progression_results = analyzer.get_multi_student_sub_topic_progression(student_ids, sub_topic, days=60)
+    
+    # Format for Chart.js
+    chart_data = {'labels': [], 'datasets': []}
+    
+    # Collect all unique dates
+    all_dates = set()
+    for student_data in progression_results.values():
+        for point in student_data['data']:
+            all_dates.add(point['date'])
+    
+    chart_data['labels'] = sorted(list(all_dates))
+    
+    # Color scheme for sub-topics
+    colors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6c757d']
+    for idx, (student_id, student_data) in enumerate(progression_results.items()):
+        score_map = {point['date']: point['understanding'] for point in student_data['data']}
+        scores = [score_map.get(date, None) for date in chart_data['labels']]
+        
+        chart_data['datasets'].append({
+            'label': student_data['name'],
+            'data': scores,
+            'borderColor': colors[idx % len(colors)],
+            'backgroundColor': colors[idx % len(colors)] + '20',
+            'fill': False,
+            'tension': 0.3,
+            'spanGaps': True
+        })
+    
+    return jsonify(chart_data)
+
+@app.route('/progression-data/<int:class_id>/composite')
+@role_required(['teacher', 'admin'])
+def composite_progression_data(class_id):
+    """API endpoint to get composite (overall Math) progression data"""
+    from progression_analyzer import ProgressionAnalyzer
+    from flask import jsonify
+    
+    analyzer = ProgressionAnalyzer()
+    
+    # Get all students in this class
+    class_obj = Class.query.get_or_404(class_id)
+    students = class_obj.get_students()
+    student_ids = [student.id for student in students]
+    
+    # Get composite progression data
+    progression_results = analyzer.get_multi_student_composite_progression(student_ids, days=60)
+    
+    # Format for Chart.js
+    chart_data = {'labels': [], 'datasets': []}
+    
+    # Collect all unique dates
+    all_dates = set()
+    for student_data in progression_results.values():
+        for point in student_data['data']:
+            all_dates.add(point['date'])
+    
+    chart_data['labels'] = sorted(list(all_dates))
+    
+    # Colors for composite view
+    colors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6c757d']
+    for idx, (student_id, student_data) in enumerate(progression_results.items()):
+        score_map = {point['date']: point['understanding'] for point in student_data['data']}
+        scores = [score_map.get(date, None) for date in chart_data['labels']]
+        
+        chart_data['datasets'].append({
+            'label': f"{student_data['name']} (Overall Math)",
+            'data': scores,
+            'borderColor': colors[idx % len(colors)],
+            'backgroundColor': colors[idx % len(colors)] + '20',
+            'fill': False,
+            'tension': 0.3,
+            'spanGaps': True
+        })
+    
+    return jsonify(chart_data)
+
 @app.route('/manage-users')
 @admin_required
 def manage_users():
