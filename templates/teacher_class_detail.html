@@ -85,7 +85,7 @@
                                                 {{ student.get_full_name() }}
                                             </a>
                                         </h6>
-                                        <small class="text-muted">{{ student.email }}</small>
+                                        <small class="text-muted">ID: {{ student.id }}</small>
                                         <div class="mt-1">
                                             {% set avg_grade = student.get_class_average(class_obj.id) %}
                                             {% if avg_grade %}

@@ -43,7 +43,6 @@ class StudentAIAnalyzer:
         # Basic student info
         basic_info = {
             'name': student.get_full_name(),
-            'email': student.email,
             'age': student.age,
             'learning_style': student.learning_style or 'Not specified',
             'learning_difficulty': student.learning_difficulty or 'None',

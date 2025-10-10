@@ -30,13 +30,6 @@
                         </div>
                     </div>
 
-                    <!-- Email -->
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email Address</label>
-                        <input type="email" class="form-control" id="email" name="email" 
-                               value="{{ user.email if user else '' }}" required>
-                    </div>
-
                     <!-- Role -->
                     <div class="mb-3">
                         <label class="form-label">Role</label>
@@ -54,23 +47,6 @@
                             </div>
                             {% endfor %}
                         </div>
-                    </div>
-
-                    <!-- Password -->
-                    <div class="mb-3">
-                        <label for="password" class="form-label">
-                            Password
-                            {% if user %}
-                                <small class="text-muted">(leave blank to keep current password)</small>
-                            {% endif %}
-                        </label>
-                        <input type="password" class="form-control" id="password" name="password" 
-                               {% if not user %}required{% endif %}>
-                        {% if not user %}
-                        <div class="form-text">
-                            Password must be at least 6 characters long.
-                        </div>
-                        {% endif %}
                     </div>
 
                     <!-- Student Profile Fields (only show for students) -->

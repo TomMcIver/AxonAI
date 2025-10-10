@@ -28,7 +28,6 @@
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Email</th>
                                 <th>Role</th>
                                 <th>Created</th>
                                 <th>Actions</th>
@@ -49,7 +48,6 @@
                                         {{ user.get_full_name() }}
                                     </div>
                                 </td>
-                                <td>{{ user.email }}</td>
                                 <td>
                                     {% if user.role == 'admin' %}
                                         <span class="badge bg-primary">{{ user.role.title() }}</span>

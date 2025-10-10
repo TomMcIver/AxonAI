@@ -29,27 +29,25 @@ def demo():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login page with user type selection"""
+    """Simple role-based login with just buttons"""
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
         user_type = request.form.get('user_type')
         
-        if not all([email, password, user_type]):
-            flash('Please fill in all fields.', 'danger')
+        if not user_type:
+            flash('Please select a role.', 'danger')
             return render_template('login.html')
         
-        # Find user by email and role
-        user = User.query.filter_by(email=email, role=user_type, is_active=True).first()
+        # Find first active user with this role
+        user = User.query.filter_by(role=user_type, is_active=True).first()
         
-        if user and check_password(password, user.password_hash):
+        if user:
             session['user_id'] = user.id
             session['user_role'] = user.role
             session['user_name'] = user.get_full_name()
             flash(f'Welcome back, {user.get_full_name()}!', 'success')
             return redirect(url_for('dashboard'))
         else:
-            flash('Invalid credentials or user type.', 'danger')
+            flash(f'No active {user_type} user found.', 'danger')
     
     return render_template('login.html')
 
@@ -125,26 +123,16 @@ def manage_users():
 def add_user():
     """Admin page to add new users"""
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
         role = request.form.get('role')
         first_name = request.form.get('first_name')
         last_name = request.form.get('last_name')
         
-        if not all([email, password, role, first_name, last_name]):
-            flash('Please fill in all fields.', 'danger')
-            return render_template('edit_user.html', user=None, roles=['admin', 'teacher', 'student'])
-        
-        # Check if user already exists
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            flash('A user with this email already exists.', 'danger')
+        if not all([role, first_name, last_name]):
+            flash('Please fill in all required fields.', 'danger')
             return render_template('edit_user.html', user=None, roles=['admin', 'teacher', 'student'])
         
         # Create new user
         user = User(
-            email=email,
-            password_hash=hash_password(password),
             role=role,
             first_name=first_name,
             last_name=last_name
@@ -211,31 +199,18 @@ def edit_user(user_id):
     user = User.query.get_or_404(user_id)
     
     if request.method == 'POST':
-        email = request.form.get('email')
         role = request.form.get('role')
         first_name = request.form.get('first_name')
         last_name = request.form.get('last_name')
-        password = request.form.get('password')
         
-        if not all([email, role, first_name, last_name]):
+        if not all([role, first_name, last_name]):
             flash('Please fill in all required fields.', 'danger')
             return render_template('edit_user.html', user=user, roles=['admin', 'teacher', 'student'])
         
-        # Check if email is taken by another user
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user and existing_user.id != user.id:
-            flash('A user with this email already exists.', 'danger')
-            return render_template('edit_user.html', user=user, roles=['admin', 'teacher', 'student'])
-        
         # Update user
-        user.email = email
         user.role = role
         user.first_name = first_name
         user.last_name = last_name
-        
-        # Update password if provided
-        if password:
-            user.password_hash = hash_password(password)
         
         # Update student profile fields if role is student
         if role == 'student':
@@ -865,7 +840,6 @@ def teacher_students():
                 'id': student.id,
                 'first_name': student.first_name,
                 'last_name': student.last_name,
-                'email': student.email,
                 'is_active': student.is_active,
                 'created_at': student.created_at,
                 'class_name': class_obj.name,

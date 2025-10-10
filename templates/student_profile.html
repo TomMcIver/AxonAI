@@ -25,8 +25,7 @@
                 </div>
                 <h5 class="card-title">{{ student.get_full_name() }}</h5>
                 <p class="card-text">
-                    <small class="text-muted">Student ID: {{ student.id }}</small><br>
-                    <small class="text-muted">{{ student.email }}</small>
+                    <small class="text-muted">Student ID: {{ student.id }}</small>
                 </p>
                 <div class="mb-3">
                     <span class="badge bg-{{ 'success' if student.is_active else 'danger' }} fs-6">

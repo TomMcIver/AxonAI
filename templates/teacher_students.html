@@ -26,7 +26,6 @@
                             <tr>
                                 <th>Student</th>
                                 <th>Class</th>
-                                <th>Email</th>
                                 <th>Average Grade</th>
                                 <th>Status</th>
                                 <th>Actions</th>
@@ -50,7 +49,6 @@
                                 <td>
                                     <span class="badge bg-primary">{{ student.class_name }}</span>
                                 </td>
-                                <td>{{ student.email }}</td>
                                 <td>
                                     {% set avg_grade = student.student_obj.get_average_grade() %}
                                     {% if avg_grade %}

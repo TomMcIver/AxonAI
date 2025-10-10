@@ -265,7 +265,7 @@ def build_export_tree(selections):
         users = User.query.all()
         tree['users'] = {
             'count': len(users),
-            'fields': ['id', 'email', 'role', 'first_name', 'last_name', 'age', 'learning_style', 'interests'],
+            'fields': ['id', 'role', 'first_name', 'last_name', 'age', 'learning_style', 'interests'],
             'related_data': {}
         }
         
@@ -344,7 +344,7 @@ def generate_csv_export(selections):
         writer = csv.writer(output)
         
         # Write header
-        header = ['User ID', 'Email', 'Role', 'First Name', 'Last Name', 'Age', 'Learning Style', 'Interests', 'Academic Goals']
+        header = ['User ID', 'Role', 'First Name', 'Last Name', 'Age', 'Learning Style', 'Interests', 'Academic Goals']
         
         if selections.get('include_chat_history'):
             header.extend(['Chat Messages Count', 'Recent Chat Topics'])
@@ -358,7 +358,6 @@ def generate_csv_export(selections):
         for user in users:
             row = [
                 user.id,
-                user.email,
                 user.role,
                 user.first_name,
                 user.last_name,
@@ -488,7 +487,6 @@ def get_students():
             student_data = {
                 'id': student.id,
                 'name': student.get_full_name(),
-                'email': student.email,
                 'age': student.age,
                 'learning_style': student.learning_style,
                 'interests': student.get_interests_list(),

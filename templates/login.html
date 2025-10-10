@@ -4,67 +4,46 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-5">
         <div class="card shadow">
-            <div class="card-header text-center bg-primary text-white">
+            <div class="card-header text-center bg-dark text-white">
                 <h3><i class="fas fa-graduation-cap me-2"></i>TMC Learning</h3>
+                <p class="mb-0 small">Select your role to login</p>
             </div>
-            <div class="card-body">
-                <form method="POST">
-                    <!-- User Type Selection -->
-                    <div class="mb-4">
-                        <label class="form-label">I am a:</label>
-                        <div class="row g-2">
-                            <div class="col-12 col-sm-4">
-                                <input type="radio" class="btn-check" name="user_type" id="admin" value="admin" required>
-                                <label class="btn btn-outline-primary w-100 py-2" for="admin">
-                                    <i class="fas fa-user-shield d-block mb-1"></i>
-                                    Admin
-                                </label>
-                            </div>
-                            <div class="col-12 col-sm-4">
-                                <input type="radio" class="btn-check" name="user_type" id="teacher" value="teacher" required>
-                                <label class="btn btn-outline-success w-100 py-2" for="teacher">
-                                    <i class="fas fa-chalkboard-teacher d-block mb-1"></i>
-                                    Teacher
-                                </label>
-                            </div>
-                            <div class="col-12 col-sm-4">
-                                <input type="radio" class="btn-check" name="user_type" id="student" value="student" required>
-                                <label class="btn btn-outline-info w-100 py-2" for="student">
-                                    <i class="fas fa-user-graduate d-block mb-1"></i>
-                                    Student
-                                </label>
-                            </div>
-                        </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <!-- Admin Login Button -->
+                    <div class="col-12">
+                        <form method="POST" style="display: inline;">
+                            <input type="hidden" name="user_type" value="admin">
+                            <button type="submit" class="btn btn-primary w-100 py-3" style="border: 2px solid #000;">
+                                <i class="fas fa-user-shield fa-2x d-block mb-2"></i>
+                                <span class="fs-5">Admin Login</span>
+                            </button>
+                        </form>
                     </div>
 
-                    <!-- Email Input -->
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email Address</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
+                    <!-- Teacher Login Button -->
+                    <div class="col-12">
+                        <form method="POST" style="display: inline;">
+                            <input type="hidden" name="user_type" value="teacher">
+                            <button type="submit" class="btn btn-success w-100 py-3" style="border: 2px solid #000;">
+                                <i class="fas fa-chalkboard-teacher fa-2x d-block mb-2"></i>
+                                <span class="fs-5">Teacher Login</span>
+                            </button>
+                        </form>
                     </div>
 
-                    <!-- Password Input -->
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                    <!-- Student Login Button -->
+                    <div class="col-12">
+                        <form method="POST" style="display: inline;">
+                            <input type="hidden" name="user_type" value="student">
+                            <button type="submit" class="btn btn-info w-100 py-3" style="border: 2px solid #000;">
+                                <i class="fas fa-user-graduate fa-2x d-block mb-2"></i>
+                                <span class="fs-5">Student Login</span>
+                            </button>
+                        </form>
                     </div>
-
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-sign-in-alt me-1"></i>Login
-                    </button>
-                </form>
-
-                <!-- Demo Credentials -->
-                <div class="mt-4">
-                    <h6 class="text-muted">Demo Credentials:</h6>
-                    <small class="text-muted">
-                        <strong>Admin:</strong> admin@admin.com / admin123<br>
-                        <strong>Teacher:</strong> teacher@teacher.com / teacher123<br>
-                        <strong>Student:</strong> student@student.com / student123
-                    </small>
                 </div>
             </div>
         </div>

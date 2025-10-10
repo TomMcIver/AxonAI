@@ -10,8 +10,6 @@ class_users = db.Table('class_users',
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), nullable=False)  # admin, teacher, student
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
@@ -45,7 +43,7 @@ class User(db.Model):
     chat_messages = db.relationship('ChatMessage', back_populates='user')
 
     def __repr__(self):
-        return f'<User {self.email}>'
+        return f'<User {self.get_full_name()} - {self.role}>'
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
@@ -145,7 +143,6 @@ class User(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'email': self.email,
             'role': self.role,
             'first_name': self.first_name,
             'last_name': self.last_name,
