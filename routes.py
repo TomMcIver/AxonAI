@@ -725,7 +725,7 @@ def student_class_detail(class_id):
         flash('Access denied.', 'danger')
         return redirect(url_for('student_classes'))
     
-    assignments = Assignment.query.filter_by(class_id=class_id, is_active=True).all()
+    assignments = Assignment.query.filter_by(class_id=class_id, is_active=True).limit(3).all()
     
     # Get submissions and grades for this student
     assignment_data = []

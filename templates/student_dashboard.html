@@ -55,22 +55,23 @@
         {% if classes %}
             {% for class_obj in classes %}
             <div class="col-md-6 col-lg-4 mb-3">
-                <a href="{{ url_for('student_class_detail', class_id=class_obj.id) }}" class="text-decoration-none">
-                    <div class="card bg-dark border-light h-100 class-card">
+                <a href="{{ url_for('student_class_detail', class_id=class_obj.id) }}" class="text-decoration-none" onclick="showLoading(event, this)">
+                    <div class="card bg-dark border-light h-100 class-card" data-class-id="{{ class_obj.id }}">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div>
                                     {% if class_obj.subject == 'mathematics' %}
-                                    <i class="fas fa-calculator fa-2x text-primary"></i>
+                                    <i class="fas fa-calculator fa-2x text-primary class-icon"></i>
                                     {% elif class_obj.subject == 'science' %}
-                                    <i class="fas fa-flask fa-2x text-success"></i>
+                                    <i class="fas fa-flask fa-2x text-success class-icon"></i>
                                     {% elif class_obj.subject == 'english' %}
-                                    <i class="fas fa-book fa-2x text-info"></i>
+                                    <i class="fas fa-book fa-2x text-info class-icon"></i>
                                     {% elif class_obj.subject == 'history' %}
-                                    <i class="fas fa-landmark fa-2x text-warning"></i>
+                                    <i class="fas fa-landmark fa-2x text-warning class-icon"></i>
                                     {% else %}
-                                    <i class="fas fa-graduation-cap fa-2x text-secondary"></i>
+                                    <i class="fas fa-graduation-cap fa-2x text-secondary class-icon"></i>
                                     {% endif %}
+                                    <i class="fas fa-spinner fa-spin fa-2x text-primary class-loading" style="display: none;"></i>
                                 </div>
                                 {% set class_avg = user.get_class_average(class_obj.id) %}
                                 {% if class_avg %}
@@ -109,6 +110,7 @@
 .class-card {
     transition: all 0.3s ease;
     cursor: pointer;
+    position: relative;
 }
 
 .class-card:hover {
@@ -116,5 +118,24 @@
     border-color: var(--bs-primary) !important;
     box-shadow: 0 10px 30px rgba(0, 123, 255, 0.3);
 }
+
+.class-card.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
 </style>
+
+<script>
+function showLoading(event, link) {
+    const card = link.querySelector('.class-card');
+    const icon = card.querySelector('.class-icon');
+    const loading = card.querySelector('.class-loading');
+    
+    if (icon && loading) {
+        icon.style.display = 'none';
+        loading.style.display = 'inline-block';
+        card.classList.add('loading');
+    }
+}
+</script>
 {% endblock %}
