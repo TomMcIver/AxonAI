@@ -42,6 +42,35 @@ Design preferences: Grayscale color scheme, flat 2D design with depth (like 2D g
 - **Strategy Experimentation**: 10 teaching methods tracked for success.
 - **Teacher AI Assistant**: Summarizes progress, suggests interventions.
 - **Advanced Export System**: Selective data export with relationship visualization and CSV generation.
+- **Multi-Topic Progression Tracking**: Advanced visualization system showing student understanding across multiple math topics (Algebra, Statistics, Calculus) with adaptive composite scoring that maintains context when switching topics.
+
+### Multi-Topic Progression System (October 2025)
+
+**Purpose**: Demonstrate adaptive AI capabilities by tracking student understanding across multiple math sub-topics while maintaining overall context.
+
+**Architecture**:
+- **Sub-Topic Tracking**: Each AIInteraction records which sub-topic (algebra/statistics/calculus) was studied
+- **Adaptive Composite Scoring**: Uses weighted algorithm to prevent understanding drops when switching topics
+  - New topics (<10 interactions): Gradual weight increase (10% per interaction)
+  - Established topics (10+ interactions): Full weight (100%)
+  - Formula: `composite_score = Σ(topic_mastery × weight) / Σ(weight)`
+- **Independent Progression Views**: Separate tracking for each sub-topic plus overall Math understanding
+
+**Implementation**:
+- **Database**: Added `sub_topic` field to AIInteraction model
+- **Backend**: ProgressionAnalyzer methods for sub-topic and composite calculations
+- **API Endpoints**:
+  - `/progression-data/<class_id>/<sub_topic>`: Topic-specific progression
+  - `/progression-data/<class_id>/composite`: Overall Math progression
+- **Frontend**: Teacher dashboard with tabbed interface (Overall Math, Algebra, Statistics, Calculus)
+- **Visualization**: Chart.js line charts with dark theme, showing 60-day progression
+
+**Example Scenario**:
+Student has 90% mastery in Algebra (50 interactions) and starts Statistics with 60% (5 interactions):
+- **Without adaptive weighting**: Composite = (90+60)/2 = 75% (immediate 15% drop!)
+- **With adaptive weighting**: Composite = (90×1.0 + 60×0.5)/(1.0+0.5) = 80% (maintains context)
+
+**Test Data**: 999 AI interactions generated across 3 students over 60 days, distributed: Algebra (405), Statistics (317), Calculus (277)
 
 ## External Dependencies
 
