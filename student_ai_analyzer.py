@@ -225,7 +225,7 @@ class StudentAIAnalyzer:
         
         effectiveness = []
         for strategy, total, successes, engagement in strategies:
-            success_rate = (successes / total * 100) if total > 0 else 0
+            success_rate = ((successes or 0) / total * 100) if total > 0 else 0
             effectiveness.append({
                 'strategy': strategy.replace('_', ' ').title(),
                 'total_uses': total,
