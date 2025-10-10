@@ -113,7 +113,8 @@ def progression_data(class_id):
     
     # Get all students in this class
     class_obj = Class.query.get_or_404(class_id)
-    student_ids = [enrollment.user_id for enrollment in class_obj.enrollments]
+    students = class_obj.get_students()
+    student_ids = [student.id for student in students]
     
     # Get progression data for all students
     progression_results = analyzer.get_multi_student_progression(student_ids, days=30)

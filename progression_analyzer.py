@@ -29,8 +29,8 @@ class ProgressionAnalyzer:
         
         # Message length as proxy for depth of understanding
         # Longer, more detailed questions often indicate deeper thinking
-        if interaction.chat_message and interaction.chat_message.message:
-            msg_length = len(interaction.chat_message.message)
+        if interaction.prompt:
+            msg_length = len(interaction.prompt)
             # 50-200 chars = normal, 200+ = detailed (bonus points)
             if msg_length > 100:
                 base_score += min(10, (msg_length - 100) / 20)
