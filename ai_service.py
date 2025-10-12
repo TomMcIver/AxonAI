@@ -157,12 +157,14 @@ class AIService:
         
         if student.learning_style:
             style = student.learning_style.lower()
-            if 'visual' in style:
-                accommodations.append("Use visual examples and descriptions")
-            elif 'auditory' in style:
-                accommodations.append("Use clear explanations with examples")
+            # Note: Don't claim visual learning without image support
+            if 'auditory' in style:
+                accommodations.append("Use clear verbal explanations with spoken examples")
             elif 'kinesthetic' in style:
                 accommodations.append("Suggest hands-on activities and practical examples")
+            elif 'reading' in style or 'writing' in style:
+                accommodations.append("Provide detailed written explanations and examples")
+            # Skip visual learning claims - no image support in current system
         
         return accommodations
     
@@ -844,30 +846,83 @@ Goals: {student_info.get('academic_goals', 'General improvement')[:100]}..."""
             print(f"Error generating mini-test: {e}")
             return None
     
-    def _generate_test_questions(self, subject, difficulty, test_type):
-        """Generate test questions based on parameters"""
-        # This would normally use AI to generate questions
-        # For now, return sample questions
-        questions = []
-        
+    def _generate_test_questions(self, subject, difficulty, test_type, num_questions=3):
+        """Generate test questions using AI based on parameters"""
+        try:
+            if self.provider != "openai":
+                # Fallback for non-OpenAI providers
+                return self._generate_fallback_questions(subject, difficulty, test_type)
+            
+            # Use AI to generate questions
+            prompt = f"""Generate {num_questions} {difficulty} level {subject} questions for a {test_type}.
+
+Requirements:
+- Create clear, educational questions appropriate for {difficulty} difficulty
+- For multiple choice: provide 4 options with one correct answer
+- For open-ended: create thought-provoking questions
+- Focus on testing understanding, not memorization
+
+Return ONLY a JSON array in this exact format:
+[
+  {{
+    "question": "Question text here",
+    "type": "multiple_choice",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correct": "Option A",
+    "explanation": "Brief explanation"
+  }}
+]"""
+
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are an expert educational assessment creator. Generate only valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=800
+            )
+            
+            # Parse AI response as JSON
+            import json
+            questions_text = response.choices[0].message.content.strip()
+            
+            # Extract JSON if wrapped in markdown code blocks
+            if "```json" in questions_text:
+                questions_text = questions_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in questions_text:
+                questions_text = questions_text.split("```")[1].split("```")[0].strip()
+            
+            questions = json.loads(questions_text)
+            return questions
+            
+        except Exception as e:
+            print(f"Error generating AI questions: {e}")
+            # Fallback to simple questions
+            return self._generate_fallback_questions(subject, difficulty, test_type)
+    
+    def _generate_fallback_questions(self, subject, difficulty, test_type):
+        """Fallback questions when AI generation fails"""
         if test_type == "diagnostic":
-            questions.append({
-                "question": f"What is your current understanding of {subject}?",
-                "type": "open_ended"
-            })
-            questions.append({
-                "question": f"What topics in {subject} do you find most challenging?",
-                "type": "open_ended"
-            })
-        elif test_type == "quiz":
-            questions.append({
-                "question": f"Sample {subject} question for {difficulty} level",
-                "type": "multiple_choice",
-                "options": ["A", "B", "C", "D"],
-                "correct": "A"
-            })
-        
-        return questions
+            return [
+                {
+                    "question": f"Describe your current understanding of {subject}",
+                    "type": "open_ended"
+                },
+                {
+                    "question": f"What topics in {subject} do you find most challenging?",
+                    "type": "open_ended"
+                }
+            ]
+        else:
+            return [
+                {
+                    "question": f"This is a {difficulty} {subject} assessment question",
+                    "type": "multiple_choice",
+                    "options": ["Answer A", "Answer B", "Answer C", "Answer D"],
+                    "correct": "Answer A"
+                }
+            ]
     
     def get_predicted_pass_rate(self, user_id, class_id):
         """Get AI-predicted pass rate for a student in a class"""

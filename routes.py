@@ -1286,3 +1286,16 @@ def teacher_ai_chat(class_id):
                          class_obj=class_obj,
                          chat_history=chat_history,
                          students=student_summaries)
+
+@app.route('/ai-verification')
+@login_required
+@role_required(['teacher', 'admin'])
+def ai_verification():
+    """AI system verification page - shows what's real AI vs simulated"""
+    # Get recent AI interactions to prove system is working
+    recent_interactions = AIInteraction.query.order_by(
+        AIInteraction.created_at.desc()
+    ).limit(20).all()
+    
+    return render_template('ai_verification.html',
+                         recent_interactions=recent_interactions)
