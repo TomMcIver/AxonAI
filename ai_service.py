@@ -849,8 +849,9 @@ Goals: {student_info.get('academic_goals', 'General improvement')[:100]}..."""
     def _generate_test_questions(self, subject, difficulty, test_type, num_questions=3):
         """Generate test questions using AI based on parameters"""
         try:
-            if self.provider != "openai":
-                # Fallback for non-OpenAI providers
+            # Check if OpenAI client is available
+            if self.provider != "openai" or not hasattr(self, 'client'):
+                # Fallback for non-OpenAI providers or when client is not initialized
                 return self._generate_fallback_questions(subject, difficulty, test_type)
             
             # Use AI to generate questions
