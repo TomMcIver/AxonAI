@@ -643,8 +643,12 @@ def generate_quiz():
         
         subject_questions = QUESTION_BANK[subject]
         all_questions = []
-        for topic_questions in subject_questions.values():
-            all_questions.extend(topic_questions)
+        # Track which topic each question belongs to
+        for topic, topic_questions in subject_questions.items():
+            for q in topic_questions:
+                q_with_topic = q.copy()
+                q_with_topic['topic'] = topic
+                all_questions.append(q_with_topic)
         
         num_questions = min(num_questions, len(all_questions))
         selected_questions = random.sample(all_questions, num_questions)
@@ -720,24 +724,38 @@ def submit_quiz():
         
         correct = 0
         results = []
+        # Track per-topic results
+        topic_results = {}  # {topic: {'correct': 0, 'total': 0}}
+        
         for i, question in enumerate(questions):
             student_answer = answers[i] if i < len(answers) else ''
             is_correct = student_answer.lower().strip() == question['a'].lower().strip()
             if is_correct:
                 correct += 1
+            
+            # Track by topic if available
+            topic = question.get('topic', 'general')
+            if topic not in topic_results:
+                topic_results[topic] = {'correct': 0, 'total': 0}
+            topic_results[topic]['total'] += 1
+            if is_correct:
+                topic_results[topic]['correct'] += 1
+            
             results.append({
                 'question': question['q'],
                 'correct_answer': question['a'],
                 'student_answer': student_answer,
-                'is_correct': is_correct
+                'is_correct': is_correct,
+                'topic': topic
             })
         
         score = (correct / len(questions)) * 100 if questions else 0
         
-        skills_tested = json.loads(mini_test.skills_tested)
+        # Calculate per-topic scores (only for topics that were tested)
         skill_scores = {}
-        for skill in skills_tested:
-            skill_scores[skill] = score
+        for topic, data in topic_results.items():
+            if data['total'] > 0:
+                skill_scores[topic] = (data['correct'] / data['total']) * 100
         
         response = MiniTestResponse(
             test_id=quiz_id,
