@@ -281,6 +281,20 @@ function startQuiz() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Quiz...';
     
+    document.getElementById('quiz-content').innerHTML = `
+        <div class="text-center py-5">
+            <i class="fas fa-spinner fa-spin fa-3x mb-3"></i>
+            <p>Loading quiz...</p>
+        </div>
+    `;
+    document.getElementById('quiz-footer').innerHTML = `
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-success" id="submit-quiz-btn" onclick="submitQuiz()">
+            <i class="fas fa-check me-2"></i>Submit Answers
+        </button>
+    `;
+    document.getElementById('quiz-footer').style.display = 'none';
+    
     const modal = new bootstrap.Modal(document.getElementById('quizModal'));
     modal.show();
     
