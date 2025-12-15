@@ -239,6 +239,34 @@
                     </div>
                 </div>
 
+                <!-- Mastery Panel -->
+                <div class="card mb-4" id="masteryPanel">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Your Mastery</h6>
+                    </div>
+                    <div class="card-body" id="masteryContent">
+                        <div class="text-muted">Loading mastery...</div>
+                    </div>
+                </div>
+
+                <!-- Quick Check Panel (hidden by default) -->
+                <div class="card mb-4" id="quickCheckPanel" style="display: none; border: 2px solid #ffc107;">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Check!</h6>
+                    </div>
+                    <div class="card-body">
+                        <p id="quickCheckQuestion" class="mb-3"></p>
+                        <div class="input-group mb-2">
+                            <input type="text" id="quickCheckAnswer" class="form-control" placeholder="Your answer...">
+                            <button class="btn btn-warning" onclick="submitQuickCheck()">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </div>
+                        <div id="quickCheckFeedback" class="mt-2" style="display: none;"></div>
+                        <small class="text-muted">Skill: <span id="quickCheckSkill"></span></small>
+                    </div>
+                </div>
+
                 <!-- Available Materials -->
                 {% if content_files %}
                 <div class="card">
@@ -264,6 +292,7 @@
     
     <script>
         const classId = {{ class_obj.id }};
+        let currentQuickCheck = null;
         
         function sendMessage(event) {
             event.preventDefault();
@@ -280,8 +309,8 @@
             messageInput.value = '';
             showTypingIndicator();
             
-            // Send message to API
-            fetch('/api/chat/send', {
+            // Send message to new tutor API
+            fetch('/api/tutor/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -300,11 +329,16 @@
                     const bubble = document.getElementById(aiMessageInfo.bubbleId);
                     
                     // Type out the response with animation
-                    typeMessage(data.response, bubble);
+                    typeMessage(data.reply, bubble);
                     
                     // Update token counter if provided
                     if (data.tokens_used) {
                         updateTokenCounter(data.tokens_used);
+                    }
+                    
+                    // Show quick check if needed
+                    if (data.needs_check && data.check_question) {
+                        showQuickCheck(data.check_question, data.skill_tag);
                     }
                 } else {
                     addMessageToChat('Sorry, I encountered an error. Please try again.', 'ai');
@@ -316,6 +350,122 @@
                 console.error('Error:', error);
             });
         }
+        
+        function showQuickCheck(question, skillTag) {
+            currentQuickCheck = { question, skillTag };
+            document.getElementById('quickCheckQuestion').textContent = question;
+            document.getElementById('quickCheckSkill').textContent = skillTag;
+            document.getElementById('quickCheckAnswer').value = '';
+            document.getElementById('quickCheckFeedback').style.display = 'none';
+            document.getElementById('quickCheckPanel').style.display = 'block';
+            document.getElementById('quickCheckAnswer').focus();
+        }
+        
+        function submitQuickCheck() {
+            if (!currentQuickCheck) return;
+            
+            const answer = document.getElementById('quickCheckAnswer').value.trim();
+            if (!answer) return;
+            
+            const submitBtn = document.querySelector('#quickCheckPanel button');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            fetch('/api/tutor/check_submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    class_id: classId,
+                    skill_tag: currentQuickCheck.skillTag,
+                    question: currentQuickCheck.question,
+                    answer: answer
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check"></i>';
+                
+                if (data.success) {
+                    const feedbackDiv = document.getElementById('quickCheckFeedback');
+                    feedbackDiv.className = 'mt-2 alert ' + (data.correct ? 'alert-success' : 'alert-warning');
+                    feedbackDiv.innerHTML = '<i class="fas fa-' + (data.correct ? 'check-circle' : 'times-circle') + ' me-2"></i>' + data.feedback;
+                    feedbackDiv.style.display = 'block';
+                    
+                    // Update mastery panel
+                    if (data.mastery_update) {
+                        updateMasteryDisplay(data.mastery_update);
+                    }
+                    
+                    // Hide panel after a delay
+                    setTimeout(() => {
+                        document.getElementById('quickCheckPanel').style.display = 'none';
+                        currentQuickCheck = null;
+                    }, 3000);
+                }
+            })
+            .catch(error => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check"></i>';
+                console.error('Error:', error);
+            });
+        }
+        
+        function loadMastery() {
+            fetch('/api/student/mastery')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.mastery) {
+                        updateMasteryDisplay(data.mastery);
+                    }
+                })
+                .catch(error => console.log('Mastery fetch failed:', error));
+        }
+        
+        function updateMasteryDisplay(mastery) {
+            const masteryContent = document.getElementById('masteryContent');
+            if (Object.keys(mastery).length === 0) {
+                masteryContent.innerHTML = '<div class="text-muted">No mastery data yet. Take a quiz or answer quick checks!</div>';
+                return;
+            }
+            
+            let html = '';
+            for (const [skill, score] of Object.entries(mastery)) {
+                const colorClass = score >= 70 ? 'bg-success' : score >= 50 ? 'bg-warning' : 'bg-danger';
+                html += `
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>${skill}</small>
+                            <small>${Math.round(score)}%</small>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar ${colorClass}" style="width: ${score}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            masteryContent.innerHTML = html;
+        }
+        
+        // Handle enter key on quick check input and initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const quickCheckInput = document.getElementById('quickCheckAnswer');
+            if (quickCheckInput) {
+                quickCheckInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        submitQuickCheck();
+                    }
+                });
+            }
+            loadMastery();
+            
+            // Auto-scroll chat container
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        });
         
         function addMessageToChat(message, sender, streaming = false) {
             const chatContainer = document.getElementById('chatContainer');
@@ -482,11 +632,6 @@
             }
         }
 
-        // Auto-scroll chat container
-        document.addEventListener('DOMContentLoaded', function() {
-            const chatContainer = document.getElementById('chatContainer');
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        });
     </script>
 </body>
 </html>

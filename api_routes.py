@@ -841,3 +841,283 @@ def get_student_mastery():
     except Exception as e:
         app.logger.error(f'Mastery fetch error: {e}')
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# Session-based message counter for quick checks
+chat_message_counters = {}
+
+# Quick check questions by skill
+QUICK_CHECK_QUESTIONS = {
+    'algebra': [
+        {'q': 'Quick: What is 2x if x = 5?', 'a': '10'},
+        {'q': 'Quick: Solve for x: x + 7 = 12', 'a': '5'},
+        {'q': 'Quick: If 3x = 15, what is x?', 'a': '5'},
+    ],
+    'geometry': [
+        {'q': 'Quick: How many sides does a triangle have?', 'a': '3'},
+        {'q': 'Quick: What is the perimeter of a square with side 5?', 'a': '20'},
+        {'q': 'Quick: Area of rectangle 4x3?', 'a': '12'},
+    ],
+    'arithmetic': [
+        {'q': 'Quick: What is 7 + 8?', 'a': '15'},
+        {'q': 'Quick: What is 12 x 5?', 'a': '60'},
+        {'q': 'Quick: What is 100 - 45?', 'a': '55'},
+    ],
+    'general': [
+        {'q': 'Quick: What is 10% of 50?', 'a': '5'},
+        {'q': 'Quick: What is 5 squared?', 'a': '25'},
+        {'q': 'Quick: What is the square root of 16?', 'a': '4'},
+    ],
+    'biology': [
+        {'q': 'Quick: What organelle produces energy?', 'a': 'mitochondria'},
+        {'q': 'Quick: What process do plants use for food?', 'a': 'photosynthesis'},
+    ],
+    'chemistry': [
+        {'q': 'Quick: What is H2O?', 'a': 'water'},
+        {'q': 'Quick: Symbol for Sodium?', 'a': 'Na'},
+    ],
+    'physics': [
+        {'q': 'Quick: Unit of force?', 'a': 'Newton'},
+        {'q': 'Quick: What falls at 9.8 m/s²?', 'a': 'gravity'},
+    ],
+    'grammar': [
+        {'q': 'Quick: Past tense of "run"?', 'a': 'ran'},
+        {'q': 'Quick: Plural of "child"?', 'a': 'children'},
+    ],
+    'literature': [
+        {'q': 'Quick: The main character is called the?', 'a': 'protagonist'},
+    ],
+    'ancient': [
+        {'q': 'Quick: What was Egypt\'s writing system?', 'a': 'hieroglyphics'},
+    ],
+    'modern': [
+        {'q': 'Quick: What year did WWI start?', 'a': '1914'},
+    ]
+}
+
+@app.route('/api/tutor/chat', methods=['POST'])
+@login_required
+def tutor_chat():
+    """Enhanced chat endpoint with quick check functionality"""
+    try:
+        data = request.get_json()
+        message = data.get('message', '').strip()
+        class_id = data.get('class_id')
+        
+        if not message or not class_id:
+            return jsonify({'success': False, 'error': 'Message and class_id are required'}), 400
+        
+        user_id = session.get('user_id')
+        user = User.query.get(user_id)
+        
+        if not user or user.role != 'student':
+            return jsonify({'success': False, 'error': 'Only students can use tutor chat'}), 403
+        
+        class_obj = Class.query.get(class_id)
+        if not class_obj or user not in class_obj.users:
+            return jsonify({'success': False, 'error': 'Not enrolled in this class'}), 403
+        
+        response = ai_service.generate_response(message, user_id, class_id)
+        
+        from datetime import date
+        today = date.today()
+        usage = TokenUsage.query.filter_by(user_id=user_id, date=today).first()
+        tokens_used = usage.tokens_used if usage else 0
+        
+        counter_key = f"{user_id}_{class_id}"
+        if counter_key not in chat_message_counters:
+            chat_message_counters[counter_key] = 0
+        chat_message_counters[counter_key] += 1
+        message_count = chat_message_counters[counter_key]
+        
+        needs_check = False
+        check_question = None
+        skill_tag = None
+        
+        profile = OptimizedProfile.query.filter_by(user_id=user_id).first()
+        mastery = {}
+        if profile and profile.mastery_scores:
+            mastery = json.loads(profile.mastery_scores)
+        
+        subject = (class_obj.subject or 'math').lower()
+        subject_aliases = {
+            'mathematics': 'math',
+            'maths': 'math',
+        }
+        subject = subject_aliases.get(subject, subject)
+        
+        subject_skills = {
+            'math': ['algebra', 'geometry', 'arithmetic', 'general'],
+            'science': ['biology', 'chemistry', 'physics', 'general'],
+            'english': ['grammar', 'literature', 'general'],
+            'history': ['ancient', 'modern', 'general']
+        }
+        available_skills = subject_skills.get(subject, ['general'])
+        
+        weak_skill = None
+        weak_score = 100
+        for skill in available_skills:
+            score = mastery.get(skill, 50)
+            if score < weak_score:
+                weak_score = score
+                weak_skill = skill
+        
+        if weak_skill and weak_score < 70:
+            needs_check = True
+            skill_tag = weak_skill
+        elif message_count % 3 == 0:
+            needs_check = True
+            skill_tag = random.choice(available_skills)
+        
+        if needs_check and skill_tag:
+            skill_questions = QUICK_CHECK_QUESTIONS.get(skill_tag, QUICK_CHECK_QUESTIONS.get('general', []))
+            if skill_questions:
+                check_question = random.choice(skill_questions)['q']
+        
+        return jsonify({
+            'success': True,
+            'reply': response,
+            'tokens_used': tokens_used,
+            'needs_check': needs_check,
+            'check_question': check_question,
+            'skill_tag': skill_tag,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        app.logger.error(f'Tutor chat error: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/tutor/check_submit', methods=['POST'])
+@login_required
+def tutor_check_submit():
+    """Submit quick check answer and update mastery"""
+    try:
+        data = request.get_json()
+        class_id = data.get('class_id')
+        skill_tag = data.get('skill_tag')
+        question = data.get('question')
+        answer = data.get('answer', '').strip()
+        
+        if not all([class_id, skill_tag, question, answer]):
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+        
+        user_id = session.get('user_id')
+        user = User.query.get(user_id)
+        
+        if not user or user.role != 'student':
+            return jsonify({'success': False, 'error': 'Only students can submit checks'}), 403
+        
+        class_obj = Class.query.get(class_id)
+        if not class_obj or user not in class_obj.users:
+            return jsonify({'success': False, 'error': 'Not enrolled in this class'}), 403
+        
+        correct = False
+        feedback = ""
+        
+        skill_questions = QUICK_CHECK_QUESTIONS.get(skill_tag, [])
+        expected_answer = None
+        for q in skill_questions:
+            if q['q'] == question:
+                expected_answer = q['a']
+                break
+        
+        if expected_answer:
+            answer_normalized = answer.lower().strip()
+            expected_normalized = expected_answer.lower().strip()
+            correct = (answer_normalized == expected_normalized or 
+                      answer_normalized in expected_normalized or 
+                      expected_normalized in answer_normalized)
+            
+            if correct:
+                feedback = f"Correct! Great job on {skill_tag}."
+            else:
+                feedback = f"Not quite. The answer was '{expected_answer}'. Keep practicing {skill_tag}!"
+        else:
+            try:
+                from openai import OpenAI
+                import os
+                api_key = os.environ.get("OPENAI_API_KEY")
+                if api_key and api_key != "demo-key":
+                    client = OpenAI(api_key=api_key)
+                    grading_response = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": "You are a grading assistant. Return ONLY valid JSON with two fields: 'correct' (boolean) and 'feedback' (string). Be lenient with spelling but strict with concepts."},
+                            {"role": "user", "content": f"Question: {question}\nStudent answer: {answer}\nExpected skill: {skill_tag}\n\nGrade this answer."}
+                        ],
+                        temperature=0.3,
+                        max_tokens=150
+                    )
+                    
+                    result_text = grading_response.choices[0].message.content.strip()
+                    if result_text.startswith('```'):
+                        result_text = result_text.split('\n', 1)[1].rsplit('```', 1)[0]
+                    
+                    result = json.loads(result_text)
+                    correct = result.get('correct', False)
+                    feedback = result.get('feedback', 'Answer evaluated.')
+                else:
+                    correct = len(answer) > 0
+                    feedback = "Answer recorded. Keep practicing!"
+            except Exception as grading_error:
+                app.logger.error(f'GPT grading error: {grading_error}')
+                correct = len(answer) > 0
+                feedback = "Answer recorded. Keep practicing!"
+        
+        profile = OptimizedProfile.query.filter_by(user_id=user_id).first()
+        if not profile:
+            profile = OptimizedProfile(user_id=user_id)
+            db.session.add(profile)
+        
+        existing_mastery = {}
+        if profile.mastery_scores:
+            existing_mastery = json.loads(profile.mastery_scores)
+        
+        new_score = 100 if correct else 0
+        if skill_tag in existing_mastery:
+            existing_mastery[skill_tag] = existing_mastery[skill_tag] * 0.8 + new_score * 0.2
+        else:
+            existing_mastery[skill_tag] = new_score * 0.5 + 50
+        
+        profile.mastery_scores = json.dumps(existing_mastery)
+        profile.last_updated = datetime.utcnow()
+        
+        ai_model = class_obj.ai_model
+        if not ai_model:
+            ai_model = AIModel.query.first()
+        
+        if ai_model:
+            from models import AIInteraction
+            interaction = AIInteraction(
+                user_id=user_id,
+                ai_model_id=ai_model.id,
+                class_id=class_id,
+                prompt=question,
+                response=answer,
+                strategy_used='quick_check',
+                sub_topic=skill_tag,
+                tokens_in=0,
+                tokens_out=0,
+                success_indicator=correct,
+                context_data=json.dumps({
+                    'type': 'quick_check',
+                    'question': question,
+                    'answer': answer,
+                    'correct': correct
+                })
+            )
+            db.session.add(interaction)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'correct': correct,
+            'feedback': feedback,
+            'mastery_update': existing_mastery
+        })
+        
+    except Exception as e:
+        app.logger.error(f'Quick check submit error: {e}')
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
