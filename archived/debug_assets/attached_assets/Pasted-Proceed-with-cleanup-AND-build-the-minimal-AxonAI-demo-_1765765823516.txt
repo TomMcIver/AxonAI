@@ -1,0 +1,101 @@
+Proceed with cleanup AND build the minimal AxonAI demo loop.
+
+Rules:
+- Make changes in small commits/steps.
+- If anything is uncertain, ARCHIVE instead of DELETE.
+- After each phase, run the app and confirm it still boots.
+
+PHASE 1 — Safe Cleanup
+1) Confirm React is unused:
+   - search for references to: "npm", "package.json", "/static/react", "src/", "React", "index.html" (SPA), any build steps in replit config.
+   - search routes.py and templates for any React mounting.
+   If unused, delete:
+   - src/, public/, package.json, package-lock.json
+   If any doubt, move them into archived/react_old/ instead of deleting.
+
+2) Backup/old templates:
+   - remove or archive templates that have _old, _backup in filename.
+   - ensure none are referenced by render_template calls.
+
+3) Migrations/scripts/tests:
+   - create scripts/archived/ and move:
+     data_generator.py, realistic_learning_generator.py, bulk_interaction_generator.py,
+     gpt_student_simulator.py, populate_student_data.py, create_simulated_students.py,
+     create_csv_students.py, setup_realistic_data.py, test_*.py, tutor_cli.py
+   - move migrate_*.py, init_db.py, database_setup.py into scripts/archived/migrations_old/
+   Do not delete them outright.
+
+4) Remove debug assets:
+   - delete root *.png and attached_assets/ ONLY if not referenced anywhere.
+
+PHASE 2 — Minimal Demo Loop (end-to-end)
+Goal: Student can do this in one session:
+Login → choose class → chat tutor → generate 5-question quiz → submit answers → update mastery → see mastery on a simple dashboard view.
+
+Implement these minimal components using EXISTING files if possible:
+A) API endpoints (in api_routes.py):
+   1) POST /api/tutor/chat
+      input: {class_id, message}
+      output: {reply, tokens_used}
+      requirements:
+        - enforce student_id from session
+        - enforce class_id enrollment
+        - enforce strict class+student scope in the prompt/system message
+
+   2) POST /api/quiz/generate
+      input: {class_id, topic(optional)}
+      output: {quiz_id, questions:[{id, prompt, skill_tag, answer_type}]}
+      implementation:
+        - use quiz_builder_agent.py if possible; otherwise do a GPT-based generator
+        - store quiz + questions in DB (use existing models if present; if not, create minimal tables)
+
+   3) POST /api/quiz/submit
+      input: {quiz_id, answers:[{question_id, answer, correct(optional)}]}
+      output: {score, mastery_update}
+      implementation:
+        - if "correct" not provided, use GPT to grade short answers quickly (demo-friendly)
+        - call mastery_tracking_agent.py to update mastery OR implement a minimal mastery update:
+          mastery[skill_tag] = EMA update based on correct/incorrect
+
+B) Pages (templates):
+   - student_dashboard shows:
+       - “Start chat” button
+       - “Generate quiz” button
+       - mastery table: skill_tag | mastery %
+   - ai_tutor.html should support chat + quiz in the same page for a clean demo.
+
+C) Profile summarizer (demo version):
+   - create a simple function in ai_service.py or a new file services/profile_summarizer.py
+   - it can be GPT-based:
+     inputs: last N chat messages + mastery dict
+     output: 5-10 line student profile summary
+   - store summary in DB, update after quiz submit.
+
+PHASE 3 — “Model Slotting” Interfaces
+Create clean interfaces so we can swap models later, without changing routes:
+- services/model_interfaces.py defining:
+  TutorModel.generate_reply(...)
+  QuizModel.generate_quiz(...)
+  GraderModel.grade_answers(...)
+  MasteryModel.update_mastery(...)
+  ProfileModel.summarize_profile(...)
+Provide default implementations:
+- GPTTutorModel (uses existing AIService)
+- GPTQuizModel
+- GPTGraderModel
+- SimpleMasteryModel (EMA)
+- GPTProfileModel
+
+PHASE 4 — Verification
+- Add a quick smoke test script scripts/smoke_demo.py that:
+  - creates a demo student + class + enrollment (if needed)
+  - calls the APIs in order
+  - prints mastery before/after
+- Ensure the app starts and the demo flow works.
+
+Deliverables at the end:
+1) Updated repo tree.
+2) A one-page DEMO README: “how to run + demo steps”.
+3) Clear TODO list for integrating the KT model later (where MasteryModel will call KT).
+
+Start now.
