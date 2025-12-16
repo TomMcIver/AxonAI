@@ -1,0 +1,98 @@
+We have AxonAI (Flask + SQLAlchemy) with these features already working: subject scope lock before model call, plan metadata returned from tutor endpoints, serialized chat history with ISO timestamps, persistent quick-check counters stored in DB, and content-aware RAG for PDFs/TXTs with keyword ranking. Smoke tests exist in scripts/smoke_demo.py.
+
+We support 4 subjects: math, english, science, history.
+
+Goal: implement P3/P4/P5 as a coherent MVP that works across all 4 subjects with consistent schemas, without breaking existing endpoints.
+
+A) Canonical skill taxonomy (use exactly these identifiers)
+
+math_skills: algebra, geometry, arithmetic, statistics, functions, calculus, general
+english_skills: grammar, writing, reading_comprehension, vocabulary, literature, general
+science_skills: biology, chemistry, physics, earth_science, scientific_method, general
+history_skills: ancient, medieval, modern, civics, geography, source_analysis, general
+
+B) Misconception tags (store as JSON array of strings)
+
+math_misconceptions: sign_error, order_of_operations, variable_confusion, fraction_operations, equation_balance, distribution_error, unit_mismatch, geometry_formula_confusion
+english_misconceptions: tense_agreement, subject_verb_agreement, punctuation_error, unclear_thesis, weak_evidence, misreading_prompt, quotation_integration, vocabulary_misuse
+science_misconceptions: cause_vs_correlation, unit_conversion, variable_control, misconception_energy, misconception_forces, misunderstanding_cells, misunderstanding_reactions, graph_interpretation
+history_misconceptions: chronology_confusion, causation_oversimplified, source_bias_missed, context_missing, terminology_confusion, evidence_claim_mismatch, perspective_missing
+
+C) Bandit success definition (must be explicit)
+
+Define success_indicator for strategy learning as:
+	•	Quick check: correct=True → success=1, incorrect → success=0
+	•	Quiz: per-skill score >= 70 → success=1 else 0, recorded per skill tested
+Combine these into per-(student, skill, strategy) stats with weights:
+	•	quick_check weight = 1.0
+	•	quiz weight = 1.5
+
+D) New DB support (minimal additions)
+	1.	Add fields to AIInteraction:
+
+	•	misconception_tags TEXT nullable (JSON array)
+	•	reasoning_gap TEXT nullable
+	•	next_step_recommendation TEXT nullable
+
+	2.	Add field to OptimizedProfile:
+
+	•	strategy_success_rates TEXT nullable (JSON dict keyed by skill then strategy)
+Example shape:
+{
+“algebra”: {“socratic”: {“wins”: 12, “trials”: 20}, “worked_example”: {“wins”: 9, “trials”: 10}},
+“grammar”: {“chunking”: {“wins”: 4, “trials”: 8}}
+}
+
+	3.	If needed, add a small MessageCounter table (or reuse existing counter implementation) but DO NOT use in-memory dicts.
+
+Provide DB migration SQL for PostgreSQL and SQLite-compatible approach if relevant.
+
+E) Strategy selection upgrade (epsilon-greedy)
+
+Current strategy system exists but is coarse. Replace with:
+	•	For a given (user_id, class_id, skill): choose best strategy by highest win-rate (wins/trials)
+	•	Use epsilon exploration = 0.15 to randomly try a different strategy
+	•	Cold start: default to step_by_step for math/science, worked_example for english/history
+
+F) Misconception diagnosis + remediation loop
+
+When a student answers a quick check or quiz question incorrectly:
+	1.	Call the AI (or deterministic fallback) to return ONLY valid JSON:
+{
+“misconception_tags”: [”…”],
+“reasoning_gap”: “…”,
+“next_step_recommendation”: “…”,
+“micro_lesson”: [“step1”, “step2”, “step3”, “step4”, “step5”],
+“followup_check”: {“question”: “…”, “expected_answer”: “…”, “skill_tag”: “…”}
+}
+	2.	Store misconception fields on the AIInteraction record tied to that assessment event.
+	3.	Return remediation payload to the frontend in the response JSON.
+
+G) Teacher usefulness MVP endpoints
+
+Add teacher-only endpoints:
+	1.	GET /api/teacher/heatmap/<class_id> returning:
+	•	class skill averages (from mastery_scores)
+	•	top 5 misconceptions in the last 30 days by skill
+	•	list of students needing attention (mastery<70 or repeated misconceptions)
+	2.	GET /api/teacher/student/<student_id>/<class_id>/misconceptions returning:
+	•	misconceptions timeline + recommended interventions
+
+H) Production hardening (basic)
+	•	Add request rate limiting: per-user 30 requests / 5 minutes on tutor endpoints.
+	•	Add CSRF protection for POST endpoints (minimal but real).
+
+I) Deliverables required
+	•	Exact file change list
+	•	Migration SQL
+	•	Updated endpoint schemas with example JSON
+	•	Update scripts/smoke_demo.py with tests for:
+	1.	bandit chooses best strategy after enough wins
+	2.	misconception fields saved on wrong answer
+	3.	remediation payload present on wrong answer
+	4.	teacher heatmap endpoint returns expected structure
+
+Constraints:
+	•	Do not break existing endpoints; only extend responses.
+	•	Keep token/cost use minimal; only run diagnosis AI on incorrect answers.
+	•	All new JSON responses must be strictly valid and consistent.

@@ -3,13 +3,44 @@ from app import app, db
 from models import User, Class, ChatMessage, AIModel, StudentProfile, Assignment, AssignmentSubmission, Grade, ContentFile, TokenUsage, MiniTest, MiniTestResponse, OptimizedProfile
 from ai_service import AIService
 from auth import login_required, role_required
+from rate_limiter import rate_limit
 import csv
 import io
 import json
 import random
 from datetime import datetime
+import secrets
 
 ai_service = AIService()
+
+@app.before_request
+def csrf_protect():
+    """CSRF protection for form POST endpoints"""
+    if request.method != "POST":
+        return
+    
+    exempt_endpoints = ['login', 'logout', 'register']
+    if request.endpoint in exempt_endpoints:
+        return
+    
+    if request.is_json:
+        return
+    
+    if request.content_type and 'multipart/form-data' not in request.content_type and 'application/x-www-form-urlencoded' not in request.content_type:
+        return
+    
+    token = session.get('csrf_token')
+    form_token = request.form.get('csrf_token')
+    if not token or not form_token or token != form_token:
+        from flask import abort
+        abort(403, description='CSRF token missing or invalid')
+
+@app.context_processor
+def inject_csrf_token():
+    """Inject CSRF token into templates"""
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_hex(32)
+    return {'csrf_token': session['csrf_token']}
 
 # AI Chatbot Routes
 @app.route('/api/chat/send', methods=['POST'])
@@ -791,16 +822,42 @@ def submit_quiz():
         profile.mastery_scores = json.dumps(existing_mastery)
         profile.last_updated = datetime.utcnow()
         
+        from skill_taxonomy import QUIZ_WEIGHT, SUCCESS_THRESHOLD
+        strategy = 'quiz'
+        for skill, skill_score in skill_scores.items():
+            success = skill_score >= (SUCCESS_THRESHOLD * 100)
+            ai_service.record_strategy_outcome(user_id, skill, strategy, success, QUIZ_WEIGHT)
+        
+        remediations = []
+        for result in results:
+            if not result['is_correct']:
+                topic = result.get('topic', 'general')
+                diagnosis = ai_service.diagnose_misconception(
+                    user_id, mini_test.class_id, result['question'], 
+                    result['student_answer'], result['correct_answer'], topic
+                )
+                result['remediation'] = diagnosis
+                remediations.append({
+                    'question': result['question'],
+                    'topic': topic,
+                    'diagnosis': diagnosis
+                })
+        
         db.session.commit()
         
-        return jsonify({
+        response_data = {
             'success': True,
             'score': score,
             'correct': correct,
             'total': len(questions),
             'results': results,
             'mastery_updated': existing_mastery
-        })
+        }
+        
+        if remediations:
+            response_data['remediations'] = remediations
+        
+        return jsonify(response_data)
         
     except Exception as e:
         app.logger.error(f'Quiz submission error: {e}')
@@ -899,6 +956,7 @@ QUICK_CHECK_QUESTIONS = {
 
 @app.route('/api/tutor/chat', methods=['POST'])
 @login_required
+@rate_limit(limit=30, window=300)
 def tutor_chat():
     """Enhanced chat endpoint with quick check functionality, scope lock, and plan metadata"""
     try:
@@ -1026,6 +1084,7 @@ def tutor_chat():
 
 @app.route('/api/tutor/check_submit', methods=['POST'])
 @login_required
+@rate_limit(limit=30, window=300)
 def tutor_check_submit():
     """Submit quick check answer and update mastery"""
     try:
@@ -1123,6 +1182,12 @@ def tutor_check_submit():
         if not ai_model:
             ai_model = AIModel.query.first()
         
+        from skill_taxonomy import QUICK_CHECK_WEIGHT
+        
+        strategy = 'quick_check'
+        ai_service.record_strategy_outcome(user_id, skill_tag, strategy, correct, QUICK_CHECK_WEIGHT)
+        
+        remediation = None
         if ai_model:
             from models import AIInteraction
             interaction = AIInteraction(
@@ -1131,7 +1196,7 @@ def tutor_check_submit():
                 class_id=class_id,
                 prompt=question,
                 response=answer,
-                strategy_used='quick_check',
+                strategy_used=strategy,
                 sub_topic=skill_tag,
                 tokens_in=0,
                 tokens_out=0,
@@ -1144,17 +1209,223 @@ def tutor_check_submit():
                 })
             )
             db.session.add(interaction)
+            db.session.flush()
+            
+            if not correct and expected_answer:
+                diagnosis = ai_service.diagnose_misconception(
+                    user_id, class_id, question, answer, expected_answer, skill_tag
+                )
+                interaction.misconception_tags = json.dumps(diagnosis.get('misconception_tags', []))
+                interaction.reasoning_gap = diagnosis.get('reasoning_gap', '')
+                interaction.next_step_recommendation = diagnosis.get('next_step_recommendation', '')
+                
+                remediation = diagnosis
         
         db.session.commit()
         
-        return jsonify({
+        response_data = {
             'success': True,
             'correct': correct,
             'feedback': feedback,
             'mastery_update': existing_mastery
-        })
+        }
+        
+        if remediation:
+            response_data['remediation'] = remediation
+        
+        return jsonify(response_data)
         
     except Exception as e:
         app.logger.error(f'Quick check submit error: {e}')
         db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/teacher/heatmap/<int:class_id>')
+@login_required
+@role_required(['teacher'])
+def get_teacher_heatmap(class_id):
+    """Get class skill averages, top misconceptions, and at-risk students"""
+    try:
+        user_id = session.get('user_id')
+        
+        class_obj = Class.query.get(class_id)
+        if not class_obj or class_obj.teacher_id != user_id:
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        from skill_taxonomy import get_subject_skills, normalize_subject
+        from datetime import timedelta
+        
+        subject = normalize_subject(class_obj.subject)
+        valid_skills = get_subject_skills(subject)
+        
+        skill_averages = {}
+        for skill in valid_skills:
+            skill_averages[skill] = {'average': 0, 'count': 0}
+        
+        students_needing_attention = []
+        
+        students = class_obj.users
+        for student in students:
+            if student.role != 'student':
+                continue
+            
+            profile = OptimizedProfile.query.filter_by(user_id=student.id).first()
+            if not profile:
+                continue
+            
+            mastery = {}
+            if profile.mastery_scores:
+                try:
+                    mastery = json.loads(profile.mastery_scores)
+                except:
+                    mastery = {}
+            
+            for skill in valid_skills:
+                if skill in mastery:
+                    skill_averages[skill]['average'] += mastery[skill]
+                    skill_averages[skill]['count'] += 1
+            
+            overall_mastery = sum(mastery.get(s, 50) for s in valid_skills) / len(valid_skills) if valid_skills else 50
+            
+            if overall_mastery < 70:
+                students_needing_attention.append({
+                    'id': student.id,
+                    'name': student.get_full_name(),
+                    'overall_mastery': round(overall_mastery, 1),
+                    'weak_skills': [s for s in valid_skills if mastery.get(s, 50) < 70]
+                })
+        
+        for skill in skill_averages:
+            count = skill_averages[skill]['count']
+            if count > 0:
+                skill_averages[skill] = round(skill_averages[skill]['average'] / count, 1)
+            else:
+                skill_averages[skill] = 50.0
+        
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        from models import AIInteraction
+        
+        recent_interactions = AIInteraction.query.filter(
+            AIInteraction.class_id == class_id,
+            AIInteraction.created_at >= thirty_days_ago,
+            AIInteraction.misconception_tags.isnot(None)
+        ).all()
+        
+        misconception_counts = {}
+        for interaction in recent_interactions:
+            try:
+                tags = json.loads(interaction.misconception_tags) if interaction.misconception_tags else []
+                skill = interaction.sub_topic or 'general'
+                
+                if skill not in misconception_counts:
+                    misconception_counts[skill] = {}
+                
+                for tag in tags:
+                    if tag not in misconception_counts[skill]:
+                        misconception_counts[skill][tag] = 0
+                    misconception_counts[skill][tag] += 1
+            except:
+                continue
+        
+        top_misconceptions = {}
+        for skill, tags in misconception_counts.items():
+            sorted_tags = sorted(tags.items(), key=lambda x: x[1], reverse=True)[:5]
+            top_misconceptions[skill] = [{'tag': tag, 'count': count} for tag, count in sorted_tags]
+        
+        return jsonify({
+            'success': True,
+            'class_id': class_id,
+            'class_name': class_obj.name,
+            'subject': subject,
+            'skill_averages': skill_averages,
+            'top_misconceptions': top_misconceptions,
+            'students_needing_attention': students_needing_attention[:10]
+        })
+        
+    except Exception as e:
+        app.logger.error(f'Teacher heatmap error: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/teacher/student/<int:student_id>/<int:class_id>/misconceptions')
+@login_required
+@role_required(['teacher'])
+def get_student_misconceptions(student_id, class_id):
+    """Get misconception timeline and recommended interventions for a student"""
+    try:
+        user_id = session.get('user_id')
+        
+        class_obj = Class.query.get(class_id)
+        if not class_obj or class_obj.teacher_id != user_id:
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        student = User.query.get(student_id)
+        if not student or student not in class_obj.users:
+            return jsonify({'success': False, 'error': 'Student not in class'}), 404
+        
+        from models import AIInteraction
+        from datetime import timedelta
+        
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        
+        interactions = AIInteraction.query.filter(
+            AIInteraction.user_id == student_id,
+            AIInteraction.class_id == class_id,
+            AIInteraction.created_at >= thirty_days_ago,
+            AIInteraction.misconception_tags.isnot(None)
+        ).order_by(AIInteraction.created_at.desc()).limit(50).all()
+        
+        timeline = []
+        misconception_summary = {}
+        
+        for interaction in interactions:
+            try:
+                tags = json.loads(interaction.misconception_tags) if interaction.misconception_tags else []
+                if not tags:
+                    continue
+                
+                timeline.append({
+                    'date': interaction.created_at.isoformat(),
+                    'skill': interaction.sub_topic or 'general',
+                    'misconception_tags': tags,
+                    'reasoning_gap': interaction.reasoning_gap,
+                    'next_step': interaction.next_step_recommendation
+                })
+                
+                for tag in tags:
+                    if tag not in misconception_summary:
+                        misconception_summary[tag] = {'count': 0, 'skills': set()}
+                    misconception_summary[tag]['count'] += 1
+                    misconception_summary[tag]['skills'].add(interaction.sub_topic or 'general')
+            except:
+                continue
+        
+        summary_list = []
+        for tag, data in misconception_summary.items():
+            summary_list.append({
+                'tag': tag,
+                'count': data['count'],
+                'skills': list(data['skills'])
+            })
+        summary_list.sort(key=lambda x: x['count'], reverse=True)
+        
+        recommended_interventions = []
+        for item in summary_list[:3]:
+            recommended_interventions.append({
+                'misconception': item['tag'],
+                'frequency': item['count'],
+                'recommendation': f"Focus on {item['tag'].replace('_', ' ')} through targeted practice in {', '.join(item['skills'])}."
+            })
+        
+        return jsonify({
+            'success': True,
+            'student_id': student_id,
+            'student_name': student.get_full_name(),
+            'class_id': class_id,
+            'timeline': timeline,
+            'misconception_summary': summary_list,
+            'recommended_interventions': recommended_interventions
+        })
+        
+    except Exception as e:
+        app.logger.error(f'Student misconceptions error: {e}')
         return jsonify({'success': False, 'error': str(e)}), 500

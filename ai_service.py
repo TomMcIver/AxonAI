@@ -890,54 +890,82 @@ Goals: {student_info.get('academic_goals', 'General improvement')[:100]}..."""
         
         return interaction
     
-    def choose_teaching_strategy(self, user_id, class_id):
-        """Choose the best teaching strategy based on student profile and history"""
-        # Get optimized profile
-        profile = OptimizedProfile.query.filter_by(user_id=user_id).first()
+    def choose_teaching_strategy(self, user_id, class_id, skill=None):
+        """Epsilon-greedy strategy selection with bandit learning"""
+        import random
+        from skill_taxonomy import TEACHING_STRATEGIES, EPSILON, get_default_strategy
         
+        profile = OptimizedProfile.query.filter_by(user_id=user_id).first()
         if not profile:
-            # Create initial profile
             profile = self.create_initial_profile(user_id)
         
-        # Get preferred strategies from profile
-        if profile.preferred_strategies:
-            strategies = json.loads(profile.preferred_strategies)
-            if strategies:
-                return strategies[0]  # Use top strategy
+        class_obj = Class.query.get(class_id)
+        subject = (class_obj.subject or 'math').lower() if class_obj else 'math'
+        subject_aliases = {'mathematics': 'math', 'maths': 'math'}
+        subject = subject_aliases.get(subject, subject)
         
-        # Get failed strategies to avoid
-        failed = FailedStrategy.query.filter_by(
-            user_id=user_id,
-            class_id=class_id
-        ).order_by(FailedStrategy.failure_count.desc()).all()
+        skill = skill or 'general'
         
-        failed_names = [f.strategy_name for f in failed]
+        strategy_rates = {}
+        if profile.strategy_success_rates:
+            try:
+                strategy_rates = json.loads(profile.strategy_success_rates)
+            except:
+                strategy_rates = {}
         
-        # Available strategies
-        all_strategies = [
-            "socratic_method",
-            "direct_instruction",
-            "example_based",
-            "problem_solving",
-            "visual_learning",
-            "storytelling",
-            "gamification",
-            "step_by_step",
-            "collaborative",
-            "inquiry_based"
-        ]
+        skill_stats = strategy_rates.get(skill, {})
         
-        # Filter out failed strategies
-        available = [s for s in all_strategies if s not in failed_names]
+        if random.random() < EPSILON:
+            return random.choice(TEACHING_STRATEGIES)
         
-        if available:
-            # Try a new strategy
-            return available[0]
-        else:
-            # All strategies have failed, retry the least failed one
-            if failed:
-                return failed[-1].strategy_name
-            return "direct_instruction"  # Default
+        if not skill_stats:
+            return get_default_strategy(subject)
+        
+        best_strategy = None
+        best_rate = -1
+        
+        for strategy, stats in skill_stats.items():
+            wins = stats.get('wins', 0)
+            trials = stats.get('trials', 0)
+            if trials > 0:
+                rate = wins / trials
+                if rate > best_rate:
+                    best_rate = rate
+                    best_strategy = strategy
+        
+        if best_strategy:
+            return best_strategy
+        
+        return get_default_strategy(subject)
+    
+    def record_strategy_outcome(self, user_id, skill, strategy, success, weight=1.0):
+        """Record strategy success/failure for bandit learning"""
+        profile = OptimizedProfile.query.filter_by(user_id=user_id).first()
+        if not profile:
+            profile = self.create_initial_profile(user_id)
+        
+        strategy_rates = {}
+        if profile.strategy_success_rates:
+            try:
+                strategy_rates = json.loads(profile.strategy_success_rates)
+            except:
+                strategy_rates = {}
+        
+        if skill not in strategy_rates:
+            strategy_rates[skill] = {}
+        
+        if strategy not in strategy_rates[skill]:
+            strategy_rates[skill][strategy] = {'wins': 0, 'trials': 0}
+        
+        strategy_rates[skill][strategy]['trials'] += weight
+        if success:
+            strategy_rates[skill][strategy]['wins'] += weight
+        
+        profile.strategy_success_rates = json.dumps(strategy_rates)
+        profile.last_updated = datetime.utcnow()
+        db.session.commit()
+        
+        return strategy_rates[skill][strategy]
     
     def calculate_engagement_score(self, message, response):
         """Calculate engagement score based on interaction quality"""
@@ -1049,6 +1077,132 @@ Goals: {student_info.get('academic_goals', 'General improvement')[:100]}..."""
                 avoided.append(strategy_name)
                 profile.avoided_strategies = json.dumps(avoided)
                 db.session.commit()
+    
+    def diagnose_misconception(self, user_id, class_id, question, student_answer, expected_answer, skill_tag):
+        """Diagnose misconception when student answers incorrectly and return remediation"""
+        from skill_taxonomy import get_subject_misconceptions, normalize_subject
+        
+        class_obj = Class.query.get(class_id)
+        subject = normalize_subject(class_obj.subject if class_obj else 'math')
+        valid_misconceptions = get_subject_misconceptions(subject)
+        
+        diagnosis = {
+            'misconception_tags': [],
+            'reasoning_gap': '',
+            'next_step_recommendation': '',
+            'micro_lesson': [],
+            'followup_check': None
+        }
+        
+        try:
+            if self.provider == "openai" and hasattr(self, 'client'):
+                prompt = f"""A student answered a {subject} question incorrectly.
+
+Question: {question}
+Student's Answer: {student_answer}
+Expected Answer: {expected_answer}
+Skill: {skill_tag}
+
+Valid misconception tags for {subject}: {', '.join(valid_misconceptions)}
+
+Analyze the student's error and respond with ONLY valid JSON (no markdown):
+{{
+  "misconception_tags": ["tag1", "tag2"],
+  "reasoning_gap": "Brief description of what the student misunderstands",
+  "next_step_recommendation": "What concept to review next",
+  "micro_lesson": ["step1", "step2", "step3", "step4", "step5"],
+  "followup_check": {{
+    "question": "A simpler follow-up question",
+    "expected_answer": "The answer",
+    "skill_tag": "{skill_tag}"
+  }}
+}}
+
+Use ONLY tags from the valid misconception tags list. Return ONLY the JSON."""
+
+                response = self.client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You are an expert educational diagnostician. Return only valid JSON."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=500
+                )
+                
+                result_text = response.choices[0].message.content.strip()
+                
+                if "```json" in result_text:
+                    result_text = result_text.split("```json")[1].split("```")[0].strip()
+                elif "```" in result_text:
+                    result_text = result_text.split("```")[1].split("```")[0].strip()
+                
+                diagnosis = json.loads(result_text)
+                
+                diagnosis['misconception_tags'] = [
+                    tag for tag in diagnosis.get('misconception_tags', [])
+                    if tag in valid_misconceptions
+                ]
+            else:
+                diagnosis = self._fallback_diagnosis(subject, skill_tag, valid_misconceptions)
+                
+        except Exception as e:
+            print(f"Misconception diagnosis error: {e}")
+            diagnosis = self._fallback_diagnosis(subject, skill_tag, valid_misconceptions)
+        
+        return diagnosis
+    
+    def _fallback_diagnosis(self, subject, skill_tag, valid_misconceptions):
+        """Fallback misconception diagnosis when AI is unavailable"""
+        import random
+        
+        skill_defaults = {
+            'algebra': ['variable_confusion', 'equation_balance'],
+            'geometry': ['geometry_formula_confusion'],
+            'arithmetic': ['order_of_operations', 'sign_error'],
+            'grammar': ['tense_agreement', 'subject_verb_agreement'],
+            'writing': ['unclear_thesis', 'weak_evidence'],
+            'biology': ['misunderstanding_cells'],
+            'chemistry': ['misunderstanding_reactions'],
+            'physics': ['misconception_forces', 'misconception_energy'],
+            'ancient': ['chronology_confusion'],
+            'modern': ['context_missing', 'source_bias_missed']
+        }
+        
+        possible_tags = skill_defaults.get(skill_tag, [])
+        possible_tags = [t for t in possible_tags if t in valid_misconceptions]
+        
+        if not possible_tags and valid_misconceptions:
+            possible_tags = [random.choice(valid_misconceptions)]
+        
+        return {
+            'misconception_tags': possible_tags[:2],
+            'reasoning_gap': f'Student may need more practice with {skill_tag} fundamentals.',
+            'next_step_recommendation': f'Review core {skill_tag} concepts and try simpler problems.',
+            'micro_lesson': [
+                f'Let\'s review the basics of {skill_tag}.',
+                'First, understand the key concept.',
+                'Then, work through a simple example.',
+                'Now apply it to a slightly harder problem.',
+                'Finally, try the original problem again.'
+            ],
+            'followup_check': {
+                'question': f'Quick check: Can you explain the main idea behind {skill_tag}?',
+                'expected_answer': f'Student demonstrates understanding of {skill_tag}',
+                'skill_tag': skill_tag
+            }
+        }
+    
+    def store_misconception_on_interaction(self, interaction_id, diagnosis):
+        """Store misconception diagnosis on an existing AIInteraction record"""
+        interaction = AIInteraction.query.get(interaction_id)
+        if interaction:
+            interaction.misconception_tags = json.dumps(diagnosis.get('misconception_tags', []))
+            interaction.reasoning_gap = diagnosis.get('reasoning_gap', '')
+            interaction.next_step_recommendation = diagnosis.get('next_step_recommendation', '')
+            db.session.commit()
+            return True
+        return False
     
     def generate_mini_test(self, user_id, class_id, test_type="diagnostic"):
         """Generate adaptive mini-test for student assessment"""

@@ -105,6 +105,44 @@ Student has 90% mastery in Algebra (50 interactions) and starts Statistics with 
 
 **Smoke Test**: Run `python scripts/smoke_demo.py` to verify all features
 
+### P3/P4/P5 Features (December 2025)
+
+**P3: Epsilon-Greedy Strategy Selection**
+- Bandit learning replaces simple strategy selection
+- Success tracking per (user, skill, strategy) with wins/trials
+- Epsilon=0.15 exploration, cold-start defaults by subject
+- Weights: quick_check=1.0, quiz=1.5; success threshold=70%
+
+**P3: Misconception Diagnosis**
+- `diagnose_misconception()` analyzes incorrect answers
+- Returns structured JSON: misconception_tags, reasoning_gap, next_step_recommendation, micro_lesson, followup_check
+- Stored on AIInteraction records for learning analytics
+- Remediation payload returned to frontend on wrong answers
+
+**P4: Teacher Usefulness Endpoints**
+- `GET /api/teacher/heatmap/<class_id>`: Class skill averages, top 5 misconceptions (30 days), students needing attention (mastery<70)
+- `GET /api/teacher/student/<student_id>/<class_id>/misconceptions`: Timeline, summary, recommended interventions
+
+**P5: Production Hardening**
+- Rate limiting: 30 requests/5 minutes per user on tutor endpoints
+- CSRF protection for POST endpoints (form submissions)
+- Database-backed rate limit storage for persistence
+
+**Canonical Skill Taxonomy**
+- Math: algebra, geometry, arithmetic, statistics, functions, calculus, general
+- English: grammar, writing, reading_comprehension, vocabulary, literature, general
+- Science: biology, chemistry, physics, earth_science, scientific_method, general
+- History: ancient, medieval, modern, civics, geography, source_analysis, general
+
+**Migration SQL**
+```sql
+ALTER TABLE ai_interaction ADD COLUMN IF NOT EXISTS misconception_tags TEXT;
+ALTER TABLE ai_interaction ADD COLUMN IF NOT EXISTS reasoning_gap TEXT;
+ALTER TABLE ai_interaction ADD COLUMN IF NOT EXISTS next_step_recommendation TEXT;
+ALTER TABLE optimized_profile ADD COLUMN IF NOT EXISTS strategy_success_rates TEXT;
+CREATE TABLE IF NOT EXISTS rate_limit_entry (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, endpoint VARCHAR(100) NOT NULL, request_count INTEGER DEFAULT 1, window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+```
+
 ## External Dependencies
 
 ### Python Packages

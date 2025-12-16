@@ -407,6 +407,11 @@ class AIInteraction(db.Model):
     linked_assignment_id = db.Column(db.Integer, db.ForeignKey('assignment.id'), nullable=True)
     linked_content_id = db.Column(db.Integer, db.ForeignKey('content_file.id'), nullable=True)
     
+    # Misconception diagnosis fields (P3)
+    misconception_tags = db.Column(db.Text, nullable=True)  # JSON array of misconception identifiers
+    reasoning_gap = db.Column(db.Text, nullable=True)  # Description of student's reasoning gap
+    next_step_recommendation = db.Column(db.Text, nullable=True)  # Recommended next learning step
+    
     # Context data
     context_data = db.Column(db.Text, nullable=True)  # JSON: mood, time_of_day, etc
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -463,6 +468,10 @@ class OptimizedProfile(db.Model):
     
     # Persistent chat counters for quick check triggering
     chat_counters = db.Column(db.Text, nullable=True)  # JSON: {"class_id": count}
+    
+    # Strategy success tracking for epsilon-greedy bandit (P3)
+    # JSON: {"algebra": {"socratic": {"wins": 12, "trials": 20}, ...}, ...}
+    strategy_success_rates = db.Column(db.Text, nullable=True)
     
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
     
