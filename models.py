@@ -461,6 +461,9 @@ class OptimizedProfile(db.Model):
     struggle_areas = db.Column(db.Text, nullable=True)  # JSON array
     strength_areas = db.Column(db.Text, nullable=True)  # JSON array
     
+    # Persistent chat counters for quick check triggering
+    chat_counters = db.Column(db.Text, nullable=True)  # JSON: {"class_id": count}
+    
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships

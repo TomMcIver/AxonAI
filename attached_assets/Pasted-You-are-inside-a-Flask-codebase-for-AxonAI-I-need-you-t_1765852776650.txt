@@ -1,0 +1,111 @@
+You are inside a Flask codebase for “AxonAI”. I need you to produce a single comprehensive overview report of the entire app so I can share it with another engineer for planning. Do NOT write code. Only output the report.
+
+Output format (must follow exactly)
+1) One-paragraph summary
+
+Explain what the app does, who uses it (admin/teacher/student), and the core loop (chat → checks/quizzes → mastery → teacher insights).
+
+2) Repo map (tree + purpose)
+
+List key folders/files and 1-line purpose for each. Include backend, templates, static, models, ai service, routes, api_routes, auth, and anything else important.
+
+3) Runtime architecture
+
+Frameworks/libraries used (Flask, SQLAlchemy, OpenAI, etc.)
+
+How the app boots (main.py → app.py)
+
+How DB is configured (Postgres vs SQLite)
+
+How auth/session works
+
+Where config/env vars live
+
+4) Roles & permissions matrix
+
+Create a table:
+Role | Allowed pages/routes | Blocked routes | Key permissions
+
+5) Full endpoint inventory
+
+Create a table grouped by file:
+
+routes.py (web pages)
+
+api_routes.py (JSON APIs)
+
+For EACH endpoint include:
+Method | Route | Auth required (Y/N) | Role required | Purpose | Input JSON/body | Output JSON | DB tables touched | Calls AI (Y/N) | Notes/edge cases
+
+If you’re unsure about DB tables touched, trace the function calls and infer from code.
+
+6) Data model overview
+
+List all SQLAlchemy models and for each:
+
+purpose
+
+key fields
+
+main relationships
+
+where it’s used (which routes)
+
+7) AI system overview (deep)
+
+Explain:
+
+AIService responsibilities
+
+Prompt-building flow (TutoringPlan, build_prompt)
+
+Hard scope lock (is_in_scope)
+
+Content retrieval (retrieve_relevant_content) and what “ContentFile” actually stores
+
+Misconception diagnosis structure and where stored
+
+Mastery update logic (quiz EMA vs chat micro-deltas)
+
+Strategy selection and success tracking rules
+
+Teacher notes injection
+
+Token usage tracking + daily limits
+
+8) Critical flows (step-by-step)
+
+Write step-by-step sequences for:
+A) Student tutor chat request (from HTTP → DB writes)
+B) Quick check generation & submission (how it picks skill_tag + grading + mastery updates)
+C) Quiz generation + submission (topic tracking + skill_scores + mastery update)
+D) Teacher insights request
+E) Export preview + export download
+
+9) Current status + risk list
+
+What is “MVP complete” now
+
+Top 10 technical risks/bugs likely present (serialization, security, rate limiting, prompt injection, file reading, etc.)
+
+Top 10 next improvements (measurable, not vague)
+
+10) “Send to ChatGPT” section
+
+At the end, output:
+
+the 10 most important code locations (file + function name)
+
+the 10 most important DB fields for analytics
+
+the exact request/response schema for /api/tutor/chat and /api/tutor/check_submit
+
+Rules
+
+Don’t hand-wave. Trace code.
+
+If you can’t confirm something, mark it explicitly as “UNCERTAIN” and say what file/function you checked.
+
+Keep the report readable and well structured.
+
+Return only the report.

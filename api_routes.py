@@ -58,7 +58,7 @@ def send_chat_message():
 @app.route('/api/chat', methods=['POST'])
 @login_required
 def send_chat_message_unified():
-    """Unified chat endpoint for both students and teachers"""
+    """Unified chat endpoint for both students and teachers with scope lock"""
     try:
         data = request.get_json()
         message = data.get('message', '').strip()
@@ -74,34 +74,43 @@ def send_chat_message_unified():
         if not user:
             return jsonify({'success': False, 'error': 'User not authenticated'})
         
-        # Get class and verify access
         class_obj = Class.query.get(class_id)
         if not class_obj:
             return jsonify({'success': False, 'error': 'Class not found'})
         
-        # Verify access based on role
+        subject = class_obj.subject or 'general'
+        
         if user.role == 'student':
             if user not in class_obj.users:
                 return jsonify({'success': False, 'error': 'Not enrolled in this class'})
-            # Generate student tutoring response
-            response = ai_service.generate_response(message, user_id, class_id)
+            result = ai_service.generate_response(message, user_id, class_id, return_metadata=True)
         elif user.role == 'teacher':
             if class_obj.teacher_id != user_id:
                 return jsonify({'success': False, 'error': 'Access denied'})
-            # Generate teacher insights response
-            response = ai_service.generate_teacher_response(message, user_id, class_id)
+            result = ai_service.generate_teacher_response(message, user_id, class_id, return_metadata=True)
         else:
             return jsonify({'success': False, 'error': 'Invalid user role'})
         
-        if response:
+        if isinstance(result, dict):
             return jsonify({
                 'success': True, 
-                'response': response,
+                'response': result.get('response', ''),
                 'message': message,
+                'blocked': result.get('blocked', False),
+                'blocked_reason': result.get('blocked_reason'),
+                'subject': result.get('subject', subject),
                 'timestamp': datetime.now().isoformat()
             })
         else:
-            return jsonify({'success': False, 'error': 'Failed to generate response'})
+            return jsonify({
+                'success': True,
+                'response': result,
+                'message': message,
+                'blocked': False,
+                'blocked_reason': None,
+                'subject': subject,
+                'timestamp': datetime.now().isoformat()
+            })
             
     except Exception as e:
         app.logger.error(f'Chat API error: {e}')
@@ -110,28 +119,25 @@ def send_chat_message_unified():
 @app.route('/api/chat/history/<int:class_id>')
 @login_required
 def get_chat_history(class_id):
-    """Get chat history for a class"""
+    """Get chat history for a class - returns JSON-safe dicts with ISO timestamps"""
     try:
         user_id = session.get('user_id')
         user = User.query.get(user_id)
         
         if user.role == 'student':
-            # Students can only see their own chat history
             messages = ai_service.get_chat_history(user_id, class_id)
         elif user.role == 'teacher':
-            # Teachers can see all student chats in their classes
             class_obj = Class.query.get(class_id)
             if not class_obj or class_obj.teacher_id != user_id:
                 return jsonify({'error': 'Access denied'}), 403
-            
             messages = ai_service.get_all_chat_data(user_id, class_id)
         else:
             return jsonify({'error': 'Access denied'}), 403
         
-        return jsonify({'messages': messages})
+        return jsonify({'success': True, 'messages': messages})
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/teacher/insights/<int:class_id>')
 @login_required
@@ -842,9 +848,6 @@ def get_student_mastery():
         app.logger.error(f'Mastery fetch error: {e}')
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# Session-based message counter for quick checks
-chat_message_counters = {}
-
 # Quick check questions by skill
 QUICK_CHECK_QUESTIONS = {
     'algebra': [
@@ -897,7 +900,7 @@ QUICK_CHECK_QUESTIONS = {
 @app.route('/api/tutor/chat', methods=['POST'])
 @login_required
 def tutor_chat():
-    """Enhanced chat endpoint with quick check functionality"""
+    """Enhanced chat endpoint with quick check functionality, scope lock, and plan metadata"""
     try:
         data = request.get_json()
         message = data.get('message', '').strip()
@@ -916,33 +919,54 @@ def tutor_chat():
         if not class_obj or user not in class_obj.users:
             return jsonify({'success': False, 'error': 'Not enrolled in this class'}), 403
         
-        response = ai_service.generate_response(message, user_id, class_id)
+        result = ai_service.generate_response(message, user_id, class_id, return_metadata=True)
         
-        from datetime import date
-        today = date.today()
-        usage = TokenUsage.query.filter_by(user_id=user_id, date=today).first()
-        tokens_used = usage.tokens_used if usage else 0
-        
-        counter_key = f"{user_id}_{class_id}"
-        if counter_key not in chat_message_counters:
-            chat_message_counters[counter_key] = 0
-        chat_message_counters[counter_key] += 1
-        message_count = chat_message_counters[counter_key]
-        
-        needs_check = False
-        check_question = None
-        skill_tag = None
+        if result.get('blocked'):
+            return jsonify({
+                'success': True,
+                'reply': result['response'],
+                'blocked': True,
+                'blocked_reason': result.get('blocked_reason'),
+                'subject': result.get('subject', 'unknown'),
+                'tokens_used': 0,
+                'needs_check': False,
+                'check_question': None,
+                'skill_tag': None,
+                'plan': {
+                    'strategy': None,
+                    'sub_topic': None,
+                    'difficulty': None,
+                    'blocked': True
+                },
+                'timestamp': datetime.now().isoformat()
+            })
         
         profile = OptimizedProfile.query.filter_by(user_id=user_id).first()
+        if not profile:
+            profile = OptimizedProfile(user_id=user_id, chat_counters='{}')
+            db.session.add(profile)
+            db.session.commit()
+        
+        chat_counters = {}
+        if profile.chat_counters:
+            try:
+                chat_counters = json.loads(profile.chat_counters)
+            except:
+                chat_counters = {}
+        
+        counter_key = str(class_id)
+        chat_counters[counter_key] = chat_counters.get(counter_key, 0) + 1
+        message_count = chat_counters[counter_key]
+        
+        profile.chat_counters = json.dumps(chat_counters)
+        db.session.commit()
+        
         mastery = {}
-        if profile and profile.mastery_scores:
+        if profile.mastery_scores:
             mastery = json.loads(profile.mastery_scores)
         
         subject = (class_obj.subject or 'math').lower()
-        subject_aliases = {
-            'mathematics': 'math',
-            'maths': 'math',
-        }
+        subject_aliases = {'mathematics': 'math', 'maths': 'math'}
         subject = subject_aliases.get(subject, subject)
         
         subject_skills = {
@@ -952,6 +976,10 @@ def tutor_chat():
             'history': ['ancient', 'modern', 'general']
         }
         available_skills = subject_skills.get(subject, ['general'])
+        
+        needs_check = False
+        check_question = None
+        skill_tag = None
         
         weak_skill = None
         weak_score = 100
@@ -975,11 +1003,20 @@ def tutor_chat():
         
         return jsonify({
             'success': True,
-            'reply': response,
-            'tokens_used': tokens_used,
+            'reply': result['response'],
+            'blocked': False,
+            'blocked_reason': None,
+            'subject': result.get('subject', subject),
+            'tokens_used': result.get('tokens_used', 0),
             'needs_check': needs_check,
             'check_question': check_question,
             'skill_tag': skill_tag,
+            'plan': {
+                'strategy': result.get('strategy'),
+                'sub_topic': skill_tag or 'general',
+                'difficulty': result.get('difficulty', 'medium'),
+                'blocked': False
+            },
             'timestamp': datetime.now().isoformat()
         })
         

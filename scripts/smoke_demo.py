@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
 """
 Smoke Test for AxonAI Demo
-Run this to verify the demo loop is working
+Run this to verify the demo loop and P0/P1 features are working
 """
 
 import requests
+import json
 import sys
 
 BASE_URL = "http://localhost:5000"
+DEFAULT_CLASS_ID = 17  # Mathematics - Year 12
 
-def test_login(session):
-    """Test login with a student account"""
-    print("Testing login...")
+def print_json(data, title=None):
+    if title:
+        print(f"    {title}:")
+    print(json.dumps(data, indent=2, default=str)[:500])
+
+def test_login(session, user_type='student'):
+    """Test login with a user account"""
+    print(f"Testing login as {user_type}...")
     response = session.post(f"{BASE_URL}/login", data={
-        'role': 'student',
-        'user_id': '1'
+        'user_type': user_type
     }, allow_redirects=False)
     
     if response.status_code in [200, 302]:
-        print("  Login: OK")
+        print(f"  Login as {user_type}: OK")
         return True
     else:
         print(f"  Login: FAILED ({response.status_code})")
@@ -39,7 +45,7 @@ def test_mastery_endpoint(session):
     print(f"  Mastery API: FAILED ({response.status_code})")
     return False
 
-def test_quiz_generate(session, class_id=1):
+def test_quiz_generate(session, class_id=DEFAULT_CLASS_ID):
     """Test quiz generation endpoint"""
     print("Testing quiz generation...")
     response = session.post(f"{BASE_URL}/api/quiz/generate", json={
@@ -87,7 +93,7 @@ def test_quiz_submit(session, quiz_id, questions):
     print(f"  Quiz Submission: FAILED ({response.status_code})")
     return False
 
-def test_chat_endpoint(session, class_id=1):
+def test_chat_endpoint(session, class_id=DEFAULT_CLASS_ID):
     """Test chat endpoint"""
     print("Testing chat API...")
     response = session.post(f"{BASE_URL}/api/chat", json={
@@ -104,6 +110,95 @@ def test_chat_endpoint(session, class_id=1):
             return True
     
     print(f"  Chat API: FAILED ({response.status_code})")
+    return False
+
+def test_scope_lock(session, class_id=DEFAULT_CLASS_ID):
+    """P0: Test scope lock blocks off-topic requests"""
+    print("Testing scope lock (P0)...")
+    response = session.post(f"{BASE_URL}/api/tutor/chat", json={
+        'class_id': class_id,
+        'message': 'Give me a recipe for chocolate cake'
+    })
+    
+    if response.status_code == 200:
+        data = response.json()
+        if data.get('blocked') == True:
+            print("  Scope Lock: OK")
+            print(f"    Blocked reason: {data.get('blocked_reason', '')[:50]}...")
+            return True
+        else:
+            print("  Scope Lock: FAILED (request was not blocked)")
+    else:
+        print(f"  Scope Lock: FAILED ({response.status_code})")
+    return False
+
+def test_plan_metadata(session, class_id=DEFAULT_CLASS_ID):
+    """P2: Test plan metadata in response"""
+    print("Testing plan metadata (P2)...")
+    response = session.post(f"{BASE_URL}/api/tutor/chat", json={
+        'class_id': class_id,
+        'message': 'Help me solve 2x + 5 = 15'
+    })
+    
+    if response.status_code == 200:
+        data = response.json()
+        if data.get('success') and 'plan' in data:
+            plan = data['plan']
+            print("  Plan Metadata: OK")
+            print(f"    Strategy: {plan.get('strategy')}")
+            print(f"    Difficulty: {plan.get('difficulty')}")
+            print(f"    Sub-topic: {plan.get('sub_topic')}")
+            return True
+        else:
+            print("  Plan Metadata: FAILED (no plan in response)")
+    else:
+        print(f"  Plan Metadata: FAILED ({response.status_code})")
+    return False
+
+def test_unified_chat_fields(session, class_id=DEFAULT_CLASS_ID):
+    """P0: Test unified chat has blocked/subject fields"""
+    print("Testing unified chat fields (P0)...")
+    response = session.post(f"{BASE_URL}/api/chat", json={
+        'class_id': class_id,
+        'message': 'What is algebra?'
+    })
+    
+    if response.status_code == 200:
+        data = response.json()
+        if 'blocked' in data and 'subject' in data:
+            print("  Unified Chat Fields: OK")
+            print(f"    Blocked: {data.get('blocked')}")
+            print(f"    Subject: {data.get('subject')}")
+            return True
+        else:
+            print("  Unified Chat Fields: FAILED (missing blocked/subject)")
+    else:
+        print(f"  Unified Chat Fields: FAILED ({response.status_code})")
+    return False
+
+def test_chat_history_format(session, class_id=DEFAULT_CLASS_ID):
+    """P0: Test chat history returns JSON-safe dicts"""
+    print("Testing chat history format (P0)...")
+    response = session.get(f"{BASE_URL}/api/chat/history/{class_id}")
+    
+    if response.status_code == 200:
+        data = response.json()
+        if data.get('success'):
+            messages = data.get('messages', [])
+            if messages:
+                first_msg = messages[0]
+                if isinstance(first_msg.get('created_at'), str) and 'T' in first_msg.get('created_at', ''):
+                    print("  Chat History Format: OK (ISO timestamps)")
+                    return True
+                else:
+                    print("  Chat History Format: PARTIAL (no ISO timestamp)")
+            else:
+                print("  Chat History Format: OK (empty history)")
+                return True
+        else:
+            print("  Chat History Format: FAILED")
+    else:
+        print(f"  Chat History Format: FAILED ({response.status_code})")
     return False
 
 def run_smoke_test():
@@ -133,6 +228,20 @@ def run_smoke_test():
         all_passed = False
     
     if not test_chat_endpoint(session):
+        all_passed = False
+    
+    print("\n--- P0/P1/P2 Feature Tests ---")
+    
+    if not test_scope_lock(session):
+        all_passed = False
+    
+    if not test_plan_metadata(session):
+        all_passed = False
+    
+    if not test_unified_chat_fields(session):
+        all_passed = False
+    
+    if not test_chat_history_format(session):
         all_passed = False
     
     print("\n" + "=" * 50)

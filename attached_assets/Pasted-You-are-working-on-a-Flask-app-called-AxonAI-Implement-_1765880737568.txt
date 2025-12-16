@@ -1,0 +1,61 @@
+You are working on a Flask app called AxonAI. Implement the next wave of features in a safe, minimal, testable way. Do not refactor unrelated code.
+
+Goal: Deliver P0 + P1 (pilot-safe + real content retrieval), and lay scaffolding for P2.
+
+A) P0 — Real Scope Lock (pre-OpenAI gate)
+
+Implement a function in ai_service.py:
+	•	_is_in_scope(subject: str, message: str) -> (bool, blocked_reason: str | None)
+	•	Use a conservative rule-based approach (keyword mapping per subject + denylist).
+	•	Must run before any OpenAI call in both:
+	•	AIService.generate_response() (student)
+	•	AIService.generate_teacher_response() (teacher can be broader but still education-only; block unsafe/irrelevant prompts)
+	•	If blocked: return a polite redirect string immediately and do not call OpenAI.
+
+Update API responses:
+	•	/api/tutor/chat and /api/chat must include:
+	•	blocked: true/false
+	•	blocked_reason: string|null
+	•	subject
+
+B) P0 — Chat history JSON serialization consistency
+
+In ai_service.py, update get_chat_history() to return list[dict] using ChatMessage.to_dict() (timestamps ISO strings).
+Ensure /api/chat/history/<class_id> always returns JSON-safe data for both student and teacher paths.
+
+C) P0 — Persist quick check counter
+
+Replace the in-memory chat_message_counters dict.
+Minimal approach: store a JSON field in OptimizedProfile called chat_counters mapping { "<class_id>": count }.
+	•	On each /api/tutor/chat, increment this persisted counter and use it to trigger every 3rd message.
+	•	Must survive server restarts.
+
+D) P1 — Real content retrieval (RAG-lite)
+
+Implement retrieve_relevant_content(message, class_id, top_k=3) in ai_service.py (or a new helper module).
+Requirements:
+	•	Load ContentFile.file_path records for the class.
+	•	If PDF: extract text (use pypdf or pdfplumber, pick one). If TXT: read text.
+	•	Rank by simple keyword overlap or TF-IDF-lite scoring against the user message.
+	•	Return top_k snippets as a list of dicts: {source_name, snippet, score}
+	•	Inject these snippets into the student system prompt under a section: RELEVANT CLASS MATERIAL.
+	•	Add a toggle so if no content exists, it behaves exactly as before.
+
+E) P2 scaffolding — TutoringPlan metadata (no heavy refactor yet)
+
+Without rewriting everything, add basic metadata to /api/tutor/chat response:
+	•	plan.strategy = the strategy chosen by choose_teaching_strategy()
+	•	plan.sub_topic = use existing skill_tag when available, else "general"
+	•	plan.difficulty = infer from OptimizedProfile.current_pass_rate (>=80 hard, 60-79 medium, else easy)
+	•	plan.blocked = blocked flag
+
+F) Deliverables
+	1.	List exactly which files changed and why.
+	2.	Provide DB migration steps (SQL) for any new columns.
+	3.	Provide example request/response JSON for:
+	•	blocked tutor chat
+	•	normal tutor chat with plan metadata + needs_check
+	•	chat history output
+	4.	Add minimal tests or a scripts/smoke_demo.py scenario that hits the endpoints in order.
+
+Do not output explanations—just implementation notes + the artifacts requested.

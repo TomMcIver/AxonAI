@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import requests
 import tiktoken
 from datetime import datetime, date
@@ -9,6 +10,46 @@ from models import (
     PredictedGrade
 )
 from app import db
+
+SUBJECT_KEYWORDS = {
+    'math': ['equation', 'solve', 'calculate', 'algebra', 'geometry', 'calculus', 'number', 'fraction', 
+             'graph', 'function', 'derivative', 'integral', 'statistics', 'probability', 'triangle',
+             'circle', 'angle', 'formula', 'x', 'y', 'variable', 'coefficient', 'polynomial', 'factor',
+             'quadratic', 'linear', 'exponent', 'logarithm', 'matrix', 'vector', 'arithmetic', 'addition',
+             'subtraction', 'multiplication', 'division', 'percent', 'ratio', 'proportion', 'prime'],
+    'mathematics': ['equation', 'solve', 'calculate', 'algebra', 'geometry', 'calculus', 'number'],
+    'science': ['experiment', 'hypothesis', 'biology', 'chemistry', 'physics', 'atom', 'molecule',
+                'cell', 'organism', 'evolution', 'force', 'energy', 'matter', 'element', 'reaction',
+                'gravity', 'motion', 'wave', 'light', 'electricity', 'magnet', 'ecosystem', 'photosynthesis',
+                'dna', 'gene', 'protein', 'acid', 'base', 'periodic', 'newton', 'velocity', 'acceleration'],
+    'english': ['grammar', 'essay', 'write', 'read', 'literature', 'poem', 'novel', 'sentence',
+                'paragraph', 'vocabulary', 'spelling', 'punctuation', 'verb', 'noun', 'adjective',
+                'adverb', 'pronoun', 'conjunction', 'preposition', 'metaphor', 'simile', 'theme',
+                'character', 'plot', 'setting', 'narrative', 'dialogue', 'thesis', 'argument'],
+    'history': ['war', 'civilization', 'ancient', 'modern', 'revolution', 'empire', 'king', 'queen',
+                'president', 'democracy', 'government', 'treaty', 'battle', 'colonial', 'industrial',
+                'renaissance', 'medieval', 'century', 'era', 'dynasty', 'independence', 'constitution',
+                'amendment', 'civil', 'rights', 'movement', 'historical', 'archaeology'],
+    'general': []
+}
+
+BLOCKED_TOPICS = [
+    'hack', 'cheat', 'answers to test', 'do my homework', 'write my essay for me',
+    'give me the answers', 'bypass', 'jailbreak', 'ignore instructions', 'ignore previous',
+    'pretend you are', 'act as if', 'forget your rules', 'new instructions',
+    'violence', 'weapons', 'drugs', 'alcohol', 'inappropriate', 'explicit',
+    'dating', 'relationship advice', 'personal problems', 'gossip', 'celebrity',
+    'gambling', 'betting', 'lottery', 'crypto trading', 'stock picks',
+    'recipe', 'cooking', 'food', 'restaurant', 'movie review', 'game walkthrough',
+    'sports scores', 'weather forecast', 'horoscope', 'zodiac'
+]
+
+EDUCATION_KEYWORDS = [
+    'explain', 'help', 'understand', 'learn', 'study', 'homework', 'assignment',
+    'practice', 'example', 'problem', 'question', 'answer', 'solve', 'how to',
+    'what is', 'why', 'define', 'describe', 'compare', 'analyze', 'evaluate',
+    'teach', 'tutor', 'class', 'lesson', 'topic', 'subject', 'concept'
+]
 
 # AI Provider Configuration
 # Change this variable to switch between AI providers:
@@ -94,6 +135,151 @@ class AIService:
         usage.requests_made += 1
         db.session.commit()
     
+    def _is_in_scope(self, subject, message, is_teacher=False):
+        """
+        Pre-OpenAI gate: Check if message is within subject scope.
+        Returns (is_allowed: bool, blocked_reason: str | None)
+        """
+        message_lower = message.lower().strip()
+        subject_lower = subject.lower() if subject else 'general'
+        
+        for blocked in BLOCKED_TOPICS:
+            if blocked in message_lower:
+                return False, f"This request is outside the scope of educational tutoring. I can only help with {subject} questions."
+        
+        if is_teacher:
+            has_education_keyword = any(kw in message_lower for kw in EDUCATION_KEYWORDS)
+            has_subject_keyword = any(kw in message_lower for kw in SUBJECT_KEYWORDS.get(subject_lower, []))
+            if has_education_keyword or has_subject_keyword or 'student' in message_lower or 'class' in message_lower:
+                return True, None
+            if len(message_lower.split()) < 4:
+                return True, None
+            return False, "I can only assist with questions about your students, teaching strategies, and class performance."
+        
+        subject_keywords = SUBJECT_KEYWORDS.get(subject_lower, [])
+        if subject_lower == 'mathematics':
+            subject_keywords = SUBJECT_KEYWORDS.get('math', [])
+        
+        has_subject_keyword = any(kw in message_lower for kw in subject_keywords) if subject_keywords else False
+        has_education_keyword = any(kw in message_lower for kw in EDUCATION_KEYWORDS)
+        
+        if has_subject_keyword or has_education_keyword:
+            return True, None
+        
+        if len(message_lower.split()) <= 5:
+            return True, None
+        
+        other_subjects = [s for s in SUBJECT_KEYWORDS.keys() if s != subject_lower and s != 'general']
+        for other_subject in other_subjects:
+            other_keywords = SUBJECT_KEYWORDS.get(other_subject, [])
+            matches = sum(1 for kw in other_keywords if kw in message_lower)
+            if matches >= 2:
+                return False, f"I'm your {subject} tutor and can only help with {subject}. Please ask your teacher about {other_subject}."
+        
+        return True, None
+    
+    def retrieve_relevant_content(self, message, class_id, top_k=3):
+        """
+        RAG-lite: Retrieve relevant content snippets from class materials.
+        Returns list of {source_name, snippet, score}
+        """
+        try:
+            content_files = ContentFile.query.filter_by(class_id=class_id).all()
+            if not content_files:
+                return []
+            
+            message_words = set(re.findall(r'\b\w+\b', message.lower()))
+            stop_words = {'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+                         'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+                         'should', 'may', 'might', 'can', 'to', 'of', 'in', 'for', 'on', 'with',
+                         'at', 'by', 'from', 'as', 'into', 'through', 'during', 'before', 'after',
+                         'above', 'below', 'between', 'under', 'again', 'further', 'then', 'once',
+                         'here', 'there', 'when', 'where', 'why', 'how', 'all', 'each', 'few',
+                         'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only',
+                         'own', 'same', 'so', 'than', 'too', 'very', 'just', 'and', 'but', 'if',
+                         'or', 'because', 'until', 'while', 'this', 'that', 'these', 'those',
+                         'what', 'which', 'who', 'whom', 'i', 'me', 'my', 'you', 'your', 'it'}
+            message_keywords = message_words - stop_words
+            
+            if not message_keywords:
+                return []
+            
+            scored_snippets = []
+            
+            for cf in content_files:
+                file_text = self._extract_file_content(cf)
+                if not file_text:
+                    continue
+                
+                paragraphs = re.split(r'\n\s*\n|\n{2,}', file_text)
+                if not paragraphs:
+                    paragraphs = [file_text[:2000]]
+                
+                for para in paragraphs:
+                    para = para.strip()
+                    if len(para) < 50:
+                        continue
+                    
+                    para_words = set(re.findall(r'\b\w+\b', para.lower()))
+                    overlap = message_keywords & para_words
+                    score = len(overlap) / max(len(message_keywords), 1)
+                    
+                    if score > 0:
+                        snippet = para[:500] + ('...' if len(para) > 500 else '')
+                        scored_snippets.append({
+                            'source_name': cf.name,
+                            'snippet': snippet,
+                            'score': round(score, 3)
+                        })
+            
+            scored_snippets.sort(key=lambda x: x['score'], reverse=True)
+            return scored_snippets[:top_k]
+            
+        except Exception as e:
+            print(f"Error retrieving content: {e}")
+            return []
+    
+    def _extract_file_content(self, content_file):
+        """Extract text content from a ContentFile"""
+        try:
+            file_path = content_file.file_path
+            if not file_path or not os.path.exists(file_path):
+                return None
+            
+            file_type = (content_file.file_type or '').lower()
+            file_ext = os.path.splitext(file_path)[1].lower()
+            
+            if file_type == 'pdf' or file_ext == '.pdf':
+                try:
+                    import pypdf
+                    with open(file_path, 'rb') as f:
+                        reader = pypdf.PdfReader(f)
+                        text = ''
+                        for page in reader.pages[:10]:
+                            text += page.extract_text() or ''
+                        return text[:10000]
+                except ImportError:
+                    try:
+                        import pdfplumber
+                        with pdfplumber.open(file_path) as pdf:
+                            text = ''
+                            for page in pdf.pages[:10]:
+                                text += page.extract_text() or ''
+                            return text[:10000]
+                    except ImportError:
+                        print("No PDF library available (pypdf or pdfplumber)")
+                        return None
+            
+            elif file_type in ['txt', 'text'] or file_ext in ['.txt', '.md', '.text']:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    return f.read()[:10000]
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error extracting content from {content_file.name}: {e}")
+            return None
+    
     def get_student_context(self, student_id, class_id):
         """Get comprehensive student context for AI personalization"""
         try:
@@ -168,20 +354,38 @@ class AIService:
         
         return accommodations
     
-    def generate_response(self, message, student_id, class_id):
-        """Generate AI response based on student context and message"""
+    def generate_response(self, message, student_id, class_id, return_metadata=False):
+        """Generate AI response based on student context and message
+        
+        If return_metadata=True, returns dict with response and metadata instead of just string.
+        """
         try:
-            # Get class AI model
             class_obj = Class.query.get(class_id)
             if not class_obj:
+                if return_metadata:
+                    return {'response': "Class not found.", 'blocked': False, 'blocked_reason': None, 'subject': 'unknown'}
                 return "Class not found."
+            
+            subject = class_obj.subject or 'general'
+            
+            is_allowed, blocked_reason = self._is_in_scope(subject, message, is_teacher=False)
+            if not is_allowed:
+                redirect_msg = blocked_reason or f"I can only help with {subject} questions. Please ask something related to {subject}."
+                if return_metadata:
+                    return {
+                        'response': redirect_msg,
+                        'blocked': True,
+                        'blocked_reason': blocked_reason,
+                        'subject': subject,
+                        'strategy': None,
+                        'difficulty': None
+                    }
+                return redirect_msg
             
             ai_model = class_obj.ai_model
             if not ai_model:
-                # Get default AI model for this subject
                 ai_model = AIModel.query.filter_by(subject=class_obj.subject).first()
                 if not ai_model:
-                    # Create a default model if none exists
                     ai_model = AIModel(
                         subject=class_obj.subject or 'general',
                         model_name='gpt-4o-mini',
@@ -191,13 +395,28 @@ class AIService:
                     )
                     db.session.add(ai_model)
                     db.session.commit()
-            context = self.get_student_context(student_id, class_id)
             
-            # Use the optimized profile summary
-            subject = context.get('subject', 'general')
+            context = self.get_student_context(student_id, class_id)
             profile_summary = context.get('profile_summary', 'Student profile not available')
             recent_topics = context.get('recent_topics', [])
             accommodations = context.get('learning_accommodations', [])
+            
+            relevant_content = self.retrieve_relevant_content(message, class_id, top_k=3)
+            content_section = ""
+            if relevant_content:
+                content_section = "\n\nRELEVANT CLASS MATERIAL:\n"
+                for item in relevant_content:
+                    content_section += f"[From {item['source_name']}]: {item['snippet'][:300]}...\n"
+            
+            strategy = self.choose_teaching_strategy(student_id, class_id)
+            
+            profile = OptimizedProfile.query.filter_by(user_id=student_id).first()
+            difficulty = 'medium'
+            if profile and profile.current_pass_rate:
+                if profile.current_pass_rate >= 80:
+                    difficulty = 'hard'
+                elif profile.current_pass_rate < 60:
+                    difficulty = 'easy'
             
             system_prompt = f"""You are a specialized {subject} AI tutor. You can ONLY discuss topics related to {subject}.
 
@@ -213,21 +432,21 @@ Recent topics: {', '.join(recent_topics) if recent_topics else 'First interactio
 
 AVAILABLE MATERIALS: 
 {', '.join(context.get('available_content', []))}
-
+{content_section}
 LEARNING ACCOMMODATIONS:
 {chr(10).join(f'- {acc}' for acc in accommodations) if accommodations else 'No specific accommodations'}
 
+TEACHING STRATEGY: Use {strategy} approach at {difficulty} difficulty level.
+
 Provide personalized {subject} help based on this student's learning style, current performance, and goals. Keep responses concise and educational."""
             
-            # Count tokens before sending
             prompt_tokens = self.count_tokens(system_prompt + message)
             
-            # Generate response based on provider
             if self.provider == "openai":
                 ai_response = self._generate_openai_response(system_prompt, message, ai_model)
             elif self.provider == "aws":
                 ai_response = self._generate_aws_response(system_prompt, message, ai_model)
-            else:  # local
+            else:
                 ai_response = self._generate_local_response(system_prompt, message, ai_model)
             
             # Count response tokens and update usage
@@ -247,12 +466,11 @@ Provide personalized {subject} help based on this student's learning style, curr
                 context_data=json.dumps(context)
             )
             
-            # Store basic chat message for compatibility
             try:
                 chat_message = ChatMessage(
                     user_id=student_id,
                     class_id=class_id,
-                    ai_model_id=ai_model.id if ai_model else 1,  # Default AI model ID
+                    ai_model_id=ai_model.id if ai_model else 1,
                     message=message,
                     response=ai_response,
                     message_type='student',
@@ -260,33 +478,54 @@ Provide personalized {subject} help based on this student's learning style, curr
                 )
                 db.session.add(chat_message)
                 db.session.commit()
-                print(f"Successfully saved chat message to database")
             except Exception as db_error:
                 print(f"Database error saving chat: {db_error}")
                 db.session.rollback()
-                # Continue anyway, just log the error
             
+            if return_metadata:
+                return {
+                    'response': ai_response,
+                    'blocked': False,
+                    'blocked_reason': None,
+                    'subject': subject,
+                    'strategy': strategy,
+                    'difficulty': difficulty,
+                    'tokens_used': total_tokens
+                }
             return ai_response
             
         except Exception as e:
             print(f"Error generating AI response: {e}")
             import traceback
             traceback.print_exc()
+            if return_metadata:
+                return {'response': "Sorry, I encountered an error. Please try again.", 'blocked': False, 'blocked_reason': None, 'subject': 'unknown'}
             return "Sorry, I encountered an error. Please try again."
     
-    def generate_teacher_response(self, message, teacher_id, class_id):
+    def generate_teacher_response(self, message, teacher_id, class_id, return_metadata=False):
         """Generate AI response for teacher inquiries about students and teaching"""
         try:
             from models import Class, User
             
-            # Check daily token limit
-            if not self.check_token_limit(teacher_id):
-                return "Daily token limit reached. Please try again tomorrow."
-            
-            # Get class and students context
             class_obj = Class.query.get(class_id)
             if not class_obj:
+                if return_metadata:
+                    return {'response': "Class not found.", 'blocked': False, 'blocked_reason': None, 'subject': 'unknown'}
                 return "Class not found."
+            
+            subject = class_obj.subject or 'general'
+            
+            is_allowed, blocked_reason = self._is_in_scope(subject, message, is_teacher=True)
+            if not is_allowed:
+                redirect_msg = blocked_reason or "I can only assist with questions about your students, teaching strategies, and class performance."
+                if return_metadata:
+                    return {'response': redirect_msg, 'blocked': True, 'blocked_reason': blocked_reason, 'subject': subject}
+                return redirect_msg
+            
+            if not self.check_token_limit(teacher_id):
+                if return_metadata:
+                    return {'response': "Daily token limit reached. Please try again tomorrow.", 'blocked': False, 'blocked_reason': None, 'subject': subject}
+                return "Daily token limit reached. Please try again tomorrow."
             
             students = class_obj.get_students()
             student_profiles = []
@@ -344,12 +583,11 @@ Answer the teacher's question with specific, actionable advice based on the stud
             total_tokens = self.count_tokens(system_prompt + message + ai_response)
             self.update_token_usage(teacher_id, total_tokens)
             
-            # Store teacher chat message
             try:
                 chat_message = ChatMessage(
                     user_id=teacher_id,
                     class_id=class_id,
-                    ai_model_id=1,  # Default AI model for teachers
+                    ai_model_id=1,
                     message=message,
                     response=ai_response,
                     message_type='teacher',
@@ -361,17 +599,26 @@ Answer the teacher's question with specific, actionable advice based on the stud
                 )
                 db.session.add(chat_message)
                 db.session.commit()
-                print(f"Successfully saved teacher chat message to database")
             except Exception as db_error:
                 print(f"Database error saving teacher chat: {db_error}")
                 db.session.rollback()
             
+            if return_metadata:
+                return {
+                    'response': ai_response,
+                    'blocked': False,
+                    'blocked_reason': None,
+                    'subject': subject,
+                    'tokens_used': total_tokens
+                }
             return ai_response
             
         except Exception as e:
             print(f"Error generating teacher AI response: {e}")
             import traceback
             traceback.print_exc()
+            if return_metadata:
+                return {'response': "Sorry, I encountered an error. Please try again.", 'blocked': False, 'blocked_reason': None, 'subject': 'unknown'}
             return "Sorry, I encountered an error. Please try again."
     
     def _create_student_summary(self, context):
@@ -560,14 +807,14 @@ Goals: {student_info.get('academic_goals', 'General improvement')[:100]}..."""
             return []
     
     def get_chat_history(self, user_id, class_id=None, limit=50):
-        """Get chat history for a user and class"""
+        """Get chat history for a user and class as JSON-safe dicts"""
         try:
             query = ChatMessage.query.filter_by(user_id=user_id)
             if class_id:
                 query = query.filter_by(class_id=class_id)
             
             messages = query.order_by(ChatMessage.created_at.desc()).limit(limit).all()
-            return messages  # Return actual model objects, not dictionaries
+            return [msg.to_dict() for msg in messages]
             
         except Exception as e:
             print(f"Error getting chat history: {e}")
