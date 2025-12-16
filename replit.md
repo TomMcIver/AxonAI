@@ -78,6 +78,33 @@ Student has 90% mastery in Algebra (50 interactions) and starts Statistics with 
 - **Interval-Based Grouping**: All tabs use consistent 3-day interval aggregation instead of noisy day-by-day data points
 - **Graph-Card Alignment**: Graphs and improvement cards now show matching numbers (Alex: 50.5%→89.5%, Jordan: 36.8%→77.5%, Taylor: 25.7%→56.7%)
 
+### AxonAI Demo Features (December 2025)
+
+**P0: Subject Scope Lock**
+- `_is_in_scope()` pre-OpenAI gate blocks off-topic requests BEFORE calling AI
+- Subject keyword mapping for Math, Science, English, History, and general education
+- Policy enforcement for non-educational content (recipes, dating, violence, etc.)
+- Returns `blocked=true` with `blocked_reason` explaining why request was rejected
+
+**P0: Enhanced API Responses**
+- `/api/chat` and `/api/tutor/chat` now include `blocked`, `blocked_reason`, `subject` fields
+- `get_chat_history()` returns JSON-safe dicts with ISO timestamps
+- Persistent quick check counter via `OptimizedProfile.chat_counters` JSON field
+
+**P1: Content-Aware RAG Retrieval**
+- `retrieve_relevant_content()` extracts text from PDFs using pypdf
+- TF-IDF keyword ranking for relevance scoring
+- Returns top-3 snippets within token budget for inclusion in prompts
+
+**P2: TutoringPlan Metadata**
+- `/api/tutor/chat` includes `plan` object with:
+  - `strategy`: Teaching strategy being used (quick_check, scaffolding, etc.)
+  - `sub_topic`: Current skill focus (algebra, geometry, etc.)
+  - `difficulty`: Adaptive difficulty level (easy, medium, hard)
+  - `blocked`: Whether request was scope-blocked
+
+**Smoke Test**: Run `python scripts/smoke_demo.py` to verify all features
+
 ## External Dependencies
 
 ### Python Packages
