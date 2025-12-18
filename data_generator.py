@@ -172,8 +172,6 @@ class RealisticDataGenerator:
             age = random.randint(11, 18)
             
             student = User(
-                email=f"{first_name.lower()}.{last_name.lower()}.{i+1}@school.edu",
-                password_hash=generate_password_hash("student123"),
                 role="student",
                 first_name=first_name,
                 last_name=last_name,
@@ -214,11 +212,9 @@ class RealisticDataGenerator:
         print("Creating classes and assignments...")
         
         # Check if teacher exists, if not create one
-        teacher = User.query.filter_by(email="teacher@school.edu").first()
+        teacher = User.query.filter_by(role="teacher", first_name="Sarah", last_name="Mitchell").first()
         if not teacher:
             teacher = User(
-                email="teacher@school.edu",
-                password_hash=generate_password_hash("teacher123"),
                 role="teacher",
                 first_name="Sarah",
                 last_name="Mitchell"
