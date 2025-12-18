@@ -81,15 +81,8 @@
                                 {% for mv in model_versions %}
                                 <tr>
                                     <td><span class="badge bg-{{ 'success' if mv.model_type == 'mastery' else 'warning' }}">{{ mv.model_type }}</span></td>
-                                    <td><code>{{ mv.version[:15] }}...</code></td>
-                                    <td>
-                                        {% set metrics = mv.metrics_json | tojson | safe %}
-                                        {% if 'val_accuracy' in metrics %}
-                                            {{ (metrics | from_json).val_accuracy | round(3) if metrics else 'N/A' }}
-                                        {% else %}
-                                            N/A
-                                        {% endif %}
-                                    </td>
+                                    <td><code>{{ mv.version[:15] if mv.version else 'N/A' }}...</code></td>
+                                    <td>{{ mv.get_val_accuracy() }}</td>
                                     <td>{{ mv.created_at.strftime('%m/%d %H:%M') if mv.created_at else 'N/A' }}</td>
                                 </tr>
                                 {% endfor %}

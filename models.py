@@ -707,3 +707,17 @@ class ModelVersion(db.Model):
     
     def __repr__(self):
         return f'<ModelVersion {self.model_type} {self.version}>'
+    
+    def get_val_accuracy(self):
+        """Get validation accuracy from metrics_json"""
+        if not self.metrics_json:
+            return 'N/A'
+        try:
+            import json
+            metrics = json.loads(self.metrics_json)
+            val_acc = metrics.get('val_accuracy')
+            if val_acc is not None:
+                return f"{val_acc:.3f}"
+            return 'N/A'
+        except:
+            return 'N/A'

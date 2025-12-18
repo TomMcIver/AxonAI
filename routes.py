@@ -691,9 +691,22 @@ def generate_and_train():
         mastery_metrics = train_mastery_model(db, app, regularization_strength=1.0)
         risk_metrics = train_risk_model(db, app, regularization_strength=1.0)
         
+        def convert_numpy_types(obj):
+            """Recursively convert numpy types to native Python types"""
+            import numpy as np
+            if isinstance(obj, dict):
+                return {k: convert_numpy_types(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy_types(item) for item in obj]
+            elif isinstance(obj, (np.integer, np.floating)):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            return obj
+        
         session['last_training_metrics'] = {
-            'mastery': mastery_metrics,
-            'risk': risk_metrics,
+            'mastery': convert_numpy_types(mastery_metrics),
+            'risk': convert_numpy_types(risk_metrics),
             'generation': results
         }
         
