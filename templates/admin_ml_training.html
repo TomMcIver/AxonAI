@@ -33,6 +33,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('generate_and_train') }}" id="trainForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <div class="mb-3">
                             <label for="num_students" class="form-label">Number of Students</label>
                             <input type="number" class="form-control" id="num_students" name="num_students" 
