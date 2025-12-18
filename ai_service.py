@@ -181,9 +181,18 @@ class AIService:
     def retrieve_relevant_content(self, message, class_id, top_k=3):
         """
         RAG-lite: Retrieve relevant content snippets from class materials.
+        Uses embedding-based retrieval when available, falls back to keyword matching.
         Returns list of {source_name, snippet, score}
         """
         try:
+            try:
+                from services.ml_integration import get_ml_integration
+                ml = get_ml_integration()
+                if ml.content_retriever is not None:
+                    return ml.retrieve_content(db, message, class_id, top_k)
+            except Exception as ml_error:
+                print(f"ML retrieval unavailable, using keyword fallback: {ml_error}")
+            
             content_files = ContentFile.query.filter_by(class_id=class_id).all()
             if not content_files:
                 return []
@@ -891,7 +900,10 @@ Goals: {student_info.get('academic_goals', 'General improvement')[:100]}..."""
         return interaction
     
     def choose_teaching_strategy(self, user_id, class_id, skill=None):
-        """Epsilon-greedy strategy selection with bandit learning"""
+        """
+        Contextual bandit strategy selection using LinUCB.
+        Falls back to epsilon-greedy if bandit unavailable.
+        """
         import random
         from skill_taxonomy import TEACHING_STRATEGIES, EPSILON, get_default_strategy
         
@@ -905,6 +917,17 @@ Goals: {student_info.get('academic_goals', 'General improvement')[:100]}..."""
         subject = subject_aliases.get(subject, subject)
         
         skill = skill or 'general'
+        
+        try:
+            from services.ml_integration import get_ml_integration
+            ml = get_ml_integration()
+            if ml.bandit_policy is not None:
+                strategy, metadata = ml.select_strategy(
+                    db, user_id, class_id, skill, subject
+                )
+                return strategy
+        except Exception as e:
+            print(f"Contextual bandit unavailable, using epsilon-greedy: {e}")
         
         strategy_rates = {}
         if profile.strategy_success_rates:

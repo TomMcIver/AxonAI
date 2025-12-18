@@ -597,3 +597,113 @@ class TeacherAIInsight(db.Model):
     
     def __repr__(self):
         return f'<TeacherAIInsight Class {self.class_id} Student {self.student_id}>'
+
+
+class MasteryState(db.Model):
+    """ML-based mastery state per (student, skill) pair"""
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    skill = db.Column(db.String(100), nullable=False)
+    
+    p_mastery = db.Column(db.Float, nullable=False, default=0.5)
+    confidence = db.Column(db.Float, nullable=True, default=0.5)
+    attempt_count = db.Column(db.Integer, default=0)
+    rolling_accuracy = db.Column(db.Float, nullable=True)
+    trend = db.Column(db.Float, nullable=True)
+    
+    model_version = db.Column(db.String(50), nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'skill', name='uq_student_skill'),
+    )
+    
+    user = db.relationship('User', backref='mastery_states')
+    
+    def __repr__(self):
+        return f'<MasteryState Student {self.student_id} Skill {self.skill}: {self.p_mastery:.2f}>'
+
+
+class RiskScore(db.Model):
+    """ML-based at-risk prediction per (student, class) pair"""
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
+    
+    p_risk = db.Column(db.Float, nullable=False, default=0.5)
+    risk_level = db.Column(db.String(20), nullable=True)
+    top_drivers_json = db.Column(db.Text, nullable=True)
+    
+    model_version = db.Column(db.String(50), nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'class_id', name='uq_student_class_risk'),
+    )
+    
+    user = db.relationship('User', backref='risk_scores')
+    class_obj = db.relationship('Class', backref='risk_scores')
+    
+    def __repr__(self):
+        return f'<RiskScore Student {self.student_id} Class {self.class_id}: {self.p_risk:.2f}>'
+
+
+class BanditPolicyState(db.Model):
+    """Contextual bandit policy state per (student, class) pair"""
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
+    
+    policy_state_json = db.Column(db.Text, nullable=True)
+    bandit_type = db.Column(db.String(50), default='linucb')
+    model_version = db.Column(db.String(50), nullable=True)
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'class_id', name='uq_student_class_bandit'),
+    )
+    
+    user = db.relationship('User', backref='bandit_policies')
+    class_obj = db.relationship('Class', backref='bandit_policies')
+    
+    def __repr__(self):
+        return f'<BanditPolicyState Student {self.student_id} Class {self.class_id}>'
+
+
+class ContentEmbedding(db.Model):
+    """Embeddings for content retrieval (RAG)"""
+    id = db.Column(db.Integer, primary_key=True)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
+    content_file_id = db.Column(db.Integer, db.ForeignKey('content_file.id'), nullable=True)
+    
+    chunk_text = db.Column(db.Text, nullable=False)
+    embedding_json = db.Column(db.Text, nullable=False)
+    metadata_json = db.Column(db.Text, nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    class_obj = db.relationship('Class', backref='content_embeddings')
+    content_file = db.relationship('ContentFile', backref='embeddings')
+    
+    def __repr__(self):
+        return f'<ContentEmbedding Class {self.class_id} File {self.content_file_id}>'
+
+
+class ModelVersion(db.Model):
+    """Track ML model versions and metrics"""
+    id = db.Column(db.Integer, primary_key=True)
+    model_type = db.Column(db.String(50), nullable=False)
+    version = db.Column(db.String(100), nullable=False)
+    
+    metrics_json = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.UniqueConstraint('model_type', 'version', name='uq_model_type_version'),
+    )
+    
+    def __repr__(self):
+        return f'<ModelVersion {self.model_type} {self.version}>'
