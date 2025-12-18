@@ -143,6 +143,43 @@ ALTER TABLE optimized_profile ADD COLUMN IF NOT EXISTS strategy_success_rates TE
 CREATE TABLE IF NOT EXISTS rate_limit_entry (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, endpoint VARCHAR(100) NOT NULL, request_count INTEGER DEFAULT 1, window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 ```
 
+### Adaptive ML Architecture (December 2025)
+
+**Overview**: Replaces heuristic-based personalization with trainable ML models across 5 components.
+
+**ML Components**:
+- `mastery_model/`: Logistic regression predicting P(mastered) per (student, skill) using 18 features
+- `risk_model/`: Logistic regression predicting P(at_risk_next_14_days) using 20 features
+- `bandit/`: LinUCB contextual bandit for strategy selection (replaces epsilon-greedy)
+- `retrieval/`: Embedding-based RAG with OpenAI text-embedding-3-small (falls back to TF-IDF)
+- `simulator/`: Demo cohort generator with latent traits for training data
+
+**New Database Models**:
+- `MasteryState`: ML-based mastery state per (student, skill) pair
+- `RiskScore`: ML-based at-risk prediction per (student, class) pair
+- `BanditPolicyState`: Contextual bandit policy state per (student, class) pair
+- `ContentEmbedding`: Embeddings for content retrieval
+- `ModelVersion`: Track ML model versions and metrics
+
+**Training Pipeline**:
+- `training/train_mastery.py`: Train mastery model
+- `training/train_risk.py`: Train risk model
+- `training/evaluate.py`: Evaluate all models
+- `training/roll_forward_retrain.py`: Automated retraining
+
+**Feature Flags** (services/ml_integration.py):
+- `USE_ML_MASTERY`: Enable ML mastery predictions
+- `USE_ML_RISK`: Enable ML risk predictions
+- `USE_CONTEXTUAL_BANDIT`: Enable LinUCB strategy selection
+- `USE_EMBEDDING_RETRIEVAL`: Enable embedding-based content retrieval
+
+**Demo Data Generation**:
+```bash
+python scripts/simulate_school.py --students 100 --days 30 --classes 3 --seed 42
+```
+
+**Documentation**: See `docs/ADAPTIVE_ML_ARCHITECTURE.md` and `docs/SIMULATOR_GUIDE.md`
+
 ## External Dependencies
 
 ### Python Packages
