@@ -77,6 +77,7 @@ def configure_database():
     if supabase_url:
         db_url = supabase_url
         print("Using Supabase PostgreSQL database")
+        print(f"URL starts with: {db_url[:30] if len(db_url) > 30 else db_url}...")
     elif database_url:
         db_url = database_url
         print("Using DATABASE_URL PostgreSQL database")
