@@ -1,0 +1,113 @@
+You are a senior ML systems architect auditing an EdTech platform called AxionAI / AxonAI. Your task is to produce a precise inventory of every model + algorithm currently implemented, and a data lineage map showing how outputs are stored and later consumed by other models.
+
+Hard rules
+	•	Do not guess. Only report what you can verify in the codebase.
+	•	If something is implied but not present, label it: Planned / Not Implemented.
+	•	For every model/algorithm: identify the exact function/class name, file path, and where it is called.
+	•	For every stored artifact: identify the exact table/model name, field names (if visible), and where reads/writes happen.
+
+Output: one Markdown document with these sections
+
+1) Model & Algorithm Inventory (Verified Only)
+
+Create a table with one row per model/algorithm. Columns:
+	•	Component Name
+	•	Type (LLM, bandit, rules engine, scoring model, classifier, retrieval, scheduler, etc.)
+	•	Algorithm (e.g., epsilon-greedy, rolling average, weighted win-rate, rubric scoring, mastery update rule, etc.)
+	•	Implementation Location (repo path + class/function)
+	•	Inputs (runtime) (exact variables/fields)
+	•	Outputs (runtime) (exact variables/fields)
+	•	Persistence (what is stored, where)
+	•	Consumers (which other components read those outputs)
+
+You MUST include any of the following if present:
+	•	Student Chat Tutor (subject-locked LLM)
+	•	Teacher Assistant (LLM)
+	•	Mastery/Skill Model (student skill estimates)
+	•	Strategy Selector (epsilon-greedy bandit)
+	•	Misconception Diagnosis (rule/LLM-based tagging + remediation)
+	•	Analytics (heatmap / at-risk logic)
+	•	Understanding model (profile interpretation / learning-state)
+	•	Test/Quiz generator
+
+2) Data Artifacts and Storage (Canonical Data Dictionary)
+
+List every persisted data artifact as a table with columns:
+	•	Artifact / Entity
+	•	Storage Layer (SQLAlchemy table, SQLite/Postgres, file, cache, etc.)
+	•	Schema Fields (field names + types if available)
+	•	Written By (component + code path)
+	•	Read By (component + code path)
+	•	Lifecycle (created/updated/append-only)
+	•	Retention (if implemented; else “not implemented”)
+	•	PII/Sensitivity (low/med/high)
+
+3) End-to-End Data Lineage Graph (Producer → Store → Consumer)
+
+Produce a DAG-style mapping. For each edge, specify:
+
+Producer component
+→ Stored artifact (table + fields)
+→ Consumer component
+→ How it is used (prompt context, feature value, ranking signal, gating, remediation, analytics, etc.)
+
+Use this explicit format repeatedly:
+	•	Producer: <component>
+Writes: <table.field1, table.field2...> (why)
+Consumer: <component>
+Reads: <table.field...> (how used)
+
+Must cover at least:
+	•	Chat message → AIInteraction/ChatMessage storage → profile summaries → next prompt assembly
+	•	Quiz/quick check → scoring → mastery update → strategy reward update → next strategy selection
+	•	Incorrect answers → misconception tags/remediation → teacher analytics + student tutor follow-up prompts
+	•	Token usage → rate limiting / analytics (if present)
+
+4) Algorithm Details (Explain Exactly What the Code Does)
+
+For each non-LLM algorithm (bandit/mastery/scoring/thresholding):
+	•	Write the step-by-step logic in pseudocode
+	•	Include constants (like 10% exploration / weights)
+	•	Identify what triggers updates and what counts as a “reward”
+	•	Mention where results are stored
+
+Example structure (fill from code, don’t invent):
+	•	Epsilon-Greedy Strategy Selection
+	•	ε = 0.10
+	•	Reward update rule: …
+	•	Stored in: StrategyPerformance(user_id, skill_id, strategy_id, wins, trials, last_updated)
+	•	Used by: Tutor prompt strategy selection
+
+5) Prompt/Data Coupling (How Stored Data Feeds Models)
+
+Describe how stored data is injected into each model:
+	•	What fields go into the system prompt vs user prompt
+	•	What gets summarized (profile summary, misconceptions, recent messages)
+	•	What is not allowed (prevent hallucinated profile edits)
+	•	Any gating rules (subject-lock, enrollment checks)
+
+6) Call-Site Index (Where Each Model Runs)
+
+List all endpoints/jobs that invoke models, in this format:
+	•	Route/Job: <method path OR scheduler job>
+	•	Calls: <component>
+	•	Reads: <tables>
+	•	Writes: <tables>
+
+7) Gaps + Risk Flags (No sugar-coating)
+
+List the biggest risks you find, e.g.:
+	•	missing retention rules
+	•	profile contamination / prompt injection risk
+	•	data duplication
+	•	missing schema constraints
+	•	missing evaluation metrics for bandit policies
+	•	untracked model versions
+
+Repo scanning instructions
+	•	Walk the repo tree.
+	•	Inspect routes.py, api_routes.py, models.py, and ai_service.py (or equivalents).
+	•	Find anywhere “strategy”, “mastery”, “misconception”, “heatmap”, “analytics”, “quiz”, “token”, “interaction” appear.
+	•	Extract exact names and relationships.
+
+Now generate the document.
