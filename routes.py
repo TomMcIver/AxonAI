@@ -665,12 +665,80 @@ def generate_demo_data():
         generator = RealisticDataGenerator()
         results = generator.generate_complete_dataset(100)
         
-        flash(f'✅ Generated {results["students"]} students with {results["interactions"]} interactions! Ready for AI analysis.', 'success')
+        flash(f'Generated {results["students"]} students with {results["interactions"]} interactions! Ready for AI analysis.', 'success')
         return redirect(url_for('ai_dashboard'))
         
     except Exception as e:
         flash(f'Error generating data: {str(e)}', 'danger')
         return redirect(url_for('ai_dashboard'))
+
+@app.route('/admin/generate-and-train', methods=['POST'])
+@admin_required
+def generate_and_train():
+    """Generate simulated data and train ML models"""
+    from data_generator import RealisticDataGenerator
+    
+    try:
+        num_students = int(request.form.get('num_students', 100))
+        num_students = max(10, min(500, num_students))
+        
+        generator = RealisticDataGenerator()
+        results = generator.generate_complete_dataset(num_students)
+        
+        from training.train_mastery import train_mastery_model
+        from training.train_risk import train_risk_model
+        
+        mastery_metrics = train_mastery_model(db, app, regularization_strength=1.0)
+        risk_metrics = train_risk_model(db, app, regularization_strength=1.0)
+        
+        session['last_training_metrics'] = {
+            'mastery': mastery_metrics,
+            'risk': risk_metrics,
+            'generation': results
+        }
+        
+        flash(f'Generated {results["students"]} students with {results["interactions"]} interactions. Models trained successfully!', 'success')
+        return redirect(url_for('ml_training_dashboard'))
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('ai_dashboard'))
+
+@app.route('/admin/ml-training')
+@admin_required
+def ml_training_dashboard():
+    """ML training dashboard with metrics visualization"""
+    from models import ModelVersion
+    
+    model_versions = ModelVersion.query.order_by(ModelVersion.created_at.desc()).limit(10).all()
+    
+    last_metrics = session.get('last_training_metrics', {})
+    
+    return render_template('admin_ml_training.html',
+                          model_versions=model_versions,
+                          last_metrics=last_metrics)
+
+@app.route('/api/training-metrics/<model_type>')
+@admin_required
+def get_training_metrics(model_type):
+    """Get training metrics for visualization"""
+    from models import ModelVersion
+    import json
+    
+    mv = ModelVersion.query.filter_by(
+        model_type=model_type, is_active=True
+    ).order_by(ModelVersion.created_at.desc()).first()
+    
+    if not mv or not mv.metrics_json:
+        return jsonify({'error': 'No metrics found'}), 404
+    
+    try:
+        metrics = json.loads(mv.metrics_json)
+        return jsonify(metrics)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/admin/run-big-ai', methods=['POST'])
 @admin_required

@@ -132,20 +132,24 @@ def derive_risk_label(student, cls, interactions, mastery_history):
     return 0
 
 
-def train_risk_model(db=None, app=None, version: str = None):
+def train_risk_model(db=None, app=None, version: str = None, regularization_strength: float = 1.0):
     """
-    Train risk model from database data.
+    Train risk model from database data with overfitting prevention.
     
     Args:
         db: SQLAlchemy database instance
         app: Flask app for context
         version: Model version string
+        regularization_strength: L2 regularization (C = 1/strength)
         
     Returns:
-        Training metrics dictionary
+        Training metrics dictionary with training history
     """
     from risk_model.model import RiskModel
     from risk_model.feature_builder import RiskFeatureBuilder
+    from sklearn.model_selection import cross_val_score
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import StandardScaler
     
     if version is None:
         version = datetime.utcnow().strftime('v%Y%m%d_%H%M%S')
@@ -154,6 +158,14 @@ def train_risk_model(db=None, app=None, version: str = None):
         from app import app as flask_app, db as flask_db
         app = flask_app
         db = flask_db
+    
+    training_history = {
+        'train_loss': [],
+        'val_loss': [],
+        'train_accuracy': [],
+        'val_accuracy': [],
+        'epochs': []
+    }
     
     with app.app_context():
         print(f"Building risk dataset...")
@@ -178,22 +190,98 @@ def train_risk_model(db=None, app=None, version: str = None):
         X_train, y_train = X[train_idx], y[train_idx]
         X_val, y_val = X[val_idx], y[val_idx]
         
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_val_scaled = scaler.transform(X_val) if len(X_val) > 0 else X_val
+        
         print(f"Training on {len(X_train)} samples, validating on {len(X_val)}")
         
         feature_builder = RiskFeatureBuilder()
+        C_value = 1.0 / regularization_strength
+        
+        max_iters = [50, 100, 200, 500, 1000]
+        best_val_loss = float('inf')
+        patience = 2
+        patience_counter = 0
+        best_model = None
+        
+        for i, max_iter in enumerate(max_iters):
+            temp_model = LogisticRegression(
+                C=C_value,
+                penalty='l2',
+                solver='lbfgs',
+                max_iter=max_iter,
+                warm_start=True,
+                class_weight='balanced',
+                random_state=42
+            )
+            temp_model.fit(X_train_scaled, y_train)
+            
+            train_proba = temp_model.predict_proba(X_train_scaled)
+            train_loss = -np.mean(
+                y_train * np.log(train_proba[:, 1] + 1e-10) + 
+                (1 - y_train) * np.log(train_proba[:, 0] + 1e-10)
+            )
+            train_accuracy = temp_model.score(X_train_scaled, y_train)
+            
+            if len(X_val) > 0:
+                val_proba = temp_model.predict_proba(X_val_scaled)
+                val_loss = -np.mean(
+                    y_val * np.log(val_proba[:, 1] + 1e-10) + 
+                    (1 - y_val) * np.log(val_proba[:, 0] + 1e-10)
+                )
+                val_accuracy = temp_model.score(X_val_scaled, y_val)
+            else:
+                val_loss = train_loss
+                val_accuracy = train_accuracy
+            
+            training_history['epochs'].append(max_iter)
+            training_history['train_loss'].append(float(train_loss))
+            training_history['val_loss'].append(float(val_loss))
+            training_history['train_accuracy'].append(float(train_accuracy))
+            training_history['val_accuracy'].append(float(val_accuracy))
+            
+            print(f"Epoch {max_iter}: train_loss={train_loss:.4f}, val_loss={val_loss:.4f}, train_acc={train_accuracy:.4f}, val_acc={val_accuracy:.4f}")
+            
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_model = temp_model
+                patience_counter = 0
+            else:
+                patience_counter += 1
+                if patience_counter >= patience:
+                    print(f"Early stopping at epoch {max_iter}")
+                    break
         
         model = RiskModel(version=version)
-        train_metrics = model.fit(X_train, y_train, feature_names=feature_builder.get_feature_names())
+        model.model = best_model
+        model.scaler = scaler
+        model.feature_names = feature_builder.get_feature_names()
+        
+        train_metrics = {
+            'accuracy': float(best_model.score(X_train_scaled, y_train)),
+            'train_samples': len(y_train),
+            'regularization_C': C_value
+        }
         
         if len(X_val) > 0:
-            y_val_pred = model.predict(X_val)
-            y_val_proba = model.predict_proba(X_val)
-            
+            y_val_pred = best_model.predict(X_val_scaled)
             val_metrics = {
                 'val_accuracy': float(np.mean(y_val_pred == y_val)),
+                'val_loss': float(best_val_loss),
                 'val_samples': len(y_val)
             }
             train_metrics.update(val_metrics)
+        
+        train_metrics['training_history'] = training_history
+        
+        cv_scores = cross_val_score(
+            LogisticRegression(C=C_value, penalty='l2', solver='lbfgs', max_iter=1000, class_weight='balanced'),
+            scaler.fit_transform(X), y, cv=min(5, len(X) // 2), scoring='accuracy'
+        )
+        train_metrics['cv_accuracy_mean'] = float(np.mean(cv_scores))
+        train_metrics['cv_accuracy_std'] = float(np.std(cv_scores))
+        print(f"Cross-validation accuracy: {train_metrics['cv_accuracy_mean']:.4f} (+/- {train_metrics['cv_accuracy_std']:.4f})")
         
         model_path = model.save()
         print(f"Model saved to: {model_path}")
@@ -216,7 +304,7 @@ def train_risk_model(db=None, app=None, version: str = None):
         except Exception as e:
             print(f"Could not save model version to DB: {e}")
         
-        print(f"\nTraining complete. Metrics: {json.dumps(train_metrics, indent=2)}")
+        print(f"\nTraining complete. Metrics: {json.dumps({k: v for k, v in train_metrics.items() if k != 'training_history'}, indent=2)}")
         return train_metrics
 
 

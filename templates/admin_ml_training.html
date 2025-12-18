@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}ML Training Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4">
+                <i class="fas fa-cogs text-primary me-3"></i>
+                ML Training Dashboard
+            </h1>
+            <p class="lead text-muted">Generate simulated data and train AI models with overfitting prevention</p>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-database me-2"></i>Generate Data & Train Models</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('generate_and_train') }}" id="trainForm">
+                        <div class="mb-3">
+                            <label for="num_students" class="form-label">Number of Students</label>
+                            <input type="number" class="form-control" id="num_students" name="num_students" 
+                                   value="100" min="10" max="500">
+                            <small class="text-muted">More students = better training but longer time (10-500)</small>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-lg w-100" id="trainBtn">
+                            <i class="fas fa-play me-2"></i>
+                            <span class="button-text">Generate Data & Train Models</span>
+                            <span class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+                        </button>
+                    </form>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <strong>Overfitting Prevention:</strong>
+                            <ul class="mb-0 mt-1">
+                                <li>L2 Regularization (weight decay)</li>
+                                <li>Early stopping on validation loss</li>
+                                <li>5-fold cross-validation</li>
+                                <li>Train/validation split (80/20)</li>
+                            </ul>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Model Versions</h5>
+                </div>
+                <div class="card-body">
+                    {% if model_versions %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Version</th>
+                                    <th>Val Acc</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mv in model_versions %}
+                                <tr>
+                                    <td><span class="badge bg-{{ 'success' if mv.model_type == 'mastery' else 'warning' }}">{{ mv.model_type }}</span></td>
+                                    <td><code>{{ mv.version[:15] }}...</code></td>
+                                    <td>
+                                        {% set metrics = mv.metrics_json | tojson | safe %}
+                                        {% if 'val_accuracy' in metrics %}
+                                            {{ (metrics | from_json).val_accuracy | round(3) if metrics else 'N/A' }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ mv.created_at.strftime('%m/%d %H:%M') if mv.created_at else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">No models trained yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if last_metrics %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-primary mb-4">
+                <i class="fas fa-chart-line me-2"></i>Latest Training Results
+            </h2>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-success">{{ last_metrics.generation.students if last_metrics.generation else 0 }}</h3>
+                    <p class="mb-0">Students Generated</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-info">{{ last_metrics.generation.interactions if last_metrics.generation else 0 }}</h3>
+                    <p class="mb-0">Interactions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ "%.1f" | format((last_metrics.mastery.val_accuracy or 0) * 100) }}%</h3>
+                    <p class="mb-0">Mastery Val Accuracy</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-warning">{{ "%.1f" | format((last_metrics.risk.val_accuracy or 0) * 100) }}%</h3>
+                    <p class="mb-0">Risk Val Accuracy</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-brain me-2"></i>Mastery Model Training</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="masteryChart" height="250"></canvas>
+                    <div class="mt-3">
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Train Accuracy: <strong>{{ "%.1f" | format((last_metrics.mastery.accuracy or 0) * 100) }}%</strong></small>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Val Accuracy: <strong>{{ "%.1f" | format((last_metrics.mastery.val_accuracy or 0) * 100) }}%</strong></small>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-6">
+                                <small class="text-muted">CV Accuracy: <strong>{{ "%.1f" | format((last_metrics.mastery.cv_accuracy_mean or 0) * 100) }}% (+/- {{ "%.1f" | format((last_metrics.mastery.cv_accuracy_std or 0) * 100) }}%)</strong></small>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Samples: <strong>{{ last_metrics.mastery.train_samples or 0 }}</strong></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Risk Model Training</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="riskChart" height="250"></canvas>
+                    <div class="mt-3">
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Train Accuracy: <strong>{{ "%.1f" | format((last_metrics.risk.accuracy or 0) * 100) }}%</strong></small>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Val Accuracy: <strong>{{ "%.1f" | format((last_metrics.risk.val_accuracy or 0) * 100) }}%</strong></small>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-6">
+                                <small class="text-muted">CV Accuracy: <strong>{{ "%.1f" | format((last_metrics.risk.cv_accuracy_mean or 0) * 100) }}% (+/- {{ "%.1f" | format((last_metrics.risk.cv_accuracy_std or 0) * 100) }}%)</strong></small>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Samples: <strong>{{ last_metrics.risk.train_samples or 0 }}</strong></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-12">
+            <a href="{{ url_for('ai_dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to AI Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.getElementById('trainForm').addEventListener('submit', function(e) {
+    var btn = document.getElementById('trainBtn');
+    btn.disabled = true;
+    btn.querySelector('.button-text').textContent = 'Training... (this may take a minute)';
+    btn.querySelector('.spinner-border').classList.remove('d-none');
+});
+
+{% if last_metrics and last_metrics.mastery and last_metrics.mastery.training_history %}
+var masteryHistory = {{ last_metrics.mastery.training_history | tojson | safe }};
+var masteryCtx = document.getElementById('masteryChart').getContext('2d');
+new Chart(masteryCtx, {
+    type: 'line',
+    data: {
+        labels: masteryHistory.epochs,
+        datasets: [{
+            label: 'Train Loss',
+            data: masteryHistory.train_loss,
+            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+            tension: 0.1,
+            fill: false
+        }, {
+            label: 'Validation Loss',
+            data: masteryHistory.val_loss,
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            tension: 0.1,
+            fill: false
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Loss vs Training Iterations'
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Iterations'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Loss (Cross-Entropy)'
+                },
+                min: 0
+            }
+        }
+    }
+});
+{% endif %}
+
+{% if last_metrics and last_metrics.risk and last_metrics.risk.training_history %}
+var riskHistory = {{ last_metrics.risk.training_history | tojson | safe }};
+var riskCtx = document.getElementById('riskChart').getContext('2d');
+new Chart(riskCtx, {
+    type: 'line',
+    data: {
+        labels: riskHistory.epochs,
+        datasets: [{
+            label: 'Train Loss',
+            data: riskHistory.train_loss,
+            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+            tension: 0.1,
+            fill: false
+        }, {
+            label: 'Validation Loss',
+            data: riskHistory.val_loss,
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            tension: 0.1,
+            fill: false
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Loss vs Training Iterations'
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Iterations'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Loss (Cross-Entropy)'
+                },
+                min: 0
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}
