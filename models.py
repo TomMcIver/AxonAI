@@ -721,3 +721,38 @@ class ModelVersion(db.Model):
             return 'N/A'
         except:
             return 'N/A'
+
+
+class MLTrainingJob(db.Model):
+    """Track background ML training jobs"""
+    id = db.Column(db.Integer, primary_key=True)
+    job_type = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(20), default='pending')
+    progress_pct = db.Column(db.Integer, default=0)
+    eta_seconds = db.Column(db.Integer, nullable=True)
+    
+    started_at = db.Column(db.DateTime, nullable=True)
+    finished_at = db.Column(db.DateTime, nullable=True)
+    
+    error = db.Column(db.Text, nullable=True)
+    metrics_json = db.Column(db.Text, nullable=True)
+    
+    num_students = db.Column(db.Integer, default=100)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<MLTrainingJob {self.id} {self.job_type} {self.status}>'
+    
+    def get_metrics(self):
+        """Get metrics as dict"""
+        if not self.metrics_json:
+            return {}
+        try:
+            return json.loads(self.metrics_json)
+        except:
+            return {}
+    
+    def set_metrics(self, metrics_dict):
+        """Set metrics from dict"""
+        self.metrics_json = json.dumps(metrics_dict)
