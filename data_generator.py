@@ -554,7 +554,9 @@ class RealisticDataGenerator:
                 student.classes.clear()
             db.session.commit()
             
-            # Now clear the related data
+            # Now clear the related data (including token usage that references users)
+            db.session.execute(db.text('DELETE FROM token_usage'))
+            db.session.execute(db.text('DELETE FROM rate_limit_entry'))
             AIInteraction.query.delete()
             OptimizedProfile.query.delete()
             FailedStrategy.query.delete()
