@@ -1,20 +1,26 @@
 """
 Background Task Scheduler for Big AI Coordinator
-Runs periodic analysis and optimization tasks
+Runs periodic analysis and optimization tasks.
+
+Note: Local ML training has been moved to external services.
+This scheduler only handles analytics/reporting jobs now.
 """
 import atexit
+import os
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from ai_coordinator import BigAICoordinator
+
+ENABLE_SCHEDULER = os.environ.get("ENABLE_SCHEDULER", "true").lower() == "true"
+
 
 def run_big_ai_analysis():
-    """Run Big AI Coordinator analysis"""
+    """Run Big AI Coordinator analysis (non-ML tasks only)"""
     print(f"[{datetime.now()}] Starting Big AI Coordinator analysis...")
     try:
+        from ai_coordinator import BigAICoordinator
         coordinator = BigAICoordinator()
         
-        # Run all analysis tasks
         coordinator.analyze_global_patterns()
         coordinator.generate_grade_predictions()
         coordinator.generate_teacher_insights()
@@ -23,11 +29,15 @@ def run_big_ai_analysis():
     except Exception as e:
         print(f"[{datetime.now()}] Big AI Coordinator error: {e}")
 
+
 def init_scheduler(app):
     """Initialize the scheduler with Flask app context"""
+    if not ENABLE_SCHEDULER:
+        print("Scheduler disabled via ENABLE_SCHEDULER=false")
+        return None
+    
     scheduler = BackgroundScheduler()
     
-    # Schedule Big AI Coordinator to run every 6 hours
     scheduler.add_job(
         func=lambda: run_with_app_context(app, run_big_ai_analysis),
         trigger=IntervalTrigger(hours=6),
@@ -36,23 +46,13 @@ def init_scheduler(app):
         replace_existing=True
     )
     
-    # Also run analysis once on startup (after 1 minute delay)
-    scheduler.add_job(
-        func=lambda: run_with_app_context(app, run_big_ai_analysis),
-        trigger='date',
-        run_date=datetime.now().replace(second=datetime.now().second + 60),
-        id='big_ai_startup',
-        name='Big AI Initial Analysis'
-    )
-    
-    # Start the scheduler
     scheduler.start()
     
-    # Shut down scheduler when app exits
     atexit.register(lambda: scheduler.shutdown())
     
     print("Background task scheduler initialized")
     return scheduler
+
 
 def run_with_app_context(app, func):
     """Run a function within Flask app context"""

@@ -1,10 +1,10 @@
 import os
 import logging
+from urllib.parse import urlparse
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 
-# Try to load environment variables from .env file
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -12,7 +12,6 @@ try:
 except ImportError:
     print("python-dotenv not installed. Using system environment variables only.")
 
-# Set up logging
 logging.basicConfig(level=logging.DEBUG)
 
 class Base(DeclarativeBase):
@@ -20,73 +19,98 @@ class Base(DeclarativeBase):
 
 db = SQLAlchemy(model_class=Base)
 
-# Create the app
 app = Flask(__name__)
 
-# Add ProxyFix for proper HTTPS handling behind proxy
 from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-# Security: No fallback for secret key - must be set in environment
+
 app.secret_key = os.environ.get("SESSION_SECRET")
 if not app.secret_key:
     raise ValueError("SESSION_SECRET environment variable must be set for security")
 
-# Security: Never log sensitive credentials
 if os.environ.get('DATABASE_URL'):
     print("DATABASE_URL configured successfully")
 if os.environ.get('SESSION_SECRET'):
     print("SESSION_SECRET configured successfully")
 
-# Configure the database with automatic fallback
-database_url = os.environ.get("DATABASE_URL")
-if not database_url:
-    # Fallback to SQLite for development if no DATABASE_URL is set
-    database_url = "sqlite:///school_management.db"
-    print("Warning: DATABASE_URL not set. Using SQLite fallback: sqlite:///school_management.db")
-else:
-    # Test PostgreSQL connection and fallback to SQLite if it fails
-    if database_url.startswith('postgresql://'):
+def configure_database():
+    """Configure database connection with Supabase/PostgreSQL support."""
+    supabase_url = os.environ.get("SUPABASE_DB_URL")
+    database_url = os.environ.get("DATABASE_URL")
+    
+    if supabase_url:
+        db_url = supabase_url
+        print("Using Supabase PostgreSQL database")
+    elif database_url:
+        db_url = database_url
+        print("Using DATABASE_URL PostgreSQL database")
+    else:
+        db_url = "sqlite:///school_management.db"
+        print("Warning: No PostgreSQL URL set. Using SQLite fallback: sqlite:///school_management.db")
+        return db_url, {}
+    
+    if db_url.startswith('postgresql://') or db_url.startswith('postgres://'):
+        if db_url.startswith('postgres://'):
+            db_url = db_url.replace('postgres://', 'postgresql://', 1)
+        
+        if 'sslmode=' not in db_url:
+            separator = '&' if '?' in db_url else '?'
+            db_url = f"{db_url}{separator}sslmode=require"
+        
+        try:
+            parsed = urlparse(db_url)
+            host = parsed.hostname or 'unknown'
+            print(f"PostgreSQL host: {host}")
+        except Exception:
+            print("PostgreSQL connection configured")
+        
         try:
             import psycopg2
-            # Test the connection
-            test_conn = psycopg2.connect(database_url)
+            test_conn = psycopg2.connect(db_url)
             test_conn.close()
             print("PostgreSQL connection successful")
         except Exception as e:
-            print(f"PostgreSQL connection failed: {e}")
-            print("Falling back to SQLite for development")
-            database_url = "sqlite:///school_management.db"
+            print(f"PostgreSQL connection test failed: {e}")
+            print("Will attempt connection at runtime...")
+    
+    engine_options = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+        "pool_size": 5,
+        "max_overflow": 10,
+    }
+    
+    return db_url, engine_options
+
+database_url, engine_options = configure_database()
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_options if engine_options else {
     "pool_recycle": 300,
     "pool_pre_ping": True,
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Only show type of database, not the full connection string
 if 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI']:
     print("Using PostgreSQL database")
 else:
     print("Using SQLite database")
 
-# Initialize the app with the extension
 db.init_app(app)
 
-# Import routes and models to register them with the app
+USE_LOCAL_SQLITE_AGENTS = os.environ.get("USE_LOCAL_SQLITE_AGENTS", "false").lower() == "true"
+USE_LOCAL_ML = os.environ.get("USE_LOCAL_ML", "false").lower() == "true"
+
+print(f"Feature flags: USE_LOCAL_SQLITE_AGENTS={USE_LOCAL_SQLITE_AGENTS}, USE_LOCAL_ML={USE_LOCAL_ML}")
+
 with app.app_context():
-    # Import models first
     import models
     
-    # Import routes to register them
     import routes
     import api_routes
     
-    # Create database tables
     db.create_all()
     
-    # Initialize background task scheduler for Big AI Coordinator
-    # Only run scheduler in main process to avoid duplicates
     import os
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
         try:

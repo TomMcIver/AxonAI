@@ -145,33 +145,52 @@ CREATE TABLE IF NOT EXISTS rate_limit_entry (id SERIAL PRIMARY KEY, user_id INTE
 
 ### Adaptive ML Architecture (December 2025)
 
-**Overview**: Replaces heuristic-based personalization with trainable ML models across 5 components.
+**Overview**: ML models are hosted on an external Render service. This Flask app calls the ML API via HTTP for mastery, risk, and bandit predictions.
 
-**ML Components**:
-- `mastery_model/`: Logistic regression predicting P(mastered) per (student, skill) using 18 features
-- `risk_model/`: Logistic regression predicting P(at_risk_next_14_days) using 20 features
-- `bandit/`: LinUCB contextual bandit for strategy selection (replaces epsilon-greedy)
-- `retrieval/`: Embedding-based RAG with OpenAI text-embedding-3-small (falls back to TF-IDF)
-- `simulator/`: Demo cohort generator with latent traits for training data
+**Architecture Refactoring (December 18, 2025)**:
+- Local ML code moved to `deprecated_local_ml/` (mastery_model, risk_model, bandit, retrieval, training)
+- New `services/ml_api_client.py` - HTTP client for external ML services
+- All ML inference now routes through external API when `ML_API_BASE_URL` is configured
+- Database connection updated to support Supabase PostgreSQL with pooler URL and SSL
 
-**New Database Models**:
-- `MasteryState`: ML-based mastery state per (student, skill) pair
-- `RiskScore`: ML-based at-risk prediction per (student, class) pair
-- `BanditPolicyState`: Contextual bandit policy state per (student, class) pair
+**Environment Variables**:
+- `SUPABASE_DB_URL` or `DATABASE_URL`: PostgreSQL connection string (pooler URL preferred for IPv4 compatibility)
+- `ML_API_BASE_URL`: Base URL for Render-hosted ML service (e.g., `https://your-ml-service.onrender.com`)
+- `AXON_SERVICE_KEY`: Shared secret for ML API authentication (sent as X-AXON-KEY header)
+- `USE_LOCAL_ML`: Set to "true" to use deprecated local ML (default: false)
+- `USE_LOCAL_SQLITE_AGENTS`: Set to "true" to enable SQLite-based agents (default: false)
+- `ENABLE_SCHEDULER`: Set to "false" to disable background scheduler (default: true)
+
+**ML API Endpoints** (called from services/ml_api_client.py):
+- `POST /mastery/predict`: Predict mastery for (student_id, skill, class_id)
+- `POST /risk/score`: Score risk for (student_id, class_id)
+- `POST /bandit/select`: Select strategy for (student_id, class_id, bandit_type)
+- `POST /bandit/update`: Update bandit reward after interaction
+- `POST /mastery/train` and `/risk/train`: Trigger retraining (admin only)
+
+**Smoke Test**:
+```bash
+python scripts/smoke_ml_api.py
+```
+
+**Deprecated Local ML Components** (in deprecated_local_ml/):
+- `mastery_model/`: Logistic regression for mastery prediction
+- `risk_model/`: Logistic regression for at-risk prediction
+- `bandit/`: LinUCB contextual bandit
+- `retrieval/`: Embedding-based RAG
+- `training/`: Training pipeline scripts
+
+**Database Models** (still active in models.py):
+- `MasteryState`: Cached mastery state per (student, skill) pair
+- `RiskScore`: Cached at-risk prediction per (student, class) pair
+- `BanditPolicyState`: Bandit policy state per (student, class) pair
 - `ContentEmbedding`: Embeddings for content retrieval
 - `ModelVersion`: Track ML model versions and metrics
 
-**Training Pipeline**:
-- `training/train_mastery.py`: Train mastery model
-- `training/train_risk.py`: Train risk model
-- `training/evaluate.py`: Evaluate all models
-- `training/roll_forward_retrain.py`: Automated retraining
-
-**Feature Flags** (services/ml_integration.py):
-- `USE_ML_MASTERY`: Enable ML mastery predictions
-- `USE_ML_RISK`: Enable ML risk predictions
-- `USE_CONTEXTUAL_BANDIT`: Enable LinUCB strategy selection
-- `USE_EMBEDDING_RETRIEVAL`: Enable embedding-based content retrieval
+**Feature Flags** (app.py and services/ml_integration.py):
+- Remote ML API is used by default when `ML_API_BASE_URL` is configured
+- Falls back to database-cached values when API is unavailable
+- Falls back to heuristics when no data available
 
 **Demo Data Generation**:
 ```bash
