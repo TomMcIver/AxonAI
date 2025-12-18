@@ -1,0 +1,95 @@
+You are my senior ML + backend architect. I’m building AxonAI (Flask backend + DB + multi-agent tutoring). I need a complete, explicit inventory of every AI/ML model currently in this codebase, what it does, and what data it uses, then a plan to refactor so each model is its own service and can access only the data it needs.
+
+1) First: scan the repo and produce a “Model Registry”
+
+Search the entire codebase and list every model / AI component, including:
+
+Any “AIService”, “Tutor agent”, “Mastery tracker”, “Analytics AI”, “Understanding AI”, “Misconception diagnosis”, “Test generator”, embedding models, classifiers, knowledge tracing, bandits, etc.
+For each model/component, output a table with:
+
+Name / file / class/function
+
+Purpose
+
+Inputs (exact fields + where they come from)
+
+Outputs (exact schema)
+
+Training vs inference (is it trained? fine-tuned? rule-based? prompt-only?)
+
+Where state is stored (DB tables/fields, files, cache)
+
+Latency sensitivity (real-time chat vs batch analytics)
+
+2) Second: “Data used” map (ground truth)
+
+Build a data lineage map:
+
+Which tables are used by which model/component (and which columns)
+
+Which endpoints trigger which model
+
+Any background jobs / schedulers that update model state
+
+Any data that looks like labels, training targets, mastery scores, misconception tags, or derived features
+
+3) Third: propose a refactor into separate model services
+
+I want to “basic code the models separately” and have them access training data from a separate store (NOT AWS). I also want the main app to stay lightweight.
+Design a clean architecture with:
+
+Flask App (API gateway)
+
+Separate Model Services (one per model type: tutor chat, mastery/KT, misconception diagnosis, analytics, test generation)
+
+A shared feature store / training data store that is cloud-agnostic (suggest 2–3 options that are not AWS: e.g., Supabase Postgres + storage, Cloudflare R2, Backblaze B2, Fly.io volumes, self-hosted MinIO, etc.)
+
+Clear service boundaries + schemas + auth between services
+
+A “student profile retrieval” contract: what the tutor service can request and what it must never see
+
+Deliverables:
+
+A diagram in text (boxes + arrows)
+
+A minimal service interface spec for each model service:
+
+endpoints
+
+request/response JSON
+
+required DB reads/writes
+
+A migration plan: steps to extract each model into its own service without breaking the app
+
+4) Fourth: Supabase migration / DB overview plan
+
+I’m considering moving/connecting my DB to Supabase for easier visibility and tooling.
+Give me:
+
+Recommended DB structure changes (if any)
+
+How to connect Flask to Supabase Postgres (connection string approach)
+
+How to handle:
+
+migrations (Alembic or equivalent)
+
+row level security (RLS) suggestions for students/teachers
+
+file storage (class materials, embeddings, logs)
+
+audit logs (AI interactions, token usage)
+
+A step-by-step checklist to migrate from current DB to Supabase safely
+
+5) Output format requirements
+
+Start with the Model Registry table
+
+Then the Data Lineage Map
+
+Then the Target Architecture
+
+Then Migration Checklist
+Be brutally specific. If you cannot find a model, say “not found” and show the files you checked.
