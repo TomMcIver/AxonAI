@@ -1,6 +1,6 @@
 import os
 import logging
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs, urlencode, quote_plus
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
@@ -33,6 +33,42 @@ if os.environ.get('DATABASE_URL'):
 if os.environ.get('SESSION_SECRET'):
     print("SESSION_SECRET configured successfully")
 
+def normalize_postgres_url(url):
+    """
+    Normalize PostgreSQL URL to handle special characters in password.
+    Re-encodes the password component to ensure proper URL encoding.
+    """
+    if not url:
+        return url
+    
+    if '[YOUR-PASSWORD]' in url or '[YOUR_PASSWORD]' in url:
+        print("ERROR: URL contains placeholder [YOUR-PASSWORD]. Please replace with actual password.")
+        return None
+    
+    try:
+        parsed = urlparse(url)
+        
+        if not parsed.hostname:
+            print(f"ERROR: Could not parse hostname from URL")
+            return None
+        
+        if parsed.password:
+            encoded_password = quote_plus(parsed.password)
+            
+            if parsed.port:
+                netloc = f"{parsed.username}:{encoded_password}@{parsed.hostname}:{parsed.port}"
+            else:
+                netloc = f"{parsed.username}:{encoded_password}@{parsed.hostname}"
+            
+            normalized = f"{parsed.scheme}://{netloc}{parsed.path}"
+            if parsed.query:
+                normalized += f"?{parsed.query}"
+            return normalized
+    except Exception as e:
+        print(f"Warning: Could not normalize URL: {e}")
+    
+    return url
+
 def configure_database():
     """Configure database connection with Supabase/PostgreSQL support."""
     supabase_url = os.environ.get("SUPABASE_DB_URL")
@@ -52,6 +88,12 @@ def configure_database():
     if db_url.startswith('postgresql://') or db_url.startswith('postgres://'):
         if db_url.startswith('postgres://'):
             db_url = db_url.replace('postgres://', 'postgresql://', 1)
+        
+        db_url = normalize_postgres_url(db_url)
+        
+        if db_url is None:
+            print("Falling back to SQLite due to invalid PostgreSQL URL")
+            return "sqlite:///school_management.db", {}
         
         if 'sslmode=' not in db_url:
             separator = '&' if '?' in db_url else '?'
