@@ -1,0 +1,161 @@
+Goal: Replace these non-AI parts with ML
+
+A) Mastery Tracking (currently keyword heuristics) → Trainable Mastery Model
+
+Implement a mastery estimator per (student, skill) that outputs a probability P(mastered).
+
+Requirements
+	•	Create a mastery_model/ module with:
+	•	feature builder: from interaction + quiz attempts
+	•	a baseline model (Logistic Regression or LightGBM/XGBoost if already used)
+	•	calibration (optional but ideal)
+	•	Features should include:
+	•	attempt correctness history, rolling accuracy
+	•	difficulty, time_taken, hint_usage (if available)
+	•	engagement_score, message length, session cadence
+	•	recency and frequency features
+	•	Persistence:
+	•	Add or use a table to store:
+	•	MasteryState(student_id, skill, p_mastery, updated_at, model_version)
+	•	Also persist trained model artifacts on disk: models/mastery/<version>/model.pkl
+	•	Online learning:
+	•	After every quiz/quick-check submission, update mastery state incrementally:
+	•	either via an online-capable model (SGDClassifier/logistic) or
+	•	via “mini-batch retrain” every N interactions per student/class
+	•	Replace usages of the old heuristic mastery outputs with MasteryState.p_mastery.
+
+B) At-Risk Detection (currently thresholds) → Risk Prediction Model
+
+Implement a risk model that predicts P(at_risk_next_14_days).
+
+Requirements
+	•	Module: risk_model/
+	•	Training data:
+	•	derived labels from demo simulator initially (and later real outcomes)
+	•	label definition configurable: e.g. predicted fail, score drop, disengagement
+	•	Features:
+	•	mastery slope (Δp_mastery), engagement trend, missed attempts, low accuracy streaks
+	•	attendance_rate (if present), time-of-day patterns, topic churn
+	•	Persistence:
+	•	RiskScore(student_id, class_id, p_risk, top_drivers_json, updated_at, model_version)
+	•	Explanations:
+	•	Provide top drivers using:
+	•	logistic coefficients OR
+	•	SHAP if using tree models (only if already in dependencies)
+	•	Replace rule-based at-risk output in teacher insights with this risk score.
+
+C) Strategy Selection → Contextual Bandit (Adaptive)
+
+Replace epsilon-greedy strategy selection with a contextual bandit that chooses strategies based on student context.
+
+Requirements
+	•	Keep epsilon-greedy as fallback; add feature flag USE_CONTEXTUAL_BANDIT.
+	•	Implement contextual bandit:
+	•	start with LinUCB or Thompson Sampling with linear reward model
+	•	context vector includes mastery, risk, engagement, skill, difficulty, time-of-day
+	•	Reward signal:
+	•	primary: mastery gain Δp_mastery over next attempt window
+	•	secondary: engagement change, correctness of next quick-check
+	•	Persistence:
+	•	BanditPolicyState table or JSON blob with:
+	•	per-strategy parameters, counts, last_updated, model_version
+	•	Online update:
+	•	update policy after each observed reward event (quiz/quick-check outcome)
+
+D) Retrieval (keyword overlap) → Embedding Retrieval (RAG-lite)
+
+Replace keyword overlap retrieval with embeddings.
+
+Requirements
+	•	Module: retrieval/
+	•	Create a simple vector store:
+	•	compute embeddings for ContentFile/materials
+	•	store in DB as arrays/blobs or a lightweight local index
+	•	Query-time:
+	•	embed user message
+	•	return top-k content snippets by cosine similarity
+	•	If no embedding model available, add a local small embedding model dependency OR use existing provider (whichever is easiest in this repo).
+	•	Ensure retrieved content is injected into prompts exactly where old retrieval was used.
+
+⸻
+
+Demo Data Simulator (Critical)
+
+Add a simulator/ module that can generate realistic demo cohorts and populate the DB.
+
+Requirements
+	•	CLI: python scripts/simulate_school.py --students 500 --days 30 --classes 6 --seed 42
+	•	It must generate:
+	•	Users/students with latent traits: baseline ability, learning rate, engagement, skill weaknesses
+	•	Interactions: ChatMessage + AIInteraction records
+	•	Assessments: MiniTest + MiniTestResponse with per-skill correctness
+	•	Outcomes: improvement curves, plateaus, regressions, absences
+	•	Strategies must have measurable effects:
+	•	define per-student sensitivity to strategies so the bandit can learn
+	•	The simulator should optionally “play through” the tutor loop by calling internal service functions (not just writing raw rows) so the same pipelines execute.
+
+⸻
+
+Training + Adaptive Learning Pipeline
+
+Create a training/ package and scripts:
+	1.	python training/train_mastery.py
+	2.	python training/train_risk.py
+	3.	python training/evaluate_all.py
+	4.	python training/roll_forward_retrain.py (retrain nightly or every N interactions)
+
+Requirements
+	•	Each training script:
+	•	builds dataset from DB
+	•	splits train/val (time-based split)
+	•	trains model
+	•	logs metrics (AUC, logloss, calibration error, etc.)
+	•	writes model artifact + increments model version
+	•	writes model version to DB settings table
+	•	Online update hooks:
+	•	On every assessment submission:
+	•	update mastery state
+	•	update bandit policy
+	•	update risk score (either recalculated or incremental)
+
+⸻
+
+Integration Changes (Use ML Everywhere)
+
+Update the live system so:
+	•	Tutor prompt uses:
+	•	current mastery probabilities
+	•	most-likely misconceptions (from recent interactions)
+	•	selected strategy from contextual bandit
+	•	retrieval snippets from embeddings
+	•	Teacher dashboard uses:
+	•	risk probabilities + drivers
+	•	class-level mastery heatmaps from MasteryState
+	•	misconception aggregates
+
+⸻
+
+Deliverables (must be created in repo)
+	1.	docs/ADAPTIVE_ML_ARCHITECTURE.md
+	•	diagrams (text), data flow, reward definitions, model versioning
+	2.	docs/SIMULATOR_GUIDE.md
+	•	how to generate 100/500/5000 student demos
+	3.	New code modules:
+	•	mastery_model/, risk_model/, bandit/, retrieval/, simulator/, training/
+	4.	Feature flags with safe fallback to old logic
+	5.	Minimal tests proving:
+	•	simulator populates DB
+	•	training scripts run end-to-end
+	•	inference endpoints now pull from MasteryState/RiskScore
+
+⸻
+
+Constraints
+	•	This is a demo for funding, but must look like a real system:
+	•	model versions tracked
+	•	reproducible simulator runs
+	•	metrics logged
+	•	adaptive updates happening live
+	•	Avoid big infra (no Kafka, no heavy distributed systems). Keep it simple and local.
+
+Now implement all of the above
