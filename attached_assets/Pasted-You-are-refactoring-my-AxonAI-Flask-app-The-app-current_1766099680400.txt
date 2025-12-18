@@ -1,0 +1,154 @@
+You are refactoring my AxonAI Flask app. The app currently contains local ML/model code (mastery_model/, risk_model/, bandit/, retrieval embeddings/retriever, ai_coordinator analytics jobs, plus SQLite-based agents). I am moving all ML/algos/models to an external service (Render) and will call them via HTTP from this app.
+
+Goals
+
+Remove/disable local model implementations and any code that tries to train/run them inside this repo.
+
+Replace with an ML API client that calls my external services.
+
+Update database configuration to use Supabase Postgres.
+
+Ensure the app still works end-to-end: chat, mastery updates, risk scoring, bandit strategy selection, and teacher analytics should work by calling the ML API rather than local code.
+
+IMPORTANT: DB connection
+
+I have a Supabase connection string, but the “direct connection” is not IPv4 compatible. Therefore:
+
+Prefer Supabase Session Pooler (or Transaction Pooler) connection string for environments that might be IPv4-only.
+
+Implement config so I can set:
+
+SUPABASE_DB_URL (pooler URL preferred)
+
+Use sslmode=require in the SQLAlchemy connection.
+
+Never hardcode passwords; use env vars only.
+
+ML API contract
+
+I will set these env vars in Replit:
+
+ML_API_BASE_URL = https://<my-render-ml-service>
+
+AXON_SERVICE_KEY = <shared secret>
+
+All calls must send header:
+
+X-AXON-KEY: ${AXON_SERVICE_KEY}
+
+Implement these ML API calls (HTTP POST JSON):
+
+/mastery/predict body: {student_id, skill, class_id|null}
+
+/risk/score body: {student_id, class_id}
+
+/bandit/select body: {student_id, class_id, context|null, bandit_type}
+
+/bandit/update body: {student_id, class_id, strategy, reward, context|null}
+Optional:
+
+/mastery/train and /risk/train (admin-only endpoints to trigger training)
+
+Refactor tasks (do them, don’t describe them)
+
+A) Add a new file services/ml_api_client.py:
+
+A small requests-based client with:
+
+timeouts (inference 5s, training trigger 30s)
+
+retries (2 retries exponential backoff)
+
+request_id propagation (use X-Request-ID if present, otherwise generate UUID)
+
+error handling: raise clear exceptions; log upstream error body safely
+
+B) Update AIService + routes that currently use local ML:
+
+Wherever the app currently uses:
+
+MasteryInference / MasteryModel
+
+RiskInference / RiskModel
+
+BanditPolicy / LinUCB / Thompson
+
+EmbeddingService / ContentRetriever (if this will be moved too)
+
+BigAICoordinator jobs
+Replace those calls with ml_api_client calls.
+
+C) Database switch to Supabase:
+
+Update app.py (or wherever DB is configured) so SQLAlchemy uses:
+
+SQLALCHEMY_DATABASE_URI = os.getenv("SUPABASE_DB_URL")
+
+Ensure it works with pooler URL and SSL.
+
+Print a startup log line showing DB host (but never password).
+
+D) Remove or quarantine model code:
+
+Move these directories/modules to a deprecated_local_ml/ folder OR delete imports and ensure nothing references them:
+
+mastery_model/
+
+risk_model/
+
+bandit/
+
+retrieval/
+
+ai_coordinator.py jobs (if analytics will be remote)
+
+training/ scripts (if training is remote)
+
+If something is still required (like data schemas), keep only minimal types, not the model logic.
+
+E) Remove SQLite-based side systems:
+
+MasteryTrackingAgent and QuizBuilderAgent use SQLite. Disable them and ensure the main app uses the Supabase tables instead (MiniTest/MiniTestResponse, StudentProfile, etc).
+
+If disabling is too risky immediately, wrap them behind feature flags:
+
+USE_LOCAL_SQLITE_AGENTS=false by default.
+
+F) Endpoints
+
+Keep existing endpoints stable (don’t change URLs if possible).
+
+For chat flow:
+
+keep writing ChatMessage, AIInteraction, TokenUsage to Supabase DB as before
+
+but use remote bandit/mastery/risk where needed
+
+For teacher heatmap endpoint:
+
+compute using DB queries + remote mastery/risk if necessary
+
+G) Add a smoke test
+Add a script scripts/smoke_ml_api.py that:
+
+verifies DB connection
+
+calls ML API /health
+
+calls /mastery/predict, /risk/score, /bandit/select with dummy IDs (handle errors gracefully)
+
+prints success/failure
+
+Deliverables
+
+A summary of changed files
+
+The new ml_api_client.py
+
+Patched ai_service.py, routes.py, api_routes.py, and DB config
+
+Any removed imports fixed so app runs
+
+A list of old ML modules no longer used
+
+Now implement all changes.
