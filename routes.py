@@ -898,6 +898,54 @@ def get_training_metrics(model_type):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/model/<int:model_id>')
+@admin_required
+def get_model_details(model_id):
+    """Get details for a specific model version"""
+    from models import ModelVersion
+    import json
+    
+    mv = ModelVersion.query.get(model_id)
+    if not mv:
+        return jsonify({'error': 'Model not found'}), 404
+    
+    metrics = {}
+    if mv.metrics_json:
+        try:
+            metrics = json.loads(mv.metrics_json)
+        except:
+            pass
+    
+    return jsonify({
+        'id': mv.id,
+        'model_type': mv.model_type,
+        'version': mv.version,
+        'is_active': mv.is_active,
+        'created_at': mv.created_at.isoformat() if mv.created_at else None,
+        'metrics': metrics
+    })
+
+@app.route('/api/model/<int:model_id>/activate', methods=['POST'])
+@admin_required
+def activate_model(model_id):
+    """Activate a specific model version (deactivate others of same type)"""
+    from models import ModelVersion
+    
+    mv = ModelVersion.query.get(model_id)
+    if not mv:
+        return jsonify({'error': 'Model not found'}), 404
+    
+    ModelVersion.query.filter_by(model_type=mv.model_type).update({'is_active': False})
+    
+    mv.is_active = True
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': f'{mv.model_type} model version activated',
+        'model_id': mv.id
+    })
+
 @app.route('/admin/run-big-ai', methods=['POST'])
 @admin_required
 def run_big_ai_analysis():
