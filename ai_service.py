@@ -289,8 +289,11 @@ class AIService:
             print(f"Error extracting content from {content_file.name}: {e}")
             return None
     
-    def get_student_context(self, student_id, class_id):
-        """Get comprehensive student context for AI personalization"""
+    def get_student_context(self, student_id, class_id, skill=None):
+        """
+        Get comprehensive student context for AI personalization.
+        Uses ML-based mastery/risk when available, falls back to basic profile.
+        """
         try:
             student = User.query.get(student_id)
             class_obj = Class.query.get(class_id)
@@ -299,20 +302,16 @@ class AIService:
             if not student or not class_obj:
                 return {}
             
-            # Get student's grades in this class
             grades = [g.grade for g in student.grades if g.assignment.class_id == class_id and g.grade is not None]
             avg_grade = sum(grades) / len(grades) if grades else None
             
-            # Get recent chat history
             recent_chats = ChatMessage.query.filter_by(
                 user_id=student_id,
                 class_id=class_id
             ).order_by(ChatMessage.created_at.desc()).limit(5).all()
             
-            # Get class content
             class_content = ContentFile.query.filter_by(class_id=class_id).all()
             
-            # Use enhanced AI profile summary for token efficiency
             profile_summary = student.get_ai_profile_summary()
             
             context = {
@@ -320,11 +319,31 @@ class AIService:
                 'recent_topics': [chat.message[:40] + '...' for chat in recent_chats] if recent_chats else [],
                 'subject': class_obj.subject,
                 'learning_accommodations': self._get_learning_accommodations(student),
-                'available_content': [cf.name for cf in class_content[:3]]  # Limit for tokens
+                'available_content': [cf.name for cf in class_content[:3]]
             }
             
             if student_profile:
                 context['learning_profile'] = student_profile.to_dict()
+            
+            try:
+                from services.ml_integration import get_ml_integration
+                ml = get_ml_integration()
+                ml_context = ml.get_student_context(db, student_id, class_id, skill)
+                
+                if 'current_mastery' in ml_context:
+                    context['ml_mastery'] = ml_context['current_mastery']
+                if 'mastery_profile' in ml_context:
+                    context['mastery_profile'] = ml_context['mastery_profile']
+                if 'risk' in ml_context:
+                    context['risk'] = ml_context['risk']
+                    risk_data = ml_context['risk']
+                    if risk_data.get('p_risk', 0) > 0.5:
+                        context['at_risk'] = True
+                        context['risk_drivers'] = risk_data.get('drivers', [])
+                if 'profile' in ml_context:
+                    context['ml_profile'] = ml_context['profile']
+            except Exception as ml_error:
+                print(f"ML context unavailable: {ml_error}")
             
             return context
             
