@@ -591,18 +591,18 @@ function viewModel(modelId) {
         body.innerHTML = `
             <div class="row">
                 <div class="col-md-4">
-                    <div class="card bg-light mb-3">
-                        <div class="card-body text-center">
-                            <h5>Model Info</h5>
+                    <div class="card bg-dark border-secondary mb-3">
+                        <div class="card-body text-center text-light">
+                            <h5 class="text-info">Model Info</h5>
                             <p class="mb-1"><strong>Type:</strong> ${data.model_type}</p>
                             <p class="mb-1"><strong>Version:</strong> ${data.version ? data.version.substring(0, 20) + '...' : 'N/A'}</p>
                             <p class="mb-1"><strong>Status:</strong> ${data.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</p>
                             <p class="mb-0"><strong>Created:</strong> ${data.created_at ? new Date(data.created_at).toLocaleString() : 'N/A'}</p>
                         </div>
                     </div>
-                    <div class="card bg-light">
-                        <div class="card-body text-center">
-                            <h5>Accuracy Metrics</h5>
+                    <div class="card bg-dark border-secondary">
+                        <div class="card-body text-center text-light">
+                            <h5 class="text-info">Accuracy Metrics</h5>
                             <p class="mb-1"><strong>Training:</strong> ${trainAcc}</p>
                             <p class="mb-1"><strong>Validation:</strong> ${valAcc}</p>
                             <p class="mb-0"><strong>Cross-Val:</strong> ${cvAcc}</p>
@@ -610,9 +610,9 @@ function viewModel(modelId) {
                     </div>
                 </div>
                 <div class="col-md-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">Training Loss Curve</h6>
+                    <div class="card bg-dark border-secondary">
+                        <div class="card-header bg-dark text-light border-secondary">
+                            <h6 class="mb-0 text-info">Training Loss Curve</h6>
                             <small class="text-muted">Lower loss = better learning</small>
                         </div>
                         <div class="card-body">
