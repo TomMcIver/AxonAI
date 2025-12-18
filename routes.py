@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, flash, session, send_file
+from flask import render_template, request, redirect, url_for, flash, session, send_file, jsonify
 from app import app, db
 from models import (
     User, Class, Assignment, AssignmentSubmission, Grade, ContentFile, 

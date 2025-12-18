@@ -224,141 +224,313 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+var masteryChartInstance = null;
+var riskChartInstance = null;
+var pollInterval = null;
+
 document.getElementById('trainForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
     var btn = document.getElementById('trainBtn');
     var etaDisplay = document.getElementById('etaDisplay');
     var progressBar = document.getElementById('progressBar');
     var etaText = document.getElementById('etaText');
+    var numStudents = parseInt(document.getElementById('num_students').value) || 100;
     
     btn.disabled = true;
-    btn.querySelector('.button-text').textContent = 'Training in progress...';
+    btn.querySelector('.button-text').textContent = 'Starting training...';
     btn.querySelector('.spinner-border').classList.remove('d-none');
     etaDisplay.classList.remove('d-none');
+    progressBar.style.width = '0%';
+    progressBar.textContent = '0%';
     
-    var numStudents = parseInt(document.getElementById('num_students').value) || 100;
-    var estimatedSeconds = Math.round(20 + (numStudents * 0.3));
-    etaText.textContent = 'Estimated time: ~' + estimatedSeconds + ' seconds';
-    
-    var startTime = Date.now();
-    var progress = 0;
-    
-    var progressInterval = setInterval(function() {
-        var elapsed = (Date.now() - startTime) / 1000;
-        progress = Math.min(95, (elapsed / estimatedSeconds) * 100);
-        progressBar.style.width = progress + '%';
-        progressBar.textContent = Math.round(progress) + '%';
-        
-        var remaining = Math.max(0, estimatedSeconds - elapsed);
-        if (remaining > 0) {
-            etaText.textContent = 'Remaining: ~' + Math.round(remaining) + ' seconds';
+    fetch('/api/training/start', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ num_students: numStudents })
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        if (data.job_id) {
+            btn.querySelector('.button-text').textContent = 'Training in progress...';
+            pollTrainingStatus(data.job_id);
         } else {
-            etaText.textContent = 'Almost done, finishing up...';
+            throw new Error('No job ID returned');
         }
-        
-        if (progress >= 95) {
-            clearInterval(progressInterval);
-        }
-    }, 500);
+    })
+    .catch(function(error) {
+        btn.disabled = false;
+        btn.querySelector('.button-text').textContent = 'Generate Data & Train Models';
+        btn.querySelector('.spinner-border').classList.add('d-none');
+        etaDisplay.classList.add('d-none');
+        alert('Error starting training: ' + error.message);
+    });
 });
+
+function pollTrainingStatus(jobId) {
+    var progressBar = document.getElementById('progressBar');
+    var etaText = document.getElementById('etaText');
+    var btn = document.getElementById('trainBtn');
+    var etaDisplay = document.getElementById('etaDisplay');
+    
+    pollInterval = setInterval(function() {
+        fetch('/api/training/status/' + jobId)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            progressBar.style.width = data.progress_pct + '%';
+            progressBar.textContent = data.progress_pct + '%';
+            
+            if (data.eta_seconds > 0) {
+                etaText.textContent = 'Remaining: ~' + data.eta_seconds + ' seconds';
+            } else {
+                etaText.textContent = 'Finishing up...';
+            }
+            
+            if (data.status === 'completed') {
+                clearInterval(pollInterval);
+                progressBar.style.width = '100%';
+                progressBar.textContent = '100%';
+                progressBar.classList.remove('progress-bar-animated');
+                progressBar.classList.remove('bg-info');
+                progressBar.classList.add('bg-success');
+                etaText.textContent = 'Training completed!';
+                btn.querySelector('.button-text').textContent = 'Training Complete!';
+                btn.querySelector('.spinner-border').classList.add('d-none');
+                
+                if (data.metrics) {
+                    displayResults(data.metrics);
+                }
+                
+                setTimeout(function() {
+                    btn.disabled = false;
+                    btn.querySelector('.button-text').textContent = 'Generate Data & Train Models';
+                    progressBar.classList.add('bg-info');
+                    progressBar.classList.remove('bg-success');
+                    progressBar.classList.add('progress-bar-animated');
+                }, 3000);
+            } else if (data.status === 'failed') {
+                clearInterval(pollInterval);
+                progressBar.classList.remove('bg-info');
+                progressBar.classList.add('bg-danger');
+                etaText.textContent = 'Training failed: ' + (data.error || 'Unknown error');
+                btn.disabled = false;
+                btn.querySelector('.button-text').textContent = 'Retry Training';
+                btn.querySelector('.spinner-border').classList.add('d-none');
+            }
+        })
+        .catch(function(error) {
+            console.error('Poll error:', error);
+        });
+    }, 1500);
+}
+
+function displayResults(metrics) {
+    var resultsSection = document.getElementById('dynamicResults');
+    if (!resultsSection) {
+        resultsSection = document.createElement('div');
+        resultsSection.id = 'dynamicResults';
+        var container = document.querySelector('.container-fluid');
+        var backBtn = container.querySelector('.row:last-child');
+        container.insertBefore(resultsSection, backBtn);
+    }
+    
+    var gen = metrics.generation || {};
+    var mastery = metrics.mastery || {};
+    var risk = metrics.risk || {};
+    
+    resultsSection.innerHTML = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-primary mb-4">
+                    <i class="fas fa-chart-line me-2"></i>Training Results
+                </h2>
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h3 class="text-success">${gen.students || 0}</h3>
+                        <p class="mb-0">Students Generated</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h3 class="text-info">${gen.interactions || 0}</h3>
+                        <p class="mb-0">Interactions</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h3 class="text-primary">${((mastery.val_accuracy || 0) * 100).toFixed(1)}%</h3>
+                        <p class="mb-0">Mastery Val Accuracy</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h3 class="text-warning">${((risk.val_accuracy || 0) * 100).toFixed(1)}%</h3>
+                        <p class="mb-0">Risk Val Accuracy</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-brain me-2"></i>Mastery Model Training</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="masteryChartDynamic" height="250"></canvas>
+                        <div class="mt-3">
+                            <small class="text-muted">Train: ${((mastery.accuracy || 0) * 100).toFixed(1)}% | Val: ${((mastery.val_accuracy || 0) * 100).toFixed(1)}% | CV: ${((mastery.cv_accuracy_mean || 0) * 100).toFixed(1)}%</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-exclamation-triangle me-2"></i>Risk Model Training</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="riskChartDynamic" height="250"></canvas>
+                        <div class="mt-3">
+                            <small class="text-muted">Train: ${((risk.accuracy || 0) * 100).toFixed(1)}% | Val: ${((risk.val_accuracy || 0) * 100).toFixed(1)}% | CV: ${((risk.cv_accuracy_mean || 0) * 100).toFixed(1)}%</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if (mastery.training_history) {
+        var masteryCtx = document.getElementById('masteryChartDynamic').getContext('2d');
+        new Chart(masteryCtx, {
+            type: 'line',
+            data: {
+                labels: mastery.training_history.epochs,
+                datasets: [{
+                    label: 'Train Loss',
+                    data: mastery.training_history.train_loss,
+                    borderColor: 'rgb(54, 162, 235)',
+                    tension: 0.1,
+                    fill: false
+                }, {
+                    label: 'Validation Loss',
+                    data: mastery.training_history.val_loss,
+                    borderColor: 'rgb(255, 99, 132)',
+                    tension: 0.1,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { title: { display: true, text: 'Loss vs Training Iterations' } },
+                scales: { x: { title: { display: true, text: 'Iterations' } }, y: { title: { display: true, text: 'Loss' }, min: 0 } }
+            }
+        });
+    }
+    
+    if (risk.training_history) {
+        var riskCtx = document.getElementById('riskChartDynamic').getContext('2d');
+        new Chart(riskCtx, {
+            type: 'line',
+            data: {
+                labels: risk.training_history.epochs,
+                datasets: [{
+                    label: 'Train Loss',
+                    data: risk.training_history.train_loss,
+                    borderColor: 'rgb(54, 162, 235)',
+                    tension: 0.1,
+                    fill: false
+                }, {
+                    label: 'Validation Loss',
+                    data: risk.training_history.val_loss,
+                    borderColor: 'rgb(255, 99, 132)',
+                    tension: 0.1,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { title: { display: true, text: 'Loss vs Training Iterations' } },
+                scales: { x: { title: { display: true, text: 'Iterations' } }, y: { title: { display: true, text: 'Loss' }, min: 0 } }
+            }
+        });
+    }
+    
+    resultsSection.scrollIntoView({ behavior: 'smooth' });
+}
 
 {% if last_metrics and last_metrics.mastery and last_metrics.mastery.training_history %}
 var masteryHistory = {{ last_metrics.mastery.training_history | tojson | safe }};
-var masteryCtx = document.getElementById('masteryChart').getContext('2d');
-new Chart(masteryCtx, {
-    type: 'line',
-    data: {
-        labels: masteryHistory.epochs,
-        datasets: [{
-            label: 'Train Loss',
-            data: masteryHistory.train_loss,
-            borderColor: 'rgb(54, 162, 235)',
-            backgroundColor: 'rgba(54, 162, 235, 0.1)',
-            tension: 0.1,
-            fill: false
-        }, {
-            label: 'Validation Loss',
-            data: masteryHistory.val_loss,
-            borderColor: 'rgb(255, 99, 132)',
-            backgroundColor: 'rgba(255, 99, 132, 0.1)',
-            tension: 0.1,
-            fill: false
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            title: {
-                display: true,
-                text: 'Loss vs Training Iterations'
-            }
+var masteryCtx = document.getElementById('masteryChart');
+if (masteryCtx) {
+    new Chart(masteryCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: masteryHistory.epochs,
+            datasets: [{
+                label: 'Train Loss',
+                data: masteryHistory.train_loss,
+                borderColor: 'rgb(54, 162, 235)',
+                tension: 0.1,
+                fill: false
+            }, {
+                label: 'Validation Loss',
+                data: masteryHistory.val_loss,
+                borderColor: 'rgb(255, 99, 132)',
+                tension: 0.1,
+                fill: false
+            }]
         },
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Iterations'
-                }
-            },
-            y: {
-                title: {
-                    display: true,
-                    text: 'Loss (Cross-Entropy)'
-                },
-                min: 0
-            }
+        options: {
+            responsive: true,
+            plugins: { title: { display: true, text: 'Loss vs Training Iterations' } },
+            scales: { x: { title: { display: true, text: 'Iterations' } }, y: { title: { display: true, text: 'Loss' }, min: 0 } }
         }
-    }
-});
+    });
+}
 {% endif %}
 
 {% if last_metrics and last_metrics.risk and last_metrics.risk.training_history %}
 var riskHistory = {{ last_metrics.risk.training_history | tojson | safe }};
-var riskCtx = document.getElementById('riskChart').getContext('2d');
-new Chart(riskCtx, {
-    type: 'line',
-    data: {
-        labels: riskHistory.epochs,
-        datasets: [{
-            label: 'Train Loss',
-            data: riskHistory.train_loss,
-            borderColor: 'rgb(54, 162, 235)',
-            backgroundColor: 'rgba(54, 162, 235, 0.1)',
-            tension: 0.1,
-            fill: false
-        }, {
-            label: 'Validation Loss',
-            data: riskHistory.val_loss,
-            borderColor: 'rgb(255, 99, 132)',
-            backgroundColor: 'rgba(255, 99, 132, 0.1)',
-            tension: 0.1,
-            fill: false
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            title: {
-                display: true,
-                text: 'Loss vs Training Iterations'
-            }
+var riskCtx = document.getElementById('riskChart');
+if (riskCtx) {
+    new Chart(riskCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: riskHistory.epochs,
+            datasets: [{
+                label: 'Train Loss',
+                data: riskHistory.train_loss,
+                borderColor: 'rgb(54, 162, 235)',
+                tension: 0.1,
+                fill: false
+            }, {
+                label: 'Validation Loss',
+                data: riskHistory.val_loss,
+                borderColor: 'rgb(255, 99, 132)',
+                tension: 0.1,
+                fill: false
+            }]
         },
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Iterations'
-                }
-            },
-            y: {
-                title: {
-                    display: true,
-                    text: 'Loss (Cross-Entropy)'
-                },
-                min: 0
-            }
+        options: {
+            responsive: true,
+            plugins: { title: { display: true, text: 'Loss vs Training Iterations' } },
+            scales: { x: { title: { display: true, text: 'Iterations' } }, y: { title: { display: true, text: 'Loss' }, min: 0 } }
         }
-    }
-});
+    });
+}
 {% endif %}
 </script>
 {% endblock %}
