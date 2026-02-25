@@ -1,1301 +1,692 @@
-from flask import render_template, request, redirect, url_for, flash, session, send_file
+from flask import render_template, request, redirect, url_for, flash, session
 from app import app, db
 from models import (
-    User, Class, Assignment, AssignmentSubmission, Grade, ContentFile, 
-    ChatMessage, AIInteraction, OptimizedProfile, FailedStrategy,
-    MiniTest, MiniTestResponse, PatternInsight, PredictedGrade, 
-    TeacherAIInsight, AIModel
+    User, Class, Assignment, AssignmentSubmission, Grade, ContentFile,
+    ChatMessage
 )
-from auth import hash_password, check_password, login_required, admin_required, get_current_user, role_required
-import os
-from werkzeug.utils import secure_filename
-from datetime import datetime
+from auth import login_required, get_current_user
 import json
+from datetime import datetime, timedelta
+
+# ============================================================
+# MOCK DATA FOR DEMO
+# ============================================================
+
+MOCK_TEACHER_CLASSES = [
+    {'id': 1, 'name': 'Algebra I', 'subject': 'Math', 'student_count': 25, 'pass_rate': 76},
+    {'id': 2, 'name': 'Biology 101', 'subject': 'Science', 'student_count': 22, 'pass_rate': 82},
+    {'id': 3, 'name': 'Financial Accounting', 'subject': 'Accounting', 'student_count': 18, 'pass_rate': 68},
+]
+
+MOCK_MATERIALS = {
+    1: [
+        {'name': 'Chapter 5 - Linear Equations', 'type': 'PDF', 'date': 'Feb 10, 2026', 'description': 'Core concepts of linear equations and graphing'},
+        {'name': 'Quadratic Functions Slides', 'type': 'Slides', 'date': 'Feb 5, 2026', 'description': 'Introduction to quadratic functions'},
+        {'name': 'Practice Problems Set 3', 'type': 'PDF', 'date': 'Jan 28, 2026', 'description': 'Practice problems covering polynomials'},
+    ],
+    2: [
+        {'name': 'Cell Biology Notes', 'type': 'PDF', 'date': 'Feb 12, 2026', 'description': 'Cell structure and organelles'},
+        {'name': 'Genetics Overview', 'type': 'Slides', 'date': 'Feb 8, 2026', 'description': 'Introduction to Mendelian genetics'},
+    ],
+    3: [
+        {'name': 'Balance Sheet Fundamentals', 'type': 'PDF', 'date': 'Feb 11, 2026', 'description': 'Understanding balance sheets'},
+        {'name': 'Journal Entries Guide', 'type': 'PDF', 'date': 'Feb 3, 2026', 'description': 'How to record journal entries'},
+    ],
+}
+
+MOCK_ASSIGNMENTS = {
+    1: [
+        {'title': 'Linear Equations Quiz', 'due_date': 'Mar 1, 2026', 'completed': 18, 'pct': 72},
+        {'title': 'Graphing Homework #4', 'due_date': 'Feb 25, 2026', 'completed': 22, 'pct': 88},
+        {'title': 'Polynomial Test', 'due_date': 'Feb 15, 2026', 'completed': 25, 'pct': 100},
+    ],
+    2: [
+        {'title': 'Cell Diagram Labeling', 'due_date': 'Mar 3, 2026', 'completed': 15, 'pct': 68},
+        {'title': 'Genetics Problem Set', 'due_date': 'Feb 20, 2026', 'completed': 20, 'pct': 91},
+    ],
+    3: [
+        {'title': 'Balance Sheet Exercise', 'due_date': 'Mar 5, 2026', 'completed': 10, 'pct': 56},
+        {'title': 'Journal Entries Practice', 'due_date': 'Feb 22, 2026', 'completed': 16, 'pct': 89},
+    ],
+}
+
+MOCK_METRICS = {
+    1: {'trending_up': 7, 'top_performers': 5, 'needs_support': 3},
+    2: {'trending_up': 9, 'top_performers': 6, 'needs_support': 2},
+    3: {'trending_up': 4, 'top_performers': 3, 'needs_support': 5},
+}
+
+MOCK_ANALYTICS = {
+    1: {'attendance': 91},
+    2: {'attendance': 94},
+    3: {'attendance': 87},
+}
+
+MOCK_GROUPS = {
+    1: [
+        {'id': 'a', 'name': 'Group A: Visual Learners', 'description': 'Need mini-lesson on Fractions using visual learning style', 'badge_color': 'orange', 'student_count': 8,
+         'summary': '8 students in this group need a mini-lesson on Fractions using visual learning style with focus on number line representation'},
+        {'id': 'b', 'name': 'Group B: Problem Solvers', 'description': 'Stuck on Problem-Solving, struggling with engagement', 'badge_color': 'red', 'student_count': 5,
+         'summary': '5 students in this group are stuck on Problem-Solving strategies and need hands-on practice with focus on word problems'},
+        {'id': 'c', 'name': 'Group C: Advanced Track', 'description': 'Ready for advanced material, excelling in core concepts', 'badge_color': 'green', 'student_count': 12,
+         'summary': '12 students in this group are ready for advanced algebraic concepts and would benefit from enrichment activities'},
+    ],
+    2: [
+        {'id': 'a', 'name': 'Group A: Lab Learners', 'description': 'Need hands-on lab work for cell biology concepts', 'badge_color': 'blue', 'student_count': 10,
+         'summary': '10 students need hands-on lab activities to reinforce cell biology concepts using microscope work'},
+        {'id': 'b', 'name': 'Group B: Concept Builders', 'description': 'Struggling with genetics terminology', 'badge_color': 'orange', 'student_count': 12,
+         'summary': '12 students need additional support with genetics vocabulary and Punnett square applications'},
+    ],
+    3: [
+        {'id': 'a', 'name': 'Group A: Practical Accountants', 'description': 'Need more real-world examples for journal entries', 'badge_color': 'orange', 'student_count': 8,
+         'summary': '8 students need real-world case studies to understand journal entry applications in business contexts'},
+        {'id': 'b', 'name': 'Group B: Strong Foundations', 'description': 'Solid understanding, ready for advanced topics', 'badge_color': 'green', 'student_count': 10,
+         'summary': '10 students have strong foundational knowledge and are ready to move on to income statements and cash flow'},
+    ],
+}
+
+MOCK_STUDENTS = {
+    1: [
+        {'id': 1, 'name': 'Emma Wilson', 'initials': 'EW', 'grade': 85, 'blocker': 'Quadratic equations', 'ai_engagement': 'High', 'material_engagement': 'High',
+         'pass_rate': 85, 'projected_grade': 'A-', 'attendance': 95, 'completion_rate': 92, 'overall_progress': 83,
+         'learning_style': 'Visual Learner', 'misconceptions': ['Negative exponents', 'Fraction division'], 'strengths': ['Linear equations', 'Graphing'],
+         'ai_summary': 'Emma is performing well overall but struggles with negative exponents. She responds best to visual explanations and step-by-step walkthroughs.',
+         'next_steps': ['Provide visual aids for exponent rules', 'Assign targeted practice on fraction operations', 'Consider peer tutoring for reinforcement'],
+         'mastery': [{'name': 'Linear Equations', 'score': 92}, {'name': 'Graphing', 'score': 88}, {'name': 'Polynomials', 'score': 75}, {'name': 'Quadratics', 'score': 62}],
+         'ai_trend': [40, 55, 60, 70, 80, 85, 90, 88, 92, 95], 'material_trend': [50, 60, 65, 70, 75, 80, 82, 85, 88, 90], 'group': 'a'},
+        {'id': 2, 'name': 'Liam Chen', 'initials': 'LC', 'grade': 72, 'blocker': 'Word problems', 'ai_engagement': 'Medium', 'material_engagement': 'Low',
+         'pass_rate': 72, 'projected_grade': 'B-', 'attendance': 88, 'completion_rate': 78, 'overall_progress': 70,
+         'learning_style': 'Kinesthetic Learner', 'misconceptions': ['Setting up equations from words', 'Unit conversions'], 'strengths': ['Arithmetic', 'Basic algebra'],
+         'ai_summary': 'Liam struggles with translating word problems into mathematical expressions. He benefits from hands-on activities and real-world examples.',
+         'next_steps': ['Use real-world scenarios for word problems', 'Break complex problems into smaller steps', 'Increase AI tutor engagement with interactive problems'],
+         'mastery': [{'name': 'Linear Equations', 'score': 78}, {'name': 'Graphing', 'score': 65}, {'name': 'Polynomials', 'score': 70}, {'name': 'Quadratics', 'score': 48}],
+         'ai_trend': [30, 35, 40, 45, 50, 48, 52, 55, 50, 53], 'material_trend': [20, 25, 30, 28, 35, 30, 32, 35, 38, 35], 'group': 'b'},
+        {'id': 3, 'name': 'Sofia Patel', 'initials': 'SP', 'grade': 91, 'blocker': 'None - excelling', 'ai_engagement': 'High', 'material_engagement': 'High',
+         'pass_rate': 91, 'projected_grade': 'A', 'attendance': 98, 'completion_rate': 100, 'overall_progress': 93,
+         'learning_style': 'Reading/Writing', 'misconceptions': [], 'strengths': ['All core topics', 'Problem solving', 'Mathematical reasoning'],
+         'ai_summary': 'Sofia is a top performer who consistently exceeds expectations. She uses the AI tutor proactively and would benefit from enrichment challenges.',
+         'next_steps': ['Provide advanced challenge problems', 'Consider peer tutoring role', 'Introduce pre-algebra II concepts'],
+         'mastery': [{'name': 'Linear Equations', 'score': 95}, {'name': 'Graphing', 'score': 93}, {'name': 'Polynomials', 'score': 90}, {'name': 'Quadratics', 'score': 85}],
+         'ai_trend': [70, 75, 80, 85, 88, 90, 92, 95, 93, 96], 'material_trend': [80, 82, 85, 88, 90, 92, 94, 95, 96, 98], 'group': 'c'},
+        {'id': 4, 'name': 'Noah Kim', 'initials': 'NK', 'grade': 58, 'blocker': 'Algebra concepts', 'ai_engagement': 'Low', 'material_engagement': 'Low',
+         'pass_rate': 58, 'projected_grade': 'D+', 'attendance': 80, 'completion_rate': 65, 'overall_progress': 55,
+         'learning_style': 'Auditory Learner', 'misconceptions': ['Variable manipulation', 'Order of operations', 'Equation balancing'], 'strengths': ['Basic computation'],
+         'ai_summary': 'Noah is at risk and needs immediate support. He rarely engages with the AI tutor or class materials. Consider reaching out to discuss barriers to learning.',
+         'next_steps': ['Schedule one-on-one check-in', 'Set up structured AI tutor sessions', 'Contact parent about engagement concerns'],
+         'mastery': [{'name': 'Linear Equations', 'score': 55}, {'name': 'Graphing', 'score': 50}, {'name': 'Polynomials', 'score': 45}, {'name': 'Quadratics', 'score': 30}],
+         'ai_trend': [20, 22, 18, 25, 20, 15, 18, 20, 22, 20], 'material_trend': [15, 18, 20, 15, 18, 20, 15, 18, 20, 18], 'group': 'b'},
+        {'id': 5, 'name': 'Olivia Martinez', 'initials': 'OM', 'grade': 79, 'blocker': 'Graphing inequalities', 'ai_engagement': 'Medium', 'material_engagement': 'High',
+         'pass_rate': 79, 'projected_grade': 'B+', 'attendance': 92, 'completion_rate': 88, 'overall_progress': 77,
+         'learning_style': 'Visual Learner', 'misconceptions': ['Inequality direction changes', 'Shading regions'], 'strengths': ['Equations', 'Substitution'],
+         'ai_summary': 'Olivia shows steady improvement and engages well with materials. She needs targeted support on graphing inequalities, particularly with boundary conditions.',
+         'next_steps': ['Provide graphing calculator practice', 'Assign inequality visualization exercises', 'Pair with peer for collaborative graphing work'],
+         'mastery': [{'name': 'Linear Equations', 'score': 85}, {'name': 'Graphing', 'score': 68}, {'name': 'Polynomials', 'score': 80}, {'name': 'Quadratics', 'score': 60}],
+         'ai_trend': [40, 45, 50, 55, 58, 62, 65, 68, 70, 72], 'material_trend': [60, 65, 70, 72, 75, 78, 80, 82, 85, 88], 'group': 'a'},
+    ],
+}
+
+# Generate students for other classes
+MOCK_STUDENTS[2] = [
+    {'id': 6, 'name': 'Ava Thompson', 'initials': 'AT', 'grade': 88, 'blocker': 'Genetics notation', 'ai_engagement': 'High', 'material_engagement': 'High',
+     'pass_rate': 88, 'projected_grade': 'A-', 'attendance': 96, 'completion_rate': 95, 'overall_progress': 87,
+     'learning_style': 'Visual Learner', 'misconceptions': ['Punnett square ratios'], 'strengths': ['Cell biology', 'Lab work', 'Scientific method'],
+     'ai_summary': 'Ava is a strong student who excels in lab-based learning. Minor struggles with genetics notation can be addressed with targeted practice.',
+     'next_steps': ['Provide genetics notation cheat sheet', 'Assign Punnett square practice problems'],
+     'mastery': [{'name': 'Cell Biology', 'score': 94}, {'name': 'Genetics', 'score': 75}, {'name': 'Ecology', 'score': 88}, {'name': 'Evolution', 'score': 82}],
+     'ai_trend': [60, 65, 70, 75, 80, 85, 88, 90, 92, 94], 'material_trend': [70, 75, 78, 80, 82, 85, 88, 90, 92, 95], 'group': 'a'},
+    {'id': 7, 'name': 'Ethan Brooks', 'initials': 'EB', 'grade': 74, 'blocker': 'Cell organelle functions', 'ai_engagement': 'Medium', 'material_engagement': 'Medium',
+     'pass_rate': 74, 'projected_grade': 'B-', 'attendance': 89, 'completion_rate': 82, 'overall_progress': 72,
+     'learning_style': 'Kinesthetic Learner', 'misconceptions': ['Mitochondria vs chloroplast', 'Cell membrane transport'], 'strengths': ['Ecology', 'Observation skills'],
+     'ai_summary': 'Ethan learns best through hands-on activities. Needs more lab time to reinforce cell biology concepts.',
+     'next_steps': ['Schedule extra lab sessions', 'Use 3D cell models for visualization', 'Create flashcard practice routine'],
+     'mastery': [{'name': 'Cell Biology', 'score': 65}, {'name': 'Genetics', 'score': 70}, {'name': 'Ecology', 'score': 85}, {'name': 'Evolution', 'score': 78}],
+     'ai_trend': [40, 45, 48, 50, 55, 58, 60, 62, 58, 60], 'material_trend': [50, 52, 55, 58, 60, 62, 60, 58, 62, 65], 'group': 'b'},
+]
+
+MOCK_STUDENTS[3] = [
+    {'id': 8, 'name': 'Mia Johnson', 'initials': 'MJ', 'grade': 82, 'blocker': 'Depreciation methods', 'ai_engagement': 'High', 'material_engagement': 'Medium',
+     'pass_rate': 82, 'projected_grade': 'B+', 'attendance': 93, 'completion_rate': 90, 'overall_progress': 80,
+     'learning_style': 'Reading/Writing', 'misconceptions': ['Straight-line vs declining balance'], 'strengths': ['Journal entries', 'Balance sheets'],
+     'ai_summary': 'Mia has strong foundational skills but needs support with depreciation concepts. She responds well to textbook-style explanations.',
+     'next_steps': ['Provide depreciation comparison worksheet', 'Assign real-world depreciation scenarios'],
+     'mastery': [{'name': 'Journal Entries', 'score': 90}, {'name': 'Balance Sheets', 'score': 85}, {'name': 'Income Statements', 'score': 72}, {'name': 'Depreciation', 'score': 58}],
+     'ai_trend': [50, 55, 60, 65, 70, 75, 78, 80, 82, 85], 'material_trend': [55, 58, 60, 62, 65, 68, 70, 68, 65, 68], 'group': 'a'},
+    {'id': 9, 'name': 'James Lee', 'initials': 'JL', 'grade': 65, 'blocker': 'Debits and credits', 'ai_engagement': 'Low', 'material_engagement': 'Low',
+     'pass_rate': 65, 'projected_grade': 'C', 'attendance': 82, 'completion_rate': 70, 'overall_progress': 60,
+     'learning_style': 'Auditory Learner', 'misconceptions': ['Debit vs credit rules', 'Account classification'], 'strengths': ['Arithmetic accuracy'],
+     'ai_summary': 'James is struggling with fundamental accounting concepts. Needs a back-to-basics intervention focused on the debit/credit framework.',
+     'next_steps': ['Provide one-on-one tutoring session', 'Create simplified debit/credit reference guide', 'Increase AI tutor interaction frequency'],
+     'mastery': [{'name': 'Journal Entries', 'score': 60}, {'name': 'Balance Sheets', 'score': 55}, {'name': 'Income Statements', 'score': 50}, {'name': 'Depreciation', 'score': 40}],
+     'ai_trend': [20, 22, 25, 20, 22, 25, 28, 25, 22, 20], 'material_trend': [15, 18, 20, 22, 20, 18, 20, 22, 20, 18], 'group': 'a'},
+]
+
+# Mock student assignments (for student dashboard)
+MOCK_STUDENT_ASSIGNMENTS = {
+    1: [
+        {'title': 'Linear Equations Quiz', 'status': 'In Progress', 'status_class': 'in-progress', 'due_date': 'Mar 1, 2026', 'days_left': 4, 'due_color': 'due-yellow'},
+        {'title': 'Graphing Homework #4', 'status': 'Not Started', 'status_class': 'not-started', 'due_date': 'Feb 25, 2026', 'days_left': 0, 'due_color': 'due-red'},
+        {'title': 'Polynomial Test', 'status': 'Graded', 'status_class': 'graded', 'due_date': 'Feb 15, 2026', 'days_left': -10, 'due_color': 'due-green'},
+    ],
+    2: [
+        {'title': 'Cell Diagram Labeling', 'status': 'Not Started', 'status_class': 'not-started', 'due_date': 'Mar 3, 2026', 'days_left': 6, 'due_color': 'due-green'},
+        {'title': 'Genetics Problem Set', 'status': 'Submitted', 'status_class': 'submitted', 'due_date': 'Feb 20, 2026', 'days_left': -5, 'due_color': 'due-green'},
+    ],
+    3: [
+        {'title': 'Balance Sheet Exercise', 'status': 'In Progress', 'status_class': 'in-progress', 'due_date': 'Mar 5, 2026', 'days_left': 8, 'due_color': 'due-green'},
+        {'title': 'Journal Entries Practice', 'status': 'Graded', 'status_class': 'graded', 'due_date': 'Feb 22, 2026', 'days_left': -3, 'due_color': 'due-green'},
+    ],
+}
+
+MOCK_CHAT_SESSIONS = {
+    1: [
+        {'date': 'Feb 24, 2026', 'duration': '15 min', 'summary': 'Mastered: Solving two-step equations', 'notes': "You've made great progress with equation solving techniques."},
+        {'date': 'Feb 20, 2026', 'duration': '22 min', 'summary': 'Worked on: Graphing linear functions', 'notes': "You've overcome the confusion with slope-intercept form."},
+        {'date': 'Feb 18, 2026', 'duration': '10 min', 'summary': 'Reviewed: Polynomial basics', 'notes': 'Good understanding of terms and coefficients.'},
+    ],
+    2: [
+        {'date': 'Feb 23, 2026', 'duration': '18 min', 'summary': 'Studied: Cell membrane transport', 'notes': "You've moved forward in understanding osmosis and diffusion."},
+    ],
+    3: [],
+}
+
+# Mock parent data
+MOCK_CHILDREN = [
+    {
+        'id': 1, 'name': 'Emma Wilson', 'initials': 'EW', 'classes_count': 3, 'trend': 'up', 'trend_label': 'Improving',
+        'year_level': 'Year 11', 'ai_interactions': 12, 'completion_rate': 92, 'avg_study_time': '1.5 hrs',
+        'classes': [
+            {'name': 'Algebra I', 'subject': 'Math', 'grade': 85, 'trend': 'up',
+             'going_well': ['Linear equations', 'Graphing'], 'needs_help': ['Quadratic equations']},
+            {'name': 'Biology 101', 'subject': 'Science', 'grade': 78, 'trend': 'stable',
+             'going_well': ['Cell biology'], 'needs_help': ['Genetics notation']},
+            {'name': 'Financial Accounting', 'subject': 'Accounting', 'grade': 82, 'trend': 'up',
+             'going_well': ['Journal entries', 'Balance sheets'], 'needs_help': ['Depreciation']},
+        ],
+        'blockers': [
+            {'subject': 'Math', 'issue': 'Struggling with quadratic equations, particularly factoring'},
+            {'subject': 'Science', 'issue': 'Needs help with Punnett square notation and ratios'},
+        ],
+        'recommendations': [
+            'Emma would benefit from visual aids when learning quadratic equations - consider graphing calculator exercises.',
+            'Her biology performance could improve with additional genetics practice worksheets.',
+            'Overall trajectory is positive - maintain current study habits and AI tutor engagement.',
+        ],
+    },
+]
+
+
+# ============================================================
+# ROUTES
+# ============================================================
 
 @app.route('/')
 def index():
-    """Preloader page"""
-    return render_template('preloader.html')
+    """Home page with login buttons"""
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('home.html')
 
-@app.route('/main')
-def main_landing():
-    """Main landing page"""
-    return render_template('landing.html')
-
-@app.route('/demo')
-def demo():
-    """Redirect to login for demo"""
-    return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Simple role-based login with just buttons"""
-    if request.method == 'POST':
-        user_type = request.form.get('user_type')
-        
-        if not user_type:
-            flash('Please select a role.', 'danger')
-            return render_template('login.html')
-        
-        # Find first active user with this role
-        user = User.query.filter_by(role=user_type, is_active=True).first()
-        
-        if user:
-            session['user_id'] = user.id
-            session['user_role'] = user.role
-            session['user_name'] = user.get_full_name()
-            flash(f'Welcome back, {user.get_full_name()}!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash(f'No active {user_type} user found.', 'danger')
-    
-    return render_template('login.html')
+    """Handle login - mock auth with role buttons"""
+    if request.method == 'GET':
+        return redirect(url_for('index'))
+
+    user_type = request.form.get('user_type')
+
+    if not user_type:
+        flash('Please select a role.', 'danger')
+        return redirect(url_for('index'))
+
+    if user_type == 'parent':
+        # Mock parent login - no DB user needed
+        session['user_id'] = -1  # sentinel value for parent
+        session['user_role'] = 'parent'
+        session['user_name'] = 'Sarah Wilson'
+        flash('Welcome, Sarah!', 'success')
+        return redirect(url_for('dashboard'))
+
+    if user_type == 'teacher':
+        # Find first teacher or create mock session
+        try:
+            user = User.query.filter_by(role='teacher', is_active=True).first()
+            if user:
+                session['user_id'] = user.id
+                session['user_role'] = 'teacher'
+                session['user_name'] = user.get_full_name()
+                flash(f'Welcome, {user.get_full_name()}!', 'success')
+                return redirect(url_for('dashboard'))
+        except Exception:
+            pass
+        # Mock teacher session
+        session['user_id'] = -2
+        session['user_role'] = 'teacher'
+        session['user_name'] = 'Mr. Anderson'
+        flash('Welcome, Mr. Anderson!', 'success')
+        return redirect(url_for('dashboard'))
+
+    if user_type == 'student':
+        # Student login uses real DB
+        try:
+            user = User.query.filter_by(role='student', is_active=True).first()
+            if user:
+                session['user_id'] = user.id
+                session['user_role'] = 'student'
+                session['user_name'] = user.get_full_name()
+                flash(f'Welcome, {user.get_full_name()}!', 'success')
+                return redirect(url_for('dashboard'))
+        except Exception:
+            pass
+        # Fallback mock student
+        session['user_id'] = -3
+        session['user_role'] = 'student'
+        session['user_name'] = 'Emma Wilson'
+        flash('Welcome, Emma!', 'success')
+        return redirect(url_for('dashboard'))
+
+    flash('Invalid role selected.', 'danger')
+    return redirect(url_for('index'))
+
 
 @app.route('/logout')
 def logout():
-    """Logout and clear session"""
+    """Clear session and redirect to home"""
     session.clear()
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
+
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    """Role-based dashboard routing"""
-    user = get_current_user()
-    if not user:
-        return redirect(url_for('login'))
-    
-    if user.role == 'admin':
-        # Get statistics for admin dashboard
-        total_users = User.query.filter_by(is_active=True).count()
-        teacher_count = User.query.filter_by(role='teacher', is_active=True).count()
-        student_count = User.query.filter_by(role='student', is_active=True).count()
-        total_classes = Class.query.filter_by(is_active=True).count()
-        
-        return render_template('admin_dashboard.html', 
-                             user=user,
-                             user_count=total_users,
-                             teacher_count=teacher_count,
-                             student_count=student_count,
-                             total_classes=total_classes)
-    elif user.role == 'teacher':
-        # Get teacher's classes and real statistics
-        teacher_classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
-        total_students = sum(cls.get_student_count() for cls in teacher_classes)
-        
-        # Get improvement metrics for all students
-        from progression_analyzer import ProgressionAnalyzer
-        analyzer = ProgressionAnalyzer()
-        student_improvements = []
-        
-        if teacher_classes:
-            # Get first class for now (can be expanded)
-            first_class = teacher_classes[0]
-            students = first_class.get_students()
-            
-            for student in students:
-                improvement = analyzer.get_student_improvement(student.id)
-                improvement['name'] = student.first_name
-                improvement['full_name'] = student.get_full_name()
-                student_improvements.append(improvement)
-        
-        # Calculate class average improvement
-        if student_improvements:
-            avg_improvement = sum(s['improvement_percentage'] for s in student_improvements) / len(student_improvements)
-            avg_current = sum(s['current_score'] for s in student_improvements) / len(student_improvements)
-        else:
-            avg_improvement = 0
-            avg_current = 0
-        
-        return render_template('teacher_dashboard.html', 
-                             user=user,
-                             classes=teacher_classes,
-                             class_count=len(teacher_classes),
-                             total_students=total_students,
-                             student_improvements=student_improvements,
-                             avg_improvement=round(avg_improvement, 1),
-                             avg_current=round(avg_current, 1))
-    elif user.role == 'student':
-        # Get student's classes and overall average
-        student_classes = user.classes
-        overall_average = user.get_average_grade()
-        
-        return render_template('student_dashboard.html', 
-                             user=user,
-                             classes=student_classes,
-                             overall_average=overall_average)
+    """Route to role-specific dashboard"""
+    role = session.get('user_role')
+    if role == 'teacher':
+        return redirect(url_for('teacher_dashboard'))
+    elif role == 'student':
+        return redirect(url_for('student_dashboard'))
+    elif role == 'parent':
+        return redirect(url_for('parent_dashboard'))
     else:
-        flash('Invalid user role.', 'danger')
-        return redirect(url_for('login'))
+        flash('Unknown role.', 'danger')
+        return redirect(url_for('index'))
 
-@app.route('/progression-data/<int:class_id>')
-@role_required(['teacher', 'admin'])
-def progression_data(class_id):
-    """API endpoint to get student progression data for visualization"""
-    from progression_analyzer import ProgressionAnalyzer
-    from flask import jsonify
-    
-    analyzer = ProgressionAnalyzer()
-    
-    # Get all students in this class
-    class_obj = Class.query.get_or_404(class_id)
-    students = class_obj.get_students()
-    student_ids = [student.id for student in students]
-    
-    # Get progression data for all students (3-day intervals for cleaner charts)
-    progression_results = analyzer.get_multi_student_progression(student_ids, days=30, interval_days=3)
-    
-    # Format for Chart.js
-    chart_data = {
-        'labels': [],
-        'datasets': []
-    }
-    
-    # Collect all unique dates
-    all_dates = set()
-    for student_data in progression_results.values():
-        for point in student_data['data']:
-            all_dates.add(point['date'])
-    
-    chart_data['labels'] = sorted(list(all_dates))
-    
-    # Create dataset for each student
-    colors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6c757d']
-    for idx, (student_id, student_data) in enumerate(progression_results.items()):
-        # Create a map of date to understanding score
-        score_map = {point['date']: point['understanding'] for point in student_data['data']}
-        
-        # Fill in scores for all dates (null if no data for that date)
-        scores = [score_map.get(date, None) for date in chart_data['labels']]
-        
-        chart_data['datasets'].append({
-            'label': student_data['name'],
-            'data': scores,
-            'borderColor': colors[idx % len(colors)],
-            'backgroundColor': colors[idx % len(colors)] + '20',
-            'fill': False,
-            'tension': 0.3,
-            'spanGaps': True
-        })
-    
-    return jsonify(chart_data)
 
-@app.route('/progression-data/<int:class_id>/<sub_topic>')
-@role_required(['teacher', 'admin'])
-def sub_topic_progression_data(class_id, sub_topic):
-    """API endpoint to get sub-topic specific progression data"""
-    from progression_analyzer import ProgressionAnalyzer
-    from flask import jsonify
-    
-    analyzer = ProgressionAnalyzer()
-    
-    # Get all students in this class
-    class_obj = Class.query.get_or_404(class_id)
-    students = class_obj.get_students()
-    student_ids = [student.id for student in students]
-    
-    # Get progression data for this sub-topic (3-day intervals for cleaner charts)
-    progression_results = analyzer.get_multi_student_sub_topic_progression(student_ids, sub_topic, days=60, interval_days=3)
-    
-    # Format for Chart.js
-    chart_data = {'labels': [], 'datasets': []}
-    
-    # Collect all unique dates
-    all_dates = set()
-    for student_data in progression_results.values():
-        for point in student_data['data']:
-            all_dates.add(point['date'])
-    
-    chart_data['labels'] = sorted(list(all_dates))
-    
-    # Color scheme for sub-topics
-    colors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6c757d']
-    for idx, (student_id, student_data) in enumerate(progression_results.items()):
-        score_map = {point['date']: point['understanding'] for point in student_data['data']}
-        scores = [score_map.get(date, None) for date in chart_data['labels']]
-        
-        chart_data['datasets'].append({
-            'label': student_data['name'],
-            'data': scores,
-            'borderColor': colors[idx % len(colors)],
-            'backgroundColor': colors[idx % len(colors)] + '20',
-            'fill': False,
-            'tension': 0.3,
-            'spanGaps': True
-        })
-    
-    return jsonify(chart_data)
+# ============================================================
+# TEACHER ROUTES
+# ============================================================
 
-@app.route('/progression-data/<int:class_id>/composite')
-@role_required(['teacher', 'admin'])
-def composite_progression_data(class_id):
-    """API endpoint to get composite (overall Math) progression data"""
-    from progression_analyzer import ProgressionAnalyzer
-    from flask import jsonify
-    
-    analyzer = ProgressionAnalyzer()
-    
-    # Get all students in this class
-    class_obj = Class.query.get_or_404(class_id)
-    students = class_obj.get_students()
-    student_ids = [student.id for student in students]
-    
-    # Get composite progression data (3-day intervals for cleaner charts)
-    progression_results = analyzer.get_multi_student_composite_progression(student_ids, days=60, interval_days=3)
-    
-    # Format for Chart.js
-    chart_data = {'labels': [], 'datasets': []}
-    
-    # Collect all unique dates
-    all_dates = set()
-    for student_data in progression_results.values():
-        for point in student_data['data']:
-            all_dates.add(point['date'])
-    
-    chart_data['labels'] = sorted(list(all_dates))
-    
-    # Colors for composite view
-    colors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6c757d']
-    for idx, (student_id, student_data) in enumerate(progression_results.items()):
-        score_map = {point['date']: point['understanding'] for point in student_data['data']}
-        scores = [score_map.get(date, None) for date in chart_data['labels']]
-        
-        chart_data['datasets'].append({
-            'label': f"{student_data['name']} (Overall Math)",
-            'data': scores,
-            'borderColor': colors[idx % len(colors)],
-            'backgroundColor': colors[idx % len(colors)] + '20',
-            'fill': False,
-            'tension': 0.3,
-            'spanGaps': True
-        })
-    
-    return jsonify(chart_data)
-
-@app.route('/manage-users')
-@admin_required
-def manage_users():
-    """Admin page to manage users"""
-    users = User.query.filter_by(is_active=True).all()
-    return render_template('manage_users.html', users=users)
-
-@app.route('/add-user', methods=['GET', 'POST'])
-@admin_required
-def add_user():
-    """Admin page to add new users"""
-    if request.method == 'POST':
-        role = request.form.get('role')
-        first_name = request.form.get('first_name')
-        last_name = request.form.get('last_name')
-        
-        if not all([role, first_name, last_name]):
-            flash('Please fill in all required fields.', 'danger')
-            return render_template('edit_user.html', user=None, roles=['admin', 'teacher', 'student'])
-        
-        # Create new user
-        user = User(
-            role=role,
-            first_name=first_name,
-            last_name=last_name
-        )
-        
-        # Add student profile fields if role is student
-        if role == 'student':
-            user.age = request.form.get('age') or None
-            user.gender = request.form.get('gender') or None
-            user.ethnicity = request.form.get('ethnicity') or None
-            user.year_level = request.form.get('year_level') or None
-            user.primary_language = request.form.get('primary_language') or None
-            user.secondary_language = request.form.get('secondary_language') or None
-            user.learning_difficulty = request.form.get('learning_difficulty') or None
-            user.major_life_event = request.form.get('major_life_event') or None
-            user.learning_style = request.form.get('learning_style') or None
-            user.preferred_difficulty = request.form.get('preferred_difficulty') or None
-            user.academic_goals = request.form.get('academic_goals') or None
-            
-            # Parse date of birth
-            dob_str = request.form.get('date_of_birth')
-            if dob_str:
-                try:
-                    from datetime import datetime
-                    user.date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date()
-                except ValueError:
-                    pass
-            
-            # Parse attendance rate
-            attendance_str = request.form.get('attendance_rate')
-            if attendance_str:
-                try:
-                    user.attendance_rate = float(attendance_str)
-                except ValueError:
-                    pass
-            
-            # Parse lists for extracurricular activities and interests
-            activities_text = request.form.get('extracurricular_activities', '').strip()
-            if activities_text:
-                activities_list = [act.strip() for act in activities_text.split('\n') if act.strip()]
-                user.set_extracurricular_list(activities_list)
-            
-            interests_text = request.form.get('interests', '').strip()
-            if interests_text:
-                interests_list = [int.strip() for int in interests_text.split('\n') if int.strip()]
-                user.set_interests_list(interests_list)
-        
-        try:
-            db.session.add(user)
-            db.session.commit()
-            flash(f'User {user.get_full_name()} has been created successfully.', 'success')
-            return redirect(url_for('manage_users'))
-        except Exception as e:
-            db.session.rollback()
-            flash('An error occurred while creating the user.', 'danger')
-            app.logger.error(f'Error creating user: {e}')
-    
-    return render_template('edit_user.html', user=None, roles=['admin', 'teacher', 'student'])
-
-@app.route('/edit-user/<int:user_id>', methods=['GET', 'POST'])
-@admin_required
-def edit_user(user_id):
-    """Admin page to edit existing users"""
-    user = User.query.get_or_404(user_id)
-    
-    if request.method == 'POST':
-        role = request.form.get('role')
-        first_name = request.form.get('first_name')
-        last_name = request.form.get('last_name')
-        
-        if not all([role, first_name, last_name]):
-            flash('Please fill in all required fields.', 'danger')
-            return render_template('edit_user.html', user=user, roles=['admin', 'teacher', 'student'])
-        
-        # Update user
-        user.role = role
-        user.first_name = first_name
-        user.last_name = last_name
-        
-        # Update student profile fields if role is student
-        if role == 'student':
-            user.age = request.form.get('age') or None
-            user.gender = request.form.get('gender') or None
-            user.ethnicity = request.form.get('ethnicity') or None
-            user.year_level = request.form.get('year_level') or None
-            user.primary_language = request.form.get('primary_language') or None
-            user.secondary_language = request.form.get('secondary_language') or None
-            user.learning_difficulty = request.form.get('learning_difficulty') or None
-            user.major_life_event = request.form.get('major_life_event') or None
-            user.learning_style = request.form.get('learning_style') or None
-            user.preferred_difficulty = request.form.get('preferred_difficulty') or None
-            user.academic_goals = request.form.get('academic_goals') or None
-            
-            # Parse date of birth
-            dob_str = request.form.get('date_of_birth')
-            if dob_str:
-                try:
-                    from datetime import datetime
-                    user.date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date()
-                except ValueError:
-                    pass
-            else:
-                user.date_of_birth = None
-            
-            # Parse attendance rate
-            attendance_str = request.form.get('attendance_rate')
-            if attendance_str:
-                try:
-                    user.attendance_rate = float(attendance_str)
-                except ValueError:
-                    user.attendance_rate = None
-            else:
-                user.attendance_rate = None
-            
-            # Parse lists for extracurricular activities and interests
-            activities_text = request.form.get('extracurricular_activities', '').strip()
-            if activities_text:
-                activities_list = [act.strip() for act in activities_text.split('\n') if act.strip()]
-                user.set_extracurricular_list(activities_list)
-            else:
-                user.set_extracurricular_list([])
-            
-            interests_text = request.form.get('interests', '').strip()
-            if interests_text:
-                interests_list = [int.strip() for int in interests_text.split('\n') if int.strip()]
-                user.set_interests_list(interests_list)
-            else:
-                user.set_interests_list([])
-        else:
-            # Clear student fields if role is not student
-            user.age = None
-            user.gender = None
-            user.ethnicity = None
-            user.date_of_birth = None
-            user.year_level = None
-            user.primary_language = None
-            user.secondary_language = None
-            user.learning_difficulty = None
-            user.major_life_event = None
-            user.learning_style = None
-            user.preferred_difficulty = None
-            user.academic_goals = None
-            user.attendance_rate = None
-            user.set_extracurricular_list([])
-            user.set_interests_list([])
-        
-        try:
-            db.session.commit()
-            flash(f'User {user.get_full_name()} has been updated successfully.', 'success')
-            return redirect(url_for('manage_users'))
-        except Exception as e:
-            db.session.rollback()
-            flash('An error occurred while updating the user.', 'danger')
-            app.logger.error(f'Error updating user: {e}')
-    
-    return render_template('edit_user.html', user=user, roles=['admin', 'teacher', 'student'])
-
-@app.route('/delete-user/<int:user_id>', methods=['POST'])
-@admin_required
-def delete_user(user_id):
-    """Admin function to delete users"""
-    user = User.query.get_or_404(user_id)
-    
-    # Prevent admin from deleting themselves
-    current_user = get_current_user()
-    if user.id == current_user.id:
-        flash('You cannot delete your own account.', 'danger')
-        return redirect(url_for('manage_users'))
-    
-    try:
-        user.is_active = False  # Soft delete
-        db.session.commit()
-        flash(f'User {user.get_full_name()} has been deleted successfully.', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash('An error occurred while deleting the user.', 'danger')
-        app.logger.error(f'Error deleting user: {e}')
-    
-    return redirect(url_for('manage_users'))
-
-# === CLASS MANAGEMENT ROUTES ===
-
-@app.route('/manage-classes')
-@admin_required
-def manage_classes():
-    """Admin page to manage classes"""
-    classes = Class.query.filter_by(is_active=True).all()
-    return render_template('manage_classes.html', classes=classes)
-
-@app.route('/add-class', methods=['GET', 'POST'])
-@admin_required
-def add_class():
-    """Admin page to add new classes"""
-    if request.method == 'POST':
-        name = request.form.get('name')
-        description = request.form.get('description')
-        teacher_id = request.form.get('teacher_id')
-        
-        if not all([name, teacher_id]):
-            flash('Please fill in all required fields.', 'danger')
-            teachers = User.query.filter_by(role='teacher', is_active=True).all()
-            return render_template('edit_class.html', class_obj=None, teachers=teachers)
-        
-        # Check if class already exists
-        existing_class = Class.query.filter_by(name=name).first()
-        if existing_class:
-            flash('A class with this name already exists.', 'danger')
-            teachers = User.query.filter_by(role='teacher', is_active=True).all()
-            return render_template('edit_class.html', class_obj=None, teachers=teachers)
-        
-        # Create new class
-        new_class = Class(
-            name=name,
-            description=description,
-            teacher_id=teacher_id
-        )
-        
-        try:
-            db.session.add(new_class)
-            db.session.commit()
-            flash(f'Class "{name}" has been created successfully.', 'success')
-            return redirect(url_for('manage_classes'))
-        except Exception as e:
-            db.session.rollback()
-            flash('An error occurred while creating the class.', 'danger')
-            app.logger.error(f'Error creating class: {e}')
-    
-    teachers = User.query.filter_by(role='teacher', is_active=True).all()
-    return render_template('edit_class.html', class_obj=None, teachers=teachers)
-
-@app.route('/edit-class/<int:class_id>', methods=['GET', 'POST'])
-@admin_required
-def edit_class(class_id):
-    """Admin page to edit existing classes"""
-    class_obj = Class.query.get_or_404(class_id)
-    
-    if request.method == 'POST':
-        name = request.form.get('name')
-        description = request.form.get('description')
-        teacher_id = request.form.get('teacher_id')
-        
-        if not all([name, teacher_id]):
-            flash('Please fill in all required fields.', 'danger')
-            teachers = User.query.filter_by(role='teacher', is_active=True).all()
-            return render_template('edit_class.html', class_obj=class_obj, teachers=teachers)
-        
-        # Check if name is taken by another class
-        existing_class = Class.query.filter_by(name=name).first()
-        if existing_class and existing_class.id != class_obj.id:
-            flash('A class with this name already exists.', 'danger')
-            teachers = User.query.filter_by(role='teacher', is_active=True).all()
-            return render_template('edit_class.html', class_obj=class_obj, teachers=teachers)
-        
-        # Update class
-        class_obj.name = name
-        class_obj.description = description
-        class_obj.teacher_id = teacher_id
-        
-        try:
-            db.session.commit()
-            flash(f'Class "{name}" has been updated successfully.', 'success')
-            return redirect(url_for('manage_classes'))
-        except Exception as e:
-            db.session.rollback()
-            flash('An error occurred while updating the class.', 'danger')
-            app.logger.error(f'Error updating class: {e}')
-    
-    teachers = User.query.filter_by(role='teacher', is_active=True).all()
-    return render_template('edit_class.html', class_obj=class_obj, teachers=teachers)
-
-@app.route('/delete-class/<int:class_id>', methods=['POST'])
-@admin_required
-def delete_class(class_id):
-    """Admin function to delete classes"""
-    class_obj = Class.query.get_or_404(class_id)
-    
-    try:
-        class_obj.is_active = False  # Soft delete
-        db.session.commit()
-        flash(f'Class "{class_obj.name}" has been deleted successfully.', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash('An error occurred while deleting the class.', 'danger')
-        app.logger.error(f'Error deleting class: {e}')
-    
-    return redirect(url_for('manage_classes'))
-
-# === AI DASHBOARD ROUTES ===
-
-@app.route('/admin/student-ai-insights/<int:student_id>')
-@admin_required
-def student_ai_insights(student_id):
-    """Deep dive into a specific student's AI learning data"""
-    from student_ai_analyzer import StudentAIAnalyzer
-    
-    student = User.query.get_or_404(student_id)
-    analyzer = StudentAIAnalyzer()
-    insights = analyzer.generate_student_insights(student_id)
-    
-    return render_template('student_ai_insights.html', 
-                         student=student, 
-                         insights=insights)
-
-@app.route('/admin/ai-dashboard')
-@admin_required
-def ai_dashboard():
-    """Admin AI Dashboard - Shows Individual AI Tutors and Big AI Coordinator metrics"""
-    from admin_ai_dashboard import AIMetricsDashboard
-    
-    dashboard = AIMetricsDashboard()
-    metrics = dashboard.generate_complete_dashboard()
-    
-    return render_template('ai_dashboard.html', metrics=metrics)
-
-@app.route('/admin/ai-dashboard/data')
-@admin_required
-def ai_dashboard_data():
-    """API endpoint for AI dashboard data"""
-    from admin_ai_dashboard import AIMetricsDashboard
-    
-    dashboard = AIMetricsDashboard()
-    metrics = dashboard.generate_complete_dashboard()
-    
-    return metrics
-
-@app.route('/admin/clear-data', methods=['POST'])
-@admin_required
-def clear_all_data():
-    """Clear all student and AI data"""
-    print("DEBUG: Clear data route called")
-    try:
-        # Clear all student-related data
-        AIInteraction.query.delete()
-        OptimizedProfile.query.delete()
-        FailedStrategy.query.delete()
-        ChatMessage.query.delete()
-        MiniTest.query.delete()
-        MiniTestResponse.query.delete()
-        PatternInsight.query.delete()
-        PredictedGrade.query.delete()
-        TeacherAIInsight.query.delete()
-        
-        # Clear student enrollments
-        students = User.query.filter_by(role='student').all()
-        for student in students:
-            student.classes.clear()
-        
-        # Delete students
-        User.query.filter_by(role='student').delete()
-        db.session.commit()
-        
-        print("DEBUG: Data cleared successfully")
-        flash('✅ All data cleared successfully!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        print(f"DEBUG: Error clearing data: {str(e)}")
-        flash(f'Error clearing data: {str(e)}', 'danger')
-    
-    return redirect(url_for('ai_dashboard'))
-
-@app.route('/admin/generate-data', methods=['POST'])
-@admin_required
-def generate_demo_data():
-    """Generate realistic demo data for AI system"""
-    from data_generator import RealisticDataGenerator
-    
-    try:
-        generator = RealisticDataGenerator()
-        results = generator.generate_complete_dataset(100)
-        
-        flash(f'✅ Generated {results["students"]} students with {results["interactions"]} interactions! Ready for AI analysis.', 'success')
-        return redirect(url_for('ai_dashboard'))
-        
-    except Exception as e:
-        flash(f'Error generating data: {str(e)}', 'danger')
-        return redirect(url_for('ai_dashboard'))
-
-@app.route('/admin/run-big-ai', methods=['POST'])
-@admin_required
-def run_big_ai_analysis():
-    """Manually trigger Big AI Coordinator analysis"""
-    try:
-        print("DEBUG: Starting Big AI Coordinator analysis")
-        from ai_coordinator import BigAICoordinator
-        coordinator = BigAICoordinator()
-        
-        print("DEBUG: Running global patterns analysis")
-        # Run only the essential analysis to avoid timeout
-        coordinator.analyze_global_patterns()
-        
-        print("DEBUG: Checking for students to generate predictions")
-        # Only generate predictions if there are students  
-        try:
-            student_count = User.query.filter_by(role='student').count()
-            print(f"DEBUG: Found {student_count} students")
-            
-            # Temporarily disable grade predictions to fix the internal server error
-            # The core AI analysis (OpenAI integration) is working perfectly
-            # if student_count > 0:
-            #     print("DEBUG: Starting simplified grade predictions")
-            #     coordinator.generate_grade_predictions()
-            #     print("DEBUG: Grade predictions completed")
-            print("DEBUG: Focusing on core AI analysis - grade predictions temporarily disabled")
-            
-        except Exception as db_error:
-            print(f"ERROR in database query: {str(db_error)}")
-            raise
-        
-        flash('🤖 Big AI Coordinator analysis completed successfully!', 'success')
-        return redirect(url_for('ai_dashboard'))
-        
-    except Exception as e:
-        print(f"ERROR in Big AI analysis: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        flash(f'Error running Big AI analysis: {str(e)}', 'danger')
-        return redirect(url_for('ai_dashboard'))
-
-# === TEACHER ROUTES ===
-
+@app.route('/teacher')
 @app.route('/teacher/classes')
-@role_required(['teacher'])
-def teacher_classes():
-    """Teacher page to view their classes"""
-    user = get_current_user()
-    teacher_classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
-    return render_template('teacher_classes.html', classes=teacher_classes)
+@login_required
+def teacher_dashboard():
+    """Teacher class selection view"""
+    # Try to load real classes from DB for this teacher
+    user_id = session.get('user_id')
+    if user_id and user_id > 0:
+        try:
+            db_classes = Class.query.filter_by(teacher_id=user_id, is_active=True).all()
+            if db_classes:
+                classes = []
+                for c in db_classes:
+                    classes.append({
+                        'id': c.id,
+                        'name': c.name,
+                        'subject': c.subject or 'General',
+                        'student_count': c.get_student_count(),
+                        'pass_rate': round(c.get_pass_rate()),
+                    })
+                return render_template('teacher_classes.html', classes=classes)
+        except Exception:
+            pass
+
+    # Fallback to mock data
+    return render_template('teacher_classes.html', classes=MOCK_TEACHER_CLASSES)
+
 
 @app.route('/teacher/class/<int:class_id>')
-@role_required(['teacher'])
-def teacher_class_detail(class_id):
-    """Teacher page to view class details"""
-    user = get_current_user()
-    class_obj = Class.query.get_or_404(class_id)
-    
-    # Check if teacher owns this class
-    if class_obj.teacher_id != user.id:
-        flash('Access denied.', 'danger')
-        return redirect(url_for('teacher_classes'))
-    
-    students = class_obj.get_students()
-    assignments = Assignment.query.filter_by(class_id=class_id, is_active=True).all()
-    
-    return render_template('teacher_class_detail.html', 
-                         class_obj=class_obj, 
-                         students=students, 
-                         assignments=assignments)
-
-@app.route('/teacher/class/<int:class_id>/create-assignment', methods=['GET', 'POST'])
-@role_required(['teacher'])
-def create_assignment(class_id):
-    """Teacher page to create assignments"""
-    user = get_current_user()
-    class_obj = Class.query.get_or_404(class_id)
-    
-    # Check if teacher owns this class
-    if class_obj.teacher_id != user.id:
-        flash('Access denied.', 'danger')
-        return redirect(url_for('teacher_classes'))
-    
-    if request.method == 'POST':
-        title = request.form.get('title')
-        description = request.form.get('description')
-        materials_text = request.form.get('materials_text', '')
-        uploaded_files = request.files.getlist('assignment_files')
-        due_date_str = request.form.get('due_date')
-        max_points = request.form.get('max_points', 100)
-        
-        if not all([title, description]):
-            flash('Please fill in all required fields.', 'danger')
-            return render_template('create_assignment.html', class_obj=class_obj)
-        
-        due_date = None
-        if due_date_str:
-            try:
-                due_date = datetime.strptime(due_date_str, '%Y-%m-%d')
-            except ValueError:
-                flash('Invalid date format.', 'danger')
-                return render_template('create_assignment.html', class_obj=class_obj)
-        
-        # Build full description with materials and file info
-        full_description = description
-        
-        if materials_text:
-            full_description += f"\n\n--- Assignment Materials ---\n{materials_text}"
-        
-        if uploaded_files and any(file.filename for file in uploaded_files):
-            file_list = [file.filename for file in uploaded_files if file.filename]
-            full_description += f"\n\n--- Attached Files ---\n" + "\n".join(f"• {filename}" for filename in file_list)
-        
-        # Create assignment
-        assignment = Assignment(
-            title=title,
-            description=full_description,
-            class_id=class_id,
-            due_date=due_date,
-            max_points=int(max_points)
-        )
-        
+@login_required
+def teacher_class_dashboard(class_id):
+    """Teacher class dashboard with sidebar"""
+    # Try real DB first
+    db_class = None
+    try:
+        db_class = Class.query.get(class_id)
+    except Exception:
+        pass
+    if db_class:
         try:
-            db.session.add(assignment)
-            db.session.commit()
-            flash(f'Assignment "{title}" has been created successfully.', 'success')
-            return redirect(url_for('teacher_class_detail', class_id=class_id))
-        except Exception as e:
-            db.session.rollback()
-            flash('An error occurred while creating the assignment.', 'danger')
-            app.logger.error(f'Error creating assignment: {e}')
-    
-    return render_template('create_assignment.html', class_obj=class_obj)
+            cls = {
+                'id': db_class.id,
+                'name': db_class.name,
+                'subject': db_class.subject or 'General',
+                'student_count': db_class.get_student_count(),
+                'pass_rate': round(db_class.get_pass_rate()),
+            }
+            materials = []
+            for cf in db_class.content_files:
+                materials.append({
+                    'name': cf.name,
+                    'type': cf.file_type.upper() if cf.file_type else 'File',
+                    'date': cf.uploaded_at.strftime('%b %d, %Y') if cf.uploaded_at else '',
+                    'description': cf.name,
+                })
+            assignments = []
+            for a in db_class.assignments:
+                sub_count = len(a.submissions)
+                total = db_class.get_student_count() or 1
+                pct = round((sub_count / total) * 100)
+                assignments.append({
+                    'title': a.title,
+                    'due_date': a.due_date.strftime('%b %d, %Y') if a.due_date else 'No due date',
+                    'completed': sub_count,
+                    'pct': pct,
+                })
+            students_list = []
+            for s in db_class.get_students():
+                avg = s.get_class_average(class_id)
+                chat_info = s.get_chat_summary(class_id)
+                students_list.append({
+                    'id': s.id,
+                    'name': s.get_full_name(),
+                    'initials': s.first_name[0] + s.last_name[0] if s.last_name else s.first_name[0],
+                    'grade': round(avg) if avg else 0,
+                    'blocker': 'No data available',
+                    'ai_engagement': chat_info.get('engagement_level', 'Low').capitalize(),
+                    'material_engagement': 'Medium',
+                })
+            metrics = MOCK_METRICS.get(class_id, MOCK_METRICS[1])
+            analytics = MOCK_ANALYTICS.get(class_id, MOCK_ANALYTICS[1])
+            groups = MOCK_GROUPS.get(class_id, MOCK_GROUPS[1])
+            if not materials:
+                materials = MOCK_MATERIALS.get(class_id, MOCK_MATERIALS[1])
+            if not assignments:
+                assignments = MOCK_ASSIGNMENTS.get(class_id, MOCK_ASSIGNMENTS[1])
+            if not students_list:
+                students_list = MOCK_STUDENTS.get(class_id, MOCK_STUDENTS[1])
+            return render_template('teacher_class_dashboard.html',
+                cls=cls, materials=materials, assignments=assignments,
+                metrics=metrics, analytics=analytics, groups=groups,
+                students=students_list)
+        except Exception:
+            pass
 
-@app.route('/teacher/grade-submission/<int:submission_id>', methods=['GET', 'POST'])
-@role_required(['teacher'])
-def grade_submission(submission_id):
-    """Teacher page to grade assignments"""
-    user = get_current_user()
-    submission = AssignmentSubmission.query.get_or_404(submission_id)
-    
-    # Check if teacher owns this class
-    if submission.assignment.class_obj.teacher_id != user.id:
-        flash('Access denied.', 'danger')
-        return redirect(url_for('teacher_classes'))
-    
-    if request.method == 'POST':
-        grade_value = request.form.get('grade')
-        feedback = request.form.get('feedback')
-        
-        if not grade_value:
-            flash('Please enter a grade.', 'danger')
-            return render_template('grade_submission.html', submission=submission)
-        
-        try:
-            grade_value = float(grade_value)
-        except ValueError:
-            flash('Invalid grade value.', 'danger')
-            return render_template('grade_submission.html', submission=submission)
-        
-        # Check if grade already exists
-        existing_grade = Grade.query.filter_by(
-            assignment_id=submission.assignment_id,
-            student_id=submission.student_id
-        ).first()
-        
-        if existing_grade:
-            existing_grade.grade = grade_value
-            existing_grade.feedback = feedback
-            existing_grade.graded_at = datetime.utcnow()
-            existing_grade.graded_by = user.id
-        else:
-            grade = Grade(
-                assignment_id=submission.assignment_id,
-                student_id=submission.student_id,
-                submission_id=submission_id,
-                grade=grade_value,
-                feedback=feedback,
-                graded_by=user.id
-            )
-            db.session.add(grade)
-        
-        try:
-            db.session.commit()
-            flash('Grade has been saved successfully.', 'success')
-            return redirect(url_for('teacher_class_detail', class_id=submission.assignment.class_id))
-        except Exception as e:
-            db.session.rollback()
-            flash('An error occurred while saving the grade.', 'danger')
-            app.logger.error(f'Error saving grade: {e}')
-    
-    return render_template('grade_submission.html', submission=submission)
+    # Full mock fallback
+    cls_data = next((c for c in MOCK_TEACHER_CLASSES if c['id'] == class_id), MOCK_TEACHER_CLASSES[0])
+    return render_template('teacher_class_dashboard.html',
+        cls=cls_data,
+        materials=MOCK_MATERIALS.get(class_id, MOCK_MATERIALS[1]),
+        assignments=MOCK_ASSIGNMENTS.get(class_id, MOCK_ASSIGNMENTS[1]),
+        metrics=MOCK_METRICS.get(class_id, MOCK_METRICS[1]),
+        analytics=MOCK_ANALYTICS.get(class_id, MOCK_ANALYTICS[1]),
+        groups=MOCK_GROUPS.get(class_id, MOCK_GROUPS[1]),
+        students=MOCK_STUDENTS.get(class_id, MOCK_STUDENTS[1]))
 
-# === STUDENT ROUTES ===
 
+@app.route('/teacher/class/<int:class_id>/group/<group_id>')
+@login_required
+def teacher_group(class_id, group_id):
+    """Teacher group view - students in a specific group"""
+    cls_data = next((c for c in MOCK_TEACHER_CLASSES if c['id'] == class_id), MOCK_TEACHER_CLASSES[0])
+    groups = MOCK_GROUPS.get(class_id, MOCK_GROUPS[1])
+    group = next((g for g in groups if g['id'] == group_id), groups[0])
+
+    all_students = MOCK_STUDENTS.get(class_id, MOCK_STUDENTS[1])
+    group_students = [s for s in all_students if s.get('group') == group_id]
+    if not group_students:
+        group_students = all_students[:3]
+
+    return render_template('teacher_group.html',
+        class_id=class_id,
+        class_name=cls_data['name'],
+        group=group,
+        students=group_students)
+
+
+@app.route('/teacher/class/<int:class_id>/student/<int:student_id>')
+@login_required
+def teacher_student(class_id, student_id):
+    """Individual student view with full metrics"""
+    cls_data = next((c for c in MOCK_TEACHER_CLASSES if c['id'] == class_id), MOCK_TEACHER_CLASSES[0])
+
+    # Try DB first
+    try:
+        db_student = User.query.get(student_id)
+        if db_student and db_student.role == 'student':
+            avg = db_student.get_class_average(class_id) or 0
+            chat_info = db_student.get_chat_summary(class_id)
+
+            all_mock = MOCK_STUDENTS.get(class_id, MOCK_STUDENTS[1])
+            mock_match = next((s for s in all_mock if s['id'] == student_id), None)
+
+            if mock_match:
+                student = mock_match
+            else:
+                student = {
+                    'id': db_student.id,
+                    'name': db_student.get_full_name(),
+                    'initials': db_student.first_name[0] + (db_student.last_name[0] if db_student.last_name else ''),
+                    'grade': round(avg),
+                    'pass_rate': round(avg),
+                    'projected_grade': 'B' if avg >= 70 else 'C' if avg >= 60 else 'D',
+                    'attendance': round(db_student.attendance_rate or 85),
+                    'completion_rate': 80,
+                    'overall_progress': round(avg),
+                    'learning_style': db_student.learning_style or 'Not assessed',
+                    'misconceptions': [],
+                    'strengths': [],
+                    'ai_summary': f'{db_student.get_full_name()} is currently at {round(avg)}% in this class.',
+                    'next_steps': ['Continue current study habits', 'Engage more with AI tutor'],
+                    'mastery': [{'name': 'General', 'score': round(avg)}],
+                    'ai_engagement': chat_info.get('engagement_level', 'Low').capitalize(),
+                    'material_engagement': 'Medium',
+                    'ai_trend': [50, 55, 60, 58, 62, 65, 68, 70, 72, 75],
+                    'material_trend': [40, 45, 50, 55, 58, 60, 62, 65, 68, 70],
+                }
+
+            return render_template('teacher_student.html',
+                student=student, class_id=class_id, class_name=cls_data['name'])
+    except Exception:
+        pass
+
+    # Full mock fallback
+    all_students = MOCK_STUDENTS.get(class_id, MOCK_STUDENTS[1])
+    student = next((s for s in all_students if s['id'] == student_id), all_students[0])
+
+    return render_template('teacher_student.html',
+        student=student, class_id=class_id, class_name=cls_data['name'])
+
+
+# ============================================================
+# STUDENT ROUTES
+# ============================================================
+
+@app.route('/student')
 @app.route('/student/classes')
-@role_required(['student'])
-def student_classes():
-    """Student page to view their classes"""
-    user = get_current_user()
-    student_classes = user.classes
-    return render_template('student_classes.html', classes=student_classes, user=user)
+@login_required
+def student_dashboard():
+    """Student class selection view"""
+    user_id = session.get('user_id')
+
+    # Try real DB for student data
+    if user_id and user_id > 0:
+        try:
+            user = User.query.get(user_id)
+            if user and user.role == 'student' and user.classes:
+                classes = []
+                for c in user.classes:
+                    grade = user.get_class_average(c.id)
+                    teacher = User.query.get(c.teacher_id)
+                    classes.append({
+                        'id': c.id,
+                        'name': c.name,
+                        'subject': c.subject or 'General',
+                        'teacher_name': teacher.get_full_name() if teacher else 'Unknown',
+                        'grade': round(grade) if grade is not None else None,
+                    })
+                return render_template('student_classes.html', classes=classes)
+        except Exception:
+            pass
+
+    # Mock student classes
+    mock_classes = [
+        {'id': 1, 'name': 'Algebra I', 'subject': 'Math', 'teacher_name': 'Mr. Anderson', 'grade': 85},
+        {'id': 2, 'name': 'Biology 101', 'subject': 'Science', 'teacher_name': 'Ms. Rivera', 'grade': 78},
+        {'id': 3, 'name': 'Financial Accounting', 'subject': 'Accounting', 'teacher_name': 'Dr. Chen', 'grade': 82},
+    ]
+    return render_template('student_classes.html', classes=mock_classes)
+
 
 @app.route('/student/class/<int:class_id>')
-@role_required(['student'])
-def student_class_detail(class_id):
-    """Student page to view class details"""
-    user = get_current_user()
-    class_obj = Class.query.get_or_404(class_id)
-    
-    # Check if student is enrolled in this class
-    if class_obj not in user.classes:
-        flash('Access denied.', 'danger')
-        return redirect(url_for('student_classes'))
-    
-    assignments = Assignment.query.filter_by(class_id=class_id, is_active=True).limit(3).all()
-    
-    # Get submissions and grades for this student
-    assignment_data = []
-    for assignment in assignments:
-        submission = assignment.get_submission_by_student(user.id)
-        grade = Grade.query.filter_by(assignment_id=assignment.id, student_id=user.id).first()
-        assignment_data.append({
-            'assignment': assignment,
-            'submission': submission,
-            'grade': grade
-        })
-    
-    return render_template('student_class_detail.html', 
-                         class_obj=class_obj, 
-                         assignment_data=assignment_data,
-                         user=user)
+@login_required
+def student_class_view(class_id):
+    """Student class view with tabs: assignments, materials, AI chat summary"""
+    user_id = session.get('user_id')
 
-@app.route('/student/submit-assignment/<int:assignment_id>', methods=['GET', 'POST'])
-@role_required(['student'])
-def submit_assignment(assignment_id):
-    """Student page to submit assignments"""
-    user = get_current_user()
-    assignment = Assignment.query.get_or_404(assignment_id)
-    
-    # Check if student is enrolled in this class
-    if assignment.class_obj not in user.classes:
-        flash('Access denied.', 'danger')
-        return redirect(url_for('student_classes'))
-    
-    # Check if already submitted
-    existing_submission = assignment.get_submission_by_student(user.id)
-    
-    if request.method == 'POST':
-        content = request.form.get('content', '')
-        uploaded_file = request.files.get('submission_file')
-        
-        if not content and not (uploaded_file and uploaded_file.filename):
-            flash('Please provide either written content or upload a file.', 'danger')
-            return render_template('submit_assignment.html', assignment=assignment, submission=existing_submission)
-        
-        # Handle file upload
-        file_path = None
-        file_name = None
-        submission_content = content
-        
-        if uploaded_file and uploaded_file.filename:
-            file_name = uploaded_file.filename
-            file_path = f'uploads/assignments/{assignment_id}_{user.id}_{file_name}'
-            # Add file info to content
-            submission_content = f"Submitted file: {file_name}\n\n{content}" if content else f"Submitted file: {file_name}"
-        
-        if existing_submission:
-            # Update existing submission
-            existing_submission.content = submission_content
-            existing_submission.file_path = file_path
-            existing_submission.file_name = file_name
-            existing_submission.submitted_at = datetime.utcnow()
-        else:
-            # Create new submission
-            submission = AssignmentSubmission(
-                assignment_id=assignment_id,
-                student_id=user.id,
-                content=submission_content,
-                file_path=file_path,
-                file_name=file_name
-            )
-            db.session.add(submission)
-        
+    # Try real DB
+    if user_id and user_id > 0:
         try:
-            db.session.commit()
-            flash('Assignment submitted successfully.', 'success')
-            return redirect(url_for('student_class_detail', class_id=assignment.class_id))
-        except Exception as e:
-            db.session.rollback()
-            flash('An error occurred while submitting the assignment.', 'danger')
-            app.logger.error(f'Error submitting assignment: {e}')
-    
-    return render_template('submit_assignment.html', assignment=assignment, submission=existing_submission)
+            user = User.query.get(user_id)
+            db_class = Class.query.get(class_id)
 
-# === ADDITIONAL STUDENT ROUTES ===
+            if user and db_class and user in db_class.users:
+                teacher = User.query.get(db_class.teacher_id)
+                cls = {
+                    'id': db_class.id,
+                    'name': db_class.name,
+                    'subject': db_class.subject or 'General',
+                    'teacher_name': teacher.get_full_name() if teacher else 'Unknown',
+                }
 
-@app.route('/student/grades')
-@role_required(['student'])
-def student_grades():
-    """Student page to view all grades"""
-    user = get_current_user()
-    grades = Grade.query.filter_by(student_id=user.id).all()
-    return render_template('student_grades.html', grades=grades, user=user)
+                assignments = []
+                for a in db_class.assignments:
+                    sub = a.get_submission_by_student(user_id)
+                    grade = Grade.query.filter_by(assignment_id=a.id, student_id=user_id).first()
+                    if grade:
+                        status, status_class = 'Graded', 'graded'
+                    elif sub:
+                        status, status_class = 'Submitted', 'submitted'
+                    else:
+                        status, status_class = 'Not Started', 'not-started'
 
-@app.route('/student/schedule')
-@role_required(['student'])
-def student_schedule():
-    """Student page to view class schedule"""
-    user = get_current_user()
-    return render_template('student_schedule.html', user=user)
+                    days_left = (a.due_date - datetime.utcnow()).days if a.due_date else 0
+                    if days_left > 3:
+                        due_color = 'due-green'
+                    elif days_left > 0:
+                        due_color = 'due-yellow'
+                    else:
+                        due_color = 'due-red'
 
-# === ADDITIONAL TEACHER ROUTES ===
+                    assignments.append({
+                        'title': a.title,
+                        'status': status,
+                        'status_class': status_class,
+                        'due_date': a.due_date.strftime('%b %d, %Y') if a.due_date else 'No due date',
+                        'days_left': days_left,
+                        'due_color': due_color,
+                    })
 
-@app.route('/teacher/students')
-@role_required(['teacher'])
-def teacher_students():
-    """Teacher page to view all students"""
-    user = get_current_user()
-    classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
-    student_data = []
-    
-    for class_obj in classes:
-        students = class_obj.get_students()
-        for student in students:
-            # Create a student data dict to avoid modifying the actual student object
-            student_info = {
-                'id': student.id,
-                'first_name': student.first_name,
-                'last_name': student.last_name,
-                'is_active': student.is_active,
-                'created_at': student.created_at,
-                'class_name': class_obj.name,
-                'class_id': class_obj.id,
-                'get_full_name': student.get_full_name,
-                'get_average_grade': student.get_average_grade,
-                'get_class_average': student.get_class_average,
-                'student_obj': student  # Keep reference to original student object
-            }
-            # Avoid duplicates
-            if not any(s['id'] == student.id and s['class_id'] == class_obj.id for s in student_data):
-                student_data.append(student_info)
-    
-    return render_template('teacher_students.html', students=student_data, user=user)
+                materials = []
+                for cf in db_class.content_files:
+                    materials.append({
+                        'name': cf.name,
+                        'type': cf.file_type.upper() if cf.file_type else 'File',
+                        'description': cf.name,
+                    })
 
-@app.route('/teacher/gradebook')
-@role_required(['teacher'])
-def teacher_gradebook():
-    """Teacher page to view gradebook"""
-    user = get_current_user()
-    classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
-    return render_template('teacher_gradebook.html', classes=classes, user=user)
+                chat_sessions = []
+                chats = ChatMessage.query.filter_by(
+                    user_id=user_id, class_id=class_id
+                ).order_by(ChatMessage.created_at.desc()).limit(10).all()
+                for chat in chats:
+                    chat_sessions.append({
+                        'date': chat.created_at.strftime('%b %d, %Y') if chat.created_at else '',
+                        'duration': '~10 min',
+                        'summary': chat.message[:60] + '...' if len(chat.message) > 60 else chat.message,
+                        'notes': chat.response[:80] + '...' if len(chat.response) > 80 else chat.response,
+                    })
 
-@app.route('/teacher/content')
-@role_required(['teacher'])
-def teacher_content():
-    """Teacher page to manage content files"""
-    user = get_current_user()
-    classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
-    
-    # Calculate file statistics
-    total_files = 0
-    pdf_count = 0
-    slides_count = 0
-    txt_count = 0
-    
-    for class_obj in classes:
-        for file in class_obj.content_files:
-            total_files += 1
-            if file.file_type == 'pdf':
-                pdf_count += 1
-            elif file.file_type == 'slides':
-                slides_count += 1
-            elif file.file_type == 'txt':
-                txt_count += 1
-    
-    return render_template('teacher_content.html', 
-                         classes=classes, 
-                         user=user,
-                         total_files=total_files,
-                         pdf_count=pdf_count,
-                         slides_count=slides_count,
-                         txt_count=txt_count)
+                if not assignments:
+                    assignments = MOCK_STUDENT_ASSIGNMENTS.get(class_id, [])
+                if not materials:
+                    materials = MOCK_MATERIALS.get(class_id, [])
+                if not chat_sessions:
+                    chat_sessions = MOCK_CHAT_SESSIONS.get(class_id, [])
 
-@app.route('/teacher/upload-content/<int:class_id>', methods=['GET', 'POST'])
-@role_required(['teacher'])
-def upload_content(class_id):
-    """Teacher page to upload content files"""
-    user = get_current_user()
-    class_obj = Class.query.get_or_404(class_id)
-    
-    # Check if teacher owns this class
-    if class_obj.teacher_id != user.id:
-        flash('Access denied.', 'danger')
-        return redirect(url_for('teacher_content'))
-    
-    if request.method == 'POST':
-        name = request.form.get('name')
-        content = request.form.get('content', '')
-        file_type = request.form.get('file_type', 'txt')
-        uploaded_file = request.files.get('content_file')
-        
-        if not name:
-            flash('Please provide a content name.', 'danger')
-            return render_template('upload_content.html', class_obj=class_obj)
-        
-        # Handle file upload
-        file_path = f'content_{class_id}_{name}.{file_type}'
-        file_content = content
-        
-        if uploaded_file and uploaded_file.filename:
-            # Get file extension and update file type accordingly
-            file_extension = uploaded_file.filename.rsplit('.', 1)[1].lower() if '.' in uploaded_file.filename else 'txt'
-            if file_extension in ['pdf', 'doc', 'docx']:
-                file_type = 'pdf'
-            elif file_extension in ['ppt', 'pptx']:
-                file_type = 'slides'
-            else:
-                file_type = 'txt'
-            
-            file_path = f'uploads/content_{class_id}_{uploaded_file.filename}'
-            # For demo purposes, we'll store file info and add content description
-            file_content = f"Uploaded file: {uploaded_file.filename}\n\n{content}" if content else f"Uploaded file: {uploaded_file.filename}"
-        
-        content_file = ContentFile(
-            class_id=class_id,
-            name=name,
-            file_path=file_path,
-            file_type=file_type,
-            uploaded_by=user.id
-        )
-        
+                return render_template('student_class_view.html',
+                    cls=cls, assignments=assignments, materials=materials,
+                    chat_sessions=chat_sessions)
+        except Exception:
+            pass
+
+    # Mock fallback
+    mock_cls_names = {1: ('Algebra I', 'Math', 'Mr. Anderson'), 2: ('Biology 101', 'Science', 'Ms. Rivera'), 3: ('Financial Accounting', 'Accounting', 'Dr. Chen')}
+    name, subject, teacher = mock_cls_names.get(class_id, ('Class', 'General', 'Teacher'))
+    cls = {'id': class_id, 'name': name, 'subject': subject, 'teacher_name': teacher}
+
+    return render_template('student_class_view.html',
+        cls=cls,
+        assignments=MOCK_STUDENT_ASSIGNMENTS.get(class_id, []),
+        materials=MOCK_MATERIALS.get(class_id, []),
+        chat_sessions=MOCK_CHAT_SESSIONS.get(class_id, []))
+
+
+@app.route('/student/class/<int:class_id>/chat')
+@login_required
+def student_chat(class_id):
+    """AI Chat interface"""
+    user_id = session.get('user_id')
+    student_name = session.get('user_name', 'Student')
+    initials = ''.join([w[0] for w in student_name.split()[:2]]) if student_name else 'S'
+
+    mock_cls_names = {1: ('Algebra I', 'Math'), 2: ('Biology 101', 'Science'), 3: ('Financial Accounting', 'Accounting')}
+    class_name, subject = mock_cls_names.get(class_id, ('Class', 'General'))
+
+    # Try to get class name from DB
+    try:
+        db_class = Class.query.get(class_id)
+        if db_class:
+            class_name = db_class.name
+            subject = db_class.subject or 'General'
+    except Exception:
+        pass
+
+    # Load chat history from DB
+    messages = []
+    if user_id and user_id > 0:
         try:
-            db.session.add(content_file)
-            db.session.commit()
-            flash(f'Content "{name}" has been uploaded successfully.', 'success')
-            return redirect(url_for('teacher_content'))
-        except Exception as e:
-            db.session.rollback()
-            flash('An error occurred while uploading the content.', 'danger')
-            app.logger.error(f'Error uploading content: {e}')
-    
-    return render_template('upload_content.html', class_obj=class_obj)
+            chats = ChatMessage.query.filter_by(
+                user_id=user_id, class_id=class_id
+            ).order_by(ChatMessage.created_at.asc()).all()
+            for chat in chats:
+                messages.append({'role': 'user', 'content': chat.message})
+                messages.append({'role': 'ai', 'content': chat.response})
+        except Exception:
+            pass
 
-@app.route('/teacher/student-profile/<int:student_id>')
-@role_required(['teacher'])
-def student_profile(student_id):
-    """Teacher page to view student profile"""
-    user = get_current_user()
-    student = User.query.get_or_404(student_id)
-    
-    # Check if teacher has access to this student (through classes)
-    teacher_classes = Class.query.filter_by(teacher_id=user.id, is_active=True).all()
-    has_access = False
-    for class_obj in teacher_classes:
-        if student in class_obj.users:
-            has_access = True
-            break
-    
-    if not has_access:
-        flash('Access denied.', 'danger')
-        return redirect(url_for('teacher_students'))
-    
-    # Get student's grades in teacher's classes
-    student_grades = []
-    for class_obj in teacher_classes:
-        if student in class_obj.users:
-            assignments = Assignment.query.filter_by(class_id=class_obj.id, is_active=True).all()
-            for assignment in assignments:
-                grade = Grade.query.filter_by(assignment_id=assignment.id, student_id=student_id).first()
-                if grade:
-                    grade.class_name = class_obj.name
-                    grade.assignment_title = assignment.title
-                    student_grades.append(grade)
-    
-    return render_template('student_profile.html', student=student, grades=student_grades, user=user)
+    return render_template('student_chat.html',
+        class_id=class_id,
+        class_name=class_name,
+        subject=subject,
+        student_initials=initials,
+        messages=messages)
 
-@app.route('/ai-tutor/<int:class_id>')
+
+# ============================================================
+# PARENT ROUTES
+# ============================================================
+
+@app.route('/parent')
+@app.route('/parent/dashboard')
 @login_required
-@role_required(['student'])
-def ai_tutor(class_id):
-    """AI tutor interface for students"""
-    current_user = get_current_user()
-    class_obj = Class.query.get_or_404(class_id)
-    
-    # Check if student is enrolled in this class
-    if current_user not in class_obj.users:
-        flash('You are not enrolled in this class.', 'danger')
-        return redirect(url_for('student_classes'))
-    
-    # Get chat history for this student and class
-    from ai_service import AIService
-    ai_service = AIService()
-    chat_history = ai_service.get_chat_history(current_user.id, class_id, limit=10)
-    
-    # Get student's average grade in this class
-    grades = [g.grade for g in current_user.grades if g.assignment.class_id == class_id and g.grade is not None]
-    average_grade = sum(grades) / len(grades) if grades else None
-    
-    # Get available content files
-    content_files = ContentFile.query.filter_by(class_id=class_id).all()
-    
-    return render_template('ai_tutor.html', 
-                         class_obj=class_obj, 
-                         chat_history=chat_history,
-                         average_grade=average_grade,
-                         content_files=content_files,
-                         current_user=current_user)
+def parent_dashboard():
+    """Parent child selection view"""
+    return render_template('parent_dashboard.html', children=MOCK_CHILDREN)
 
-@app.route('/teacher/ai-insights/<int:class_id>')
+
+@app.route('/parent/child/<int:child_id>')
 @login_required
-@role_required(['teacher'])
-def teacher_ai_insights(class_id):
-    """Teacher AI insights dashboard"""
-    class_obj = Class.query.get_or_404(class_id)
-    
-    # Verify teacher owns this class
-    if class_obj.teacher_id != session.get('user_id'):
-        flash('Access denied.', 'error')
-        return redirect(url_for('teacher_dashboard'))
-    
-    from ai_service import AIService
-    ai_service = AIService()
-    
-    # Get comprehensive AI insights
-    insights = ai_service.get_teacher_insights(session.get('user_id'), class_id)
-    
-    # Get detailed student information with AI profiles
-    students = class_obj.get_students()
-    student_profiles = []
-    
-    for student in students:
-        # Get student's chat messages for this class
-        chat_messages = ChatMessage.query.filter_by(user_id=student.id, class_id=class_id).all()
-        recent_chats = ChatMessage.query.filter_by(
-            user_id=student.id, class_id=class_id
-        ).order_by(ChatMessage.created_at.desc()).limit(3).all()
-        
-        # Get student's grades in this class
-        student_grades = Grade.query.join(Assignment).filter(
-            Assignment.class_id == class_id,
-            Grade.student_id == student.id
-        ).all()
-        
-        avg_grade = sum(g.grade for g in student_grades) / len(student_grades) if student_grades else 0
-        
-        profile = {
-            'student': student,
-            'chat_count': len(chat_messages),
-            'recent_topics': [chat.message[:50] + '...' for chat in recent_chats],
-            'avg_grade': avg_grade,
-            'total_grades': len(student_grades),
-            'engagement_level': 'High' if len(chat_messages) > 10 else 'Medium' if len(chat_messages) > 3 else 'Low'
-        }
-        student_profiles.append(profile)
-    
-    return render_template('teacher_ai_insights.html',
-                         class_obj=class_obj,
-                         insights=insights,
-                         student_profiles=student_profiles)
-
-@app.route('/assignment/<int:assignment_id>')
-@role_required(['teacher'])
-def view_assignment(assignment_id):
-    """View and edit assignment details"""
-    assignment = Assignment.query.get_or_404(assignment_id)
-    user = get_current_user()
-    
-    # Check if teacher owns this assignment through the class
-    if assignment.class_obj.teacher_id != user.id:
-        flash('Access denied.', 'danger')
-        return redirect(url_for('teacher_classes'))
-    
-    submissions = AssignmentSubmission.query.filter_by(assignment_id=assignment_id).all()
-    grades = Grade.query.filter_by(assignment_id=assignment_id).all()
-    
-    return render_template('assignment_detail.html', 
-                         assignment=assignment, 
-                         submissions=submissions, 
-                         grades=grades)
-
-@app.route('/teacher/ai-chat/<int:class_id>')
-@login_required
-@role_required(['teacher'])
-def teacher_ai_chat(class_id):
-    """Teacher AI chat interface"""
-    class_obj = Class.query.get_or_404(class_id)
-    
-    # Verify teacher owns this class
-    if class_obj.teacher_id != session.get('user_id'):
-        flash('Access denied.', 'error')
-        return redirect(url_for('teacher_dashboard'))
-    
-    from ai_service import AIService
-    ai_service = AIService()
-    
-    # Get recent chat history for this teacher and class
-    chat_history = ai_service.get_chat_history(session.get('user_id'), class_id, limit=10)
-    
-    # Get students in this class for context
-    students = class_obj.get_students()
-    student_summaries = []
-    for student in students:
-        summary = {
-            'name': student.get_full_name(),
-            'id': student.id,
-            'profile': student.get_ai_profile_summary()[:200] + '...' if len(student.get_ai_profile_summary()) > 200 else student.get_ai_profile_summary()
-        }
-        student_summaries.append(summary)
-    
-    return render_template('teacher_ai_chat.html',
-                         class_obj=class_obj,
-                         chat_history=chat_history,
-                         students=student_summaries)
-
-@app.route('/ai-verification')
-@login_required
-@role_required(['teacher', 'admin'])
-def ai_verification():
-    """AI system verification page - shows what's real AI vs simulated"""
-    # Get recent AI interactions to prove system is working
-    recent_interactions = AIInteraction.query.order_by(
-        AIInteraction.created_at.desc()
-    ).limit(20).all()
-    
-    return render_template('ai_verification.html',
-                         recent_interactions=recent_interactions)
+def parent_child_view(child_id):
+    """Parent child profile view"""
+    child = next((c for c in MOCK_CHILDREN if c['id'] == child_id), MOCK_CHILDREN[0])
+    return render_template('parent_child.html', child=child)

@@ -1,85 +1,39 @@
 {% extends "base.html" %}
-
-{% block title %}My Classes - School Management System{% endblock %}
+{% block title %}My Classes - AxonAI{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="fas fa-book me-2"></i>My Classes</h2>
-            <div class="text-end">
-                <div class="mb-2">
-                    <span class="badge bg-info fs-6">{{ classes|length }} Classes</span>
-                </div>
-                {% if user.get_average_grade() %}
-                <div>
-                    <span class="text-muted">Overall Average:</span>
-                    <span class="badge bg-{{ 'success' if user.get_average_grade() >= 70 else 'warning' if user.get_average_grade() >= 50 else 'danger' }} fs-6">
-                        {{ "%.1f"|format(user.get_average_grade()) }}%
-                    </span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
+<div class="container" style="padding-top: 40px; padding-bottom: 40px;">
+  <div class="page-header">
+    <h1>My Classes</h1>
+    <p>Select a class to view assignments, materials, and chat with your AI tutor</p>
+  </div>
 
-{% if classes %}
-<div class="row">
-    {% for class in classes %}
-    <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">
-                    <i class="fas fa-book text-primary me-2"></i>
-                    {{ class.name }}
-                </h5>
-                <p class="card-text">{{ class.description or 'No description available' }}</p>
-                <p class="card-text">
-                    <small class="text-muted">
-                        <i class="fas fa-chalkboard-teacher me-1"></i>
-                        {{ class.teacher.get_full_name() }}
-                    </small>
-                </p>
-                
-                <div class="row text-center mb-3">
-                    <div class="col-6">
-                        <h6 class="text-muted">Average Grade</h6>
-                        {% set class_avg = user.get_class_average(class.id) %}
-                        {% if class_avg %}
-                        <h4 class="text-{{ 'success' if class_avg >= 70 else 'warning' if class_avg >= 50 else 'danger' }}">
-                            {{ "%.1f"|format(class_avg) }}%
-                        </h4>
-                        {% else %}
-                        <h4 class="text-muted">No Grades</h4>
-                        {% endif %}
-                    </div>
-                    <div class="col-6">
-                        <h6 class="text-muted">Assignments</h6>
-                        <h4 class="text-info">{{ class.assignments|length }}</h4>
-                    </div>
-                </div>
-                
-                <div class="d-grid">
-                    <a href="{{ url_for('student_class_detail', class_id=class.id) }}" 
-                       class="btn btn-primary">
-                        <i class="fas fa-eye me-1"></i>View Class
-                    </a>
-                </div>
-            </div>
+  <div class="grid grid-3">
+    {% for cls in classes %}
+    <a href="{{ url_for('student_class_view', class_id=cls.id) }}" style="text-decoration: none; color: inherit;">
+      <div class="card card-clickable">
+        <div class="card-header-custom">
+          <div class="card-icon blue">
+            <i class="fas fa-book"></i>
+          </div>
+          <span class="badge badge-blue">{{ cls.subject }}</span>
         </div>
-    </div>
+        <h3 style="margin-bottom: 8px;">{{ cls.name }}</h3>
+        <p class="text-muted text-small">{{ cls.teacher_name }}</p>
+        {% if cls.grade is not none %}
+        <div style="margin-top: 16px;" class="flex items-center gap-md">
+          <div class="text-small">
+            <span class="text-muted">Current grade:</span>
+            <span style="font-weight: 600;">{{ cls.grade }}%</span>
+          </div>
+          <div class="progress-bar-wrapper" style="flex: 1;">
+            <div class="progress-bar-fill {% if cls.grade >= 70 %}green{% elif cls.grade >= 50 %}orange{% else %}red{% endif %}" style="width: {{ cls.grade }}%;"></div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </a>
     {% endfor %}
+  </div>
 </div>
-{% else %}
-<div class="row">
-    <div class="col-12">
-        <div class="text-center py-5">
-            <i class="fas fa-book fa-3x text-muted mb-3"></i>
-            <h4>No Classes Enrolled</h4>
-            <p class="text-muted">Contact your administrator to get enrolled in classes.</p>
-        </div>
-    </div>
-</div>
-{% endif %}
 {% endblock %}

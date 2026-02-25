@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ group.name }} - AxonAI{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 40px; padding-bottom: 40px;">
+  <div class="breadcrumb">
+    <a href="{{ url_for('teacher_dashboard') }}">Classes</a>
+    <span class="sep">/</span>
+    <a href="{{ url_for('teacher_class_dashboard', class_id=class_id) }}">{{ class_name }}</a>
+    <span class="sep">/</span>
+    <span>{{ group.name }}</span>
+  </div>
+
+  <!-- Summary Banner -->
+  <div class="banner banner-blue">
+    <h3><i class="fas fa-lightbulb" style="color: var(--accent-blue);"></i> Group Insight</h3>
+    <p>{{ group.summary }}</p>
+  </div>
+
+  <div class="page-header">
+    <h1>{{ group.name }}</h1>
+    <p>{{ group.student_count }} students in this group</p>
+  </div>
+
+  <!-- Student List -->
+  {% for student in students %}
+  <a href="{{ url_for('teacher_student', class_id=class_id, student_id=student.id) }}" style="text-decoration: none; color: inherit;">
+    <div class="student-row">
+      <div class="student-avatar">{{ student.initials }}</div>
+      <div class="student-info">
+        <div class="student-name">{{ student.name }}</div>
+        <div class="student-detail">Stuck on: {{ student.blocker }}</div>
+      </div>
+      <div class="student-metrics">
+        <div class="student-metric">
+          <div class="value">{{ student.pass_rate }}%</div>
+          <div class="label">Pass Rate</div>
+        </div>
+        <div class="student-metric">
+          <div class="value">{{ student.projected_grade }}</div>
+          <div class="label">Projected</div>
+        </div>
+        <div class="student-metric">
+          <div class="engagement">
+            <span class="engagement-dot {{ student.ai_engagement|lower }}"></span>
+            {{ student.ai_engagement }}
+          </div>
+          <div class="label">AI Use</div>
+        </div>
+        <div class="student-metric">
+          <div class="engagement">
+            <span class="engagement-dot {{ student.material_engagement|lower }}"></span>
+            {{ student.material_engagement }}
+          </div>
+          <div class="label">Materials</div>
+        </div>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

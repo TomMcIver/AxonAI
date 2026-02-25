@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}AI Tutor - AxonAI{% endblock %}
+
+{% block head %}
+<style>
+  .app-main { padding: 0; }
+  .navbar { position: sticky; top: 0; z-index: 100; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+  <!-- Chat Header -->
+  <div class="chat-header">
+    <a href="{{ url_for('student_class_view', class_id=class_id) }}" class="btn btn-ghost" style="padding: 8px;">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+    <div class="card-icon blue" style="width: 36px; height: 36px;">
+      <i class="fas fa-robot"></i>
+    </div>
+    <div>
+      <div style="font-weight: 600; font-size: 0.95rem;">AI Tutor</div>
+      <div class="text-xs text-muted">{{ class_name }} &middot; {{ subject }}</div>
+    </div>
+  </div>
+
+  <!-- Chat Messages -->
+  <div class="chat-messages" id="chatMessages">
+    {% for msg in messages %}
+    <div class="chat-message {{ msg.role }}">
+      <div class="message-avatar">
+        {% if msg.role == 'ai' %}
+        <i class="fas fa-robot"></i>
+        {% else %}
+        {{ student_initials }}
+        {% endif %}
+      </div>
+      <div class="message-bubble">{{ msg.content }}</div>
+    </div>
+    {% endfor %}
+
+    {% if not messages %}
+    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+      <div class="card-icon blue" style="width: 56px; height: 56px; margin: 0 auto 16px; font-size: 1.5rem;">
+        <i class="fas fa-robot"></i>
+      </div>
+      <h3 style="font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">Welcome to your AI Tutor</h3>
+      <p>Ask me anything about {{ class_name }}. I'm here to help you learn!</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="chat-quick-actions">
+    <button class="quick-action-btn" onclick="sendQuickAction('Can you explain this concept to me?')">Ask for Explanation</button>
+    <button class="quick-action-btn" onclick="sendQuickAction('Give me a practice problem')">Get a Practice Problem</button>
+    <button class="quick-action-btn" onclick="sendQuickAction('Help me understand my mistake')">Explain My Mistake</button>
+  </div>
+
+  <!-- Chat Input -->
+  <div class="chat-input-area">
+    <div class="chat-input-wrapper">
+      <textarea class="chat-input" id="chatInput" rows="1" placeholder="Type your message..." onkeydown="handleKeyDown(event)"></textarea>
+      <button class="btn btn-primary" onclick="sendMessage()" id="sendBtn">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const classId = {{ class_id }};
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+
+function scrollToBottom() {
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function addMessage(role, content) {
+  const div = document.createElement('div');
+  div.className = 'chat-message ' + role;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'message-avatar';
+  if (role === 'ai') {
+    avatar.innerHTML = '<i class="fas fa-robot"></i>';
+  } else {
+    avatar.textContent = '{{ student_initials }}';
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = 'message-bubble';
+  bubble.textContent = content;
+
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  chatMessages.appendChild(div);
+  scrollToBottom();
+}
+
+function sendQuickAction(text) {
+  chatInput.value = text;
+  sendMessage();
+}
+
+async function sendMessage() {
+  const message = chatInput.value.trim();
+  if (!message) return;
+
+  chatInput.value = '';
+  addMessage('user', message);
+  sendBtn.disabled = true;
+
+  try {
+    const response = await fetch('/api/chat/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: message, class_id: classId })
+    });
+
+    const data = await response.json();
+    if (data.response) {
+      addMessage('ai', data.response);
+    } else if (data.error) {
+      addMessage('ai', 'Sorry, I encountered an error. Please try again.');
+    }
+  } catch (err) {
+    addMessage('ai', 'Sorry, I encountered a connection error. Please try again.');
+  }
+
+  sendBtn.disabled = false;
+  chatInput.focus();
+}
+
+function handleKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+chatInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+scrollToBottom();
+</script>
+{% endblock %}
