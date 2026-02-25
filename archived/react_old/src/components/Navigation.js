@@ -2,7 +2,7 @@ import React from 'react';
 import { Navbar, Nav, Container, NavDropdown, Button } from 'react-bootstrap';
 import { LinkContainer } from 'react-router-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGraduationCap, faUser, faSignOutAlt, faTachometerAlt, faUsers, faChalkboardTeacher, faBookOpen } from '@fortawesome/free-solid-svg-icons';
+import { faGraduationCap, faUser, faSignOutAlt, faTachometerAlt, faUsers, faChalkboardTeacher, faBookOpen, faChild } from '@fortawesome/free-solid-svg-icons';
 
 function Navigation({ user, onLogout }) {
   const getRoleIcon = () => {
@@ -10,6 +10,7 @@ function Navigation({ user, onLogout }) {
       case 'admin': return faUsers;
       case 'teacher': return faChalkboardTeacher;
       case 'student': return faBookOpen;
+      case 'parent': return faChild;
       default: return faUser;
     }
   };
@@ -19,6 +20,7 @@ function Navigation({ user, onLogout }) {
       case 'admin': return 'primary';
       case 'teacher': return 'warning';
       case 'student': return 'info';
+      case 'parent': return 'success';
       default: return 'secondary';
     }
   };
@@ -89,6 +91,16 @@ function Navigation({ user, onLogout }) {
                   <Nav.Link>My Grades</Nav.Link>
                 </LinkContainer>
               </>
+            )}
+
+            {/* Parent Navigation */}
+            {user.role === 'parent' && (
+              <LinkContainer to="/dashboard">
+                <Nav.Link>
+                  <FontAwesomeIcon icon={faChild} className="me-1" />
+                  Child Overview
+                </Nav.Link>
+              </LinkContainer>
             )}
           </Nav>
           

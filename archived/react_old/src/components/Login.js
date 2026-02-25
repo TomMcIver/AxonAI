@@ -39,7 +39,8 @@ function Login({ onLogin }) {
     const credentials = {
       admin: { email: 'admin@admin.com', password: 'admin123' },
       teacher: { email: 'teacher@teacher.com', password: 'teacher123' },
-      student: { email: 'student@student.com', password: 'student123' }
+      student: { email: 'student@student.com', password: 'student123' },
+      parent: { email: 'parent@parent.com', password: 'parent123' }
     };
     
     setFormData(credentials[role]);
@@ -51,6 +52,7 @@ function Login({ onLogin }) {
       case 'admin': return faUsers;
       case 'teacher': return faChalkboardTeacher;
       case 'student': return faBookOpen;
+      case 'parent': return faGraduationCap;
       default: return faUsers;
     }
   };
@@ -60,6 +62,7 @@ function Login({ onLogin }) {
       case 'admin': return 'primary';
       case 'teacher': return 'warning';
       case 'student': return 'info';
+      case 'parent': return 'success';
       default: return 'primary';
     }
   };
@@ -100,12 +103,21 @@ function Login({ onLogin }) {
                     </span>
                   }
                 />
-                <Tab 
-                  eventKey="student" 
+                <Tab
+                  eventKey="student"
                   title={
                     <span className={`text-${getRoleColor('student')}`}>
                       <FontAwesomeIcon icon={getRoleIcon('student')} className="me-1" />
                       Student
+                    </span>
+                  }
+                />
+                <Tab
+                  eventKey="parent"
+                  title={
+                    <span className={`text-${getRoleColor('parent')}`}>
+                      <FontAwesomeIcon icon={getRoleIcon('parent')} className="me-1" />
+                      Parent
                     </span>
                   }
                 />
@@ -189,6 +201,13 @@ function Login({ onLogin }) {
                     onClick={() => fillDemoCredentials('student')}
                   >
                     Student Demo
+                  </Button>
+                  <Button
+                    variant="outline-success"
+                    size="sm"
+                    onClick={() => fillDemoCredentials('parent')}
+                  >
+                    Parent Demo
                   </Button>
                 </div>
               </div>
