@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, ListGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, ListGroup, Alert } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChalkboardTeacher, faUsers, faClipboardList, faFolder, faCalendarAlt, faTasks } from '@fortawesome/free-solid-svg-icons';
+import { faChalkboardTeacher, faUsers, faClipboardList, faFolder, faCalendarAlt, faTasks, faBrain, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import ApiService from '../../services/ApiService';
+import apiService from '../../services/apiService';
 
 function TeacherDashboard({ user }) {
   const navigate = useNavigate();
@@ -13,28 +14,65 @@ function TeacherDashboard({ user }) {
     pendingGrades: 0,
     recentAssignments: []
   });
+  const [classMetrics, setClassMetrics] = useState(null);
+  const [studentInsights, setStudentInsights] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [apiConnected, setApiConnected] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    checkApiHealth();
     fetchDashboardData();
   }, []);
 
+  const checkApiHealth = async () => {
+    try {
+      await apiService.checkHealth();
+      setApiConnected(true);
+    } catch (err) {
+      console.warn('Inference API not available:', err.message);
+      setApiConnected(false);
+    }
+  };
+
   const fetchDashboardData = async () => {
     try {
+      // Fetch base dashboard data from existing backend
       const [classesResponse, studentsResponse, gradebookResponse] = await Promise.all([
         ApiService.getTeacherClasses(),
         ApiService.getTeacherStudents(),
         ApiService.getTeacherGradebook()
       ]);
 
+      const classes = classesResponse.data || [];
+      const students = studentsResponse.data || [];
+
       setStats({
-        totalClasses: classesResponse.data.length || 3,
-        totalStudents: studentsResponse.data.length || 25,
+        totalClasses: classes.length || 3,
+        totalStudents: students.length || 25,
         pendingGrades: gradebookResponse.data.pendingGrades || 8,
-        recentAssignments: classesResponse.data.flatMap(c => c.assignments || []).slice(0, 5) || []
+        recentAssignments: classes.flatMap(c => c.assignments || []).slice(0, 5) || []
       });
+
+      // Fetch inference API data (class metrics and student insights)
+      try {
+        const classId = classes.length > 0 ? classes[0].id : 1;
+        const metricsResponse = await apiService.getClassMetrics(classId);
+        setClassMetrics(metricsResponse.data);
+      } catch (metricsErr) {
+        console.warn('Could not fetch class metrics:', metricsErr.message);
+      }
+
+      try {
+        const studentId = students.length > 0 ? students[0].id : 1;
+        const insightsResponse = await apiService.getStudentInsights(studentId);
+        setStudentInsights(insightsResponse.data);
+      } catch (insightsErr) {
+        console.warn('Could not fetch student insights:', insightsErr.message);
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setError('Could not load dashboard data. Showing demo data.');
       // Set demo data if API fails
       setStats({
         totalClasses: 3,
@@ -93,6 +131,7 @@ function TeacherDashboard({ user }) {
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Loading...</span>
           </div>
+          <p className="mt-2 text-muted">Loading dashboard data...</p>
         </div>
       </Container>
     );
@@ -105,12 +144,24 @@ function TeacherDashboard({ user }) {
           <h1 className="h2 mb-1">Welcome back, {user.first_name}!</h1>
           <p className="text-muted">Teacher Dashboard</p>
         </Col>
+        <Col xs="auto" className="d-flex align-items-center">
+          <span className={`badge bg-${apiConnected ? 'success' : 'secondary'} me-2`}>
+            {apiConnected ? 'AI Connected' : 'AI Offline'}
+          </span>
+        </Col>
       </Row>
+
+      {error && (
+        <Alert variant="warning" dismissible onClose={() => setError(null)}>
+          <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
+          {error}
+        </Alert>
+      )}
 
       <Row className="g-4 mb-4">
         {dashboardCards.map((card, index) => (
           <Col key={index} xs={12} sm={6} lg={3}>
-            <Card 
+            <Card
               className="dashboard-card teacher-card h-100 border-0 text-white"
               onClick={() => navigate(card.path)}
               style={{ cursor: 'pointer' }}
@@ -120,8 +171,8 @@ function TeacherDashboard({ user }) {
                 <h3 className="display-6 fw-bold mb-2">{card.value}</h3>
                 <h5 className="card-title mb-2">{card.title}</h5>
                 <p className="card-text small opacity-75">{card.description}</p>
-                <Button 
-                  variant="light" 
+                <Button
+                  variant="light"
                   className="mt-auto"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -145,8 +196,8 @@ function TeacherDashboard({ user }) {
                 <FontAwesomeIcon icon={faTasks} className="me-2" />
                 Recent Assignments
               </h5>
-              <Button 
-                variant="outline-primary" 
+              <Button
+                variant="outline-primary"
                 size="sm"
                 onClick={() => navigate('/teacher/classes')}
               >
@@ -179,17 +230,53 @@ function TeacherDashboard({ user }) {
           </Card>
         </Col>
 
-        {/* Quick Actions */}
+        {/* AI Insights Panel */}
         <Col xs={12} lg={6}>
           <Card className="h-100 border-0 shadow-sm">
+            <Card.Header className="bg-transparent">
+              <h5 className="mb-0">
+                <FontAwesomeIcon icon={faBrain} className="me-2" />
+                AI Insights
+              </h5>
+            </Card.Header>
+            <Card.Body>
+              {classMetrics ? (
+                <div className="mb-3">
+                  <h6>Class Metrics</h6>
+                  <pre className="bg-light p-3 rounded small" style={{ maxHeight: '150px', overflow: 'auto' }}>
+                    {JSON.stringify(classMetrics, null, 2)}
+                  </pre>
+                </div>
+              ) : (
+                <p className="text-muted small">Class metrics unavailable. Ensure the Inference API is running.</p>
+              )}
+              {studentInsights ? (
+                <div>
+                  <h6>Student Insights</h6>
+                  <pre className="bg-light p-3 rounded small" style={{ maxHeight: '150px', overflow: 'auto' }}>
+                    {JSON.stringify(studentInsights, null, 2)}
+                  </pre>
+                </div>
+              ) : (
+                <p className="text-muted small">Student insights unavailable. Ensure the Inference API is running.</p>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Quick Actions */}
+      <Row className="mt-4">
+        <Col>
+          <Card className="border-0 shadow-sm">
             <Card.Header className="bg-transparent">
               <h5 className="mb-0">Quick Actions</h5>
             </Card.Header>
             <Card.Body>
               <Row className="g-3">
-                <Col xs={12}>
-                  <Button 
-                    variant="outline-primary" 
+                <Col xs={12} md={6} lg={3}>
+                  <Button
+                    variant="outline-primary"
                     className="w-100"
                     onClick={() => navigate('/teacher/classes')}
                   >
@@ -197,9 +284,9 @@ function TeacherDashboard({ user }) {
                     Create New Assignment
                   </Button>
                 </Col>
-                <Col xs={12}>
-                  <Button 
-                    variant="outline-success" 
+                <Col xs={12} md={6} lg={3}>
+                  <Button
+                    variant="outline-success"
                     className="w-100"
                     onClick={() => navigate('/teacher/gradebook')}
                   >
@@ -207,9 +294,9 @@ function TeacherDashboard({ user }) {
                     Grade Submissions
                   </Button>
                 </Col>
-                <Col xs={12}>
-                  <Button 
-                    variant="outline-info" 
+                <Col xs={12} md={6} lg={3}>
+                  <Button
+                    variant="outline-info"
                     className="w-100"
                     onClick={() => navigate('/teacher/content')}
                   >
@@ -217,9 +304,9 @@ function TeacherDashboard({ user }) {
                     Upload Course Material
                   </Button>
                 </Col>
-                <Col xs={12}>
-                  <Button 
-                    variant="outline-warning" 
+                <Col xs={12} md={6} lg={3}>
+                  <Button
+                    variant="outline-warning"
                     className="w-100"
                     onClick={() => navigate('/teacher/students')}
                   >

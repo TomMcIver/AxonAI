@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, ListGroup, ProgressBar, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, ListGroup, ProgressBar, Modal, Alert } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBookOpen, faClipboardList, faTrophy, faCalendarAlt, faTasks, faExclamationTriangle, faRobot, faComments } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import ApiService from '../../services/ApiService';
+import apiService from '../../services/apiService';
 import ChatBot from '../shared/ChatBot';
 
 function StudentDashboard({ user }) {
@@ -17,52 +18,117 @@ function StudentDashboard({ user }) {
   });
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState([]);
+  const [assignments, setAssignments] = useState([]);
   const [showChatBot, setShowChatBot] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
+  const [apiConnected, setApiConnected] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    checkApiHealth();
     fetchDashboardData();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const checkApiHealth = async () => {
     try {
-      const [classesResponse, gradesResponse, dashboardResponse] = await Promise.all([
-        ApiService.getClassesWithAI(),
-        ApiService.getStudentGrades(),
-        ApiService.getDashboardStats()
-      ]);
+      await apiService.checkHealth();
+      setApiConnected(true);
+    } catch (err) {
+      console.warn('Inference API not available:', err.message);
+      setApiConnected(false);
+    }
+  };
 
-      const classesData = classesResponse.data?.classes || [];
-      const grades = gradesResponse.data || [];
-      const dashboardStats = dashboardResponse.data || {};
-      
+  const fetchDashboardData = async () => {
+    const studentId = user.id || user.student_id || 1;
+
+    // Try inference API first for classes
+    let classesData = [];
+    let inferenceAvailable = false;
+    try {
+      const classesResponse = await apiService.getStudentClasses(studentId);
+      classesData = classesResponse.data?.classes || classesResponse.data || [];
+      inferenceAvailable = true;
+    } catch (err) {
+      console.warn('Inference API classes unavailable, falling back:', err.message);
+    }
+
+    // Fetch assignments for each class from inference API
+    if (inferenceAvailable && classesData.length > 0) {
+      try {
+        const assignmentPromises = classesData.map(cls =>
+          apiService.getStudentAssignments(studentId, cls.id || cls.class_id).catch(() => ({ data: [] }))
+        );
+        const assignmentResponses = await Promise.all(assignmentPromises);
+        const allAssignments = assignmentResponses.flatMap(r => r.data?.assignments || r.data || []);
+        setAssignments(allAssignments);
+      } catch (err) {
+        console.warn('Could not fetch assignments from inference API:', err.message);
+      }
+    }
+
+    // Fall back to existing backend if inference API didn't work
+    if (!inferenceAvailable) {
+      try {
+        const [classesResponse, gradesResponse, dashboardResponse] = await Promise.all([
+          ApiService.getClassesWithAI(),
+          ApiService.getStudentGrades(),
+          ApiService.getDashboardStats()
+        ]);
+
+        classesData = classesResponse.data?.classes || [];
+        const grades = gradesResponse.data || [];
+        const dashboardStats = dashboardResponse.data || {};
+
+        const pendingAssignments = classesData.reduce((total, cls) =>
+          total + (cls.assignments?.filter(a => !a.submitted).length || 0), 0
+        );
+
+        const overallGrade = grades.length > 0
+          ? grades.reduce((sum, grade) => sum + grade.grade, 0) / grades.length
+          : dashboardStats.average_grade || 85.5;
+
+        const upcomingDeadlines = classesData
+          .flatMap(cls => cls.assignments || [])
+          .filter(a => !a.submitted && new Date(a.due_date) > new Date())
+          .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+          .slice(0, 5);
+
+        setClasses(classesData);
+        setStats({
+          totalClasses: classesData.length || dashboardStats.enrolled_classes || 4,
+          overallGrade: Math.round(overallGrade * 10) / 10,
+          pendingAssignments: pendingAssignments || 3,
+          upcomingDeadlines: upcomingDeadlines,
+          chatInteractions: dashboardStats.chat_interactions || 0
+        });
+        setLoading(false);
+        return;
+      } catch (fallbackErr) {
+        console.error('All APIs failed, using demo data:', fallbackErr);
+        setError('Could not load dashboard data. Showing demo data.');
+      }
+    }
+
+    // Set state from inference API data or demo fallback
+    if (inferenceAvailable && classesData.length > 0) {
       setClasses(classesData);
-      
-      // Calculate stats
-      const pendingAssignments = classesData.reduce((total, cls) => 
-        total + (cls.assignments?.filter(a => !a.submitted).length || 0), 0
-      );
-      
-      const overallGrade = grades.length > 0 
-        ? grades.reduce((sum, grade) => sum + grade.grade, 0) / grades.length 
-        : dashboardStats.average_grade || 85.5;
 
-      const upcomingDeadlines = classesData
-        .flatMap(cls => cls.assignments || [])
-        .filter(a => !a.submitted && new Date(a.due_date) > new Date())
+      const pendingAssignments = assignments.filter(a => !a.submitted && !a.graded).length;
+      const upcomingDeadlines = assignments
+        .filter(a => !a.submitted && a.due_date && new Date(a.due_date) > new Date())
         .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
         .slice(0, 5);
 
       setStats({
-        totalClasses: classesData.length || dashboardStats.enrolled_classes || 4,
-        overallGrade: Math.round(overallGrade * 10) / 10,
-        pendingAssignments: pendingAssignments || 3,
+        totalClasses: classesData.length,
+        overallGrade: classesData[0]?.overall_grade || 85.5,
+        pendingAssignments: pendingAssignments || 0,
         upcomingDeadlines: upcomingDeadlines,
-        chatInteractions: dashboardStats.chat_interactions || 0
+        chatInteractions: 0
       });
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      // Set demo data if API fails
+    } else {
+      // Demo fallback
       setStats({
         totalClasses: 4,
         overallGrade: 85.5,
@@ -74,17 +140,16 @@ function StudentDashboard({ user }) {
         ],
         chatInteractions: 0
       });
-      
-      // Set demo classes for AI chatbot
+
       setClasses([
         { id: 1, name: 'Mathematics 101', subject: 'mathematics', has_ai_model: true },
         { id: 2, name: 'Environmental Science', subject: 'science', has_ai_model: true },
         { id: 3, name: 'Computer Science', subject: 'science', has_ai_model: true },
         { id: 4, name: 'English Literature', subject: 'english', has_ai_model: true }
       ]);
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   };
 
   const getGradeColor = (grade) => {
@@ -96,11 +161,9 @@ function StudentDashboard({ user }) {
 
   const handleOpenChatBot = () => {
     if (classes.filter(cls => cls.has_ai_model).length === 1) {
-      // If only one class has AI, open directly
       setSelectedClass(classes.find(cls => cls.has_ai_model));
       setShowChatBot(true);
     } else {
-      // Show class selection modal
       setShowChatBot(true);
     }
   };
@@ -151,6 +214,7 @@ function StudentDashboard({ user }) {
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Loading...</span>
           </div>
+          <p className="mt-2 text-muted">Loading dashboard data...</p>
         </div>
       </Container>
     );
@@ -163,12 +227,24 @@ function StudentDashboard({ user }) {
           <h1 className="h2 mb-1">Welcome back, {user.first_name}!</h1>
           <p className="text-muted">Student Dashboard</p>
         </Col>
+        <Col xs="auto" className="d-flex align-items-center">
+          <span className={`badge bg-${apiConnected ? 'success' : 'secondary'} me-2`}>
+            {apiConnected ? 'AI Connected' : 'AI Offline'}
+          </span>
+        </Col>
       </Row>
+
+      {error && (
+        <Alert variant="warning" dismissible onClose={() => setError(null)}>
+          <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
+          {error}
+        </Alert>
+      )}
 
       <Row className="g-4 mb-4">
         {dashboardCards.map((card, index) => (
           <Col key={index} xs={12} sm={6} lg={3}>
-            <Card 
+            <Card
               className="dashboard-card student-card h-100 border-0 text-white"
               onClick={() => card.action ? card.action() : navigate(card.path)}
               style={{ cursor: 'pointer' }}
@@ -178,8 +254,8 @@ function StudentDashboard({ user }) {
                 <h3 className="display-6 fw-bold mb-2">{card.value}</h3>
                 <h5 className="card-title mb-2">{card.title}</h5>
                 <p className="card-text small opacity-75">{card.description}</p>
-                <Button 
-                  variant="light" 
+                <Button
+                  variant="light"
                   className="mt-auto"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -210,13 +286,13 @@ function StudentDashboard({ user }) {
                   <span>Overall Performance</span>
                   <span>{stats.overallGrade}%</span>
                 </div>
-                <ProgressBar 
-                  variant={getGradeColor(stats.overallGrade)} 
-                  now={stats.overallGrade} 
+                <ProgressBar
+                  variant={getGradeColor(stats.overallGrade)}
+                  now={stats.overallGrade}
                   className="mb-3"
                 />
               </div>
-              
+
               <Row className="text-center">
                 <Col xs={6}>
                   <div className="border-end">
@@ -243,8 +319,8 @@ function StudentDashboard({ user }) {
                 <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                 Upcoming Deadlines
               </h5>
-              <Button 
-                variant="outline-primary" 
+              <Button
+                variant="outline-primary"
                 size="sm"
                 onClick={() => navigate('/student/classes')}
               >
@@ -289,8 +365,8 @@ function StudentDashboard({ user }) {
             <Card.Body>
               <Row className="g-3">
                 <Col xs={12} md={6} lg={3}>
-                  <Button 
-                    variant="outline-primary" 
+                  <Button
+                    variant="outline-primary"
                     className="w-100"
                     onClick={() => navigate('/student/classes')}
                   >
@@ -299,8 +375,8 @@ function StudentDashboard({ user }) {
                   </Button>
                 </Col>
                 <Col xs={12} md={6} lg={3}>
-                  <Button 
-                    variant="outline-success" 
+                  <Button
+                    variant="outline-success"
                     className="w-100"
                     onClick={() => navigate('/student/grades')}
                   >
@@ -309,8 +385,8 @@ function StudentDashboard({ user }) {
                   </Button>
                 </Col>
                 <Col xs={12} md={6} lg={3}>
-                  <Button 
-                    variant="outline-warning" 
+                  <Button
+                    variant="outline-warning"
                     className="w-100"
                     onClick={() => navigate('/student/classes')}
                   >
@@ -331,8 +407,8 @@ function StudentDashboard({ user }) {
       </Row>
 
       {/* AI Chatbot Modal */}
-      <Modal 
-        show={showChatBot} 
+      <Modal
+        show={showChatBot}
         onHide={() => setShowChatBot(false)}
         size="lg"
         centered
@@ -364,7 +440,7 @@ function StudentDashboard({ user }) {
             </div>
           ) : (
             <div style={{ height: '500px' }}>
-              <ChatBot 
+              <ChatBot
                 classId={selectedClass.id}
                 className={selectedClass.name}
                 user={user}
@@ -374,8 +450,8 @@ function StudentDashboard({ user }) {
         </Modal.Body>
         {selectedClass && (
           <Modal.Footer>
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               onClick={() => setSelectedClass(null)}
             >
               Change Class

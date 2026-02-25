@@ -13,6 +13,7 @@ import Navigation from './components/Navigation';
 import AdminDashboard from './components/dashboards/AdminDashboard';
 import TeacherDashboard from './components/dashboards/TeacherDashboard';
 import StudentDashboard from './components/dashboards/StudentDashboard';
+import ParentDashboard from './components/dashboards/ParentDashboard';
 
 // Admin Components
 import ManageUsers from './components/admin/ManageUsers';
@@ -79,6 +80,8 @@ function App() {
         return <TeacherDashboard user={user} />;
       case 'student':
         return <StudentDashboard user={user} />;
+      case 'parent':
+        return <ParentDashboard user={user} />;
       default:
         return <Navigate to="/login" replace />;
     }
