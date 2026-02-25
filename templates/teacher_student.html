@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}{{ student.name }} - AxonAI{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 40px; padding-bottom: 40px; max-width: 960px;">
+  <div class="breadcrumb">
+    <a href="{{ url_for('teacher_dashboard') }}">Classes</a>
+    <span class="sep">/</span>
+    <a href="{{ url_for('teacher_class_dashboard', class_id=class_id) }}">{{ class_name }}</a>
+    <span class="sep">/</span>
+    <span>{{ student.name }}</span>
+  </div>
+
+  <!-- Profile Header -->
+  <div class="profile-header">
+    <div class="profile-avatar">{{ student.initials }}</div>
+    <div class="profile-info">
+      <h2>{{ student.name }}</h2>
+      <p>{{ class_name }} &middot; Overall Progress: {{ student.overall_progress }}%</p>
+    </div>
+  </div>
+
+  <!-- Key Metrics -->
+  <div class="grid grid-4" style="margin-bottom: 32px;">
+    <div class="metric-card">
+      <div>
+        <div class="metric-value">{{ student.pass_rate }}%</div>
+        <div class="metric-label">Pass Rate</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div>
+        <div class="metric-value">{{ student.projected_grade }}</div>
+        <div class="metric-label">Projected Grade</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div>
+        <div class="metric-value">{{ student.attendance }}%</div>
+        <div class="metric-label">Attendance</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div>
+        <div class="metric-value">{{ student.completion_rate }}%</div>
+        <div class="metric-label">Assignment Completion</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <!-- Left Column -->
+    <div>
+      <!-- Mastery by Topic -->
+      <div class="section">
+        <h3 class="section-title" style="margin-bottom: 16px;">Mastery by Topic</h3>
+        <div class="card">
+          {% for topic in student.mastery %}
+          <div class="mastery-item">
+            <div class="mastery-label">
+              <span class="topic">{{ topic.name }}</span>
+              <span class="score">{{ topic.score }}%</span>
+            </div>
+            <div class="progress-bar-wrapper">
+              <div class="progress-bar-fill {% if topic.score >= 70 %}green{% elif topic.score >= 40 %}orange{% else %}red{% endif %}" style="width: {{ topic.score }}%;"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Engagement Trends -->
+      <div class="section">
+        <h3 class="section-title" style="margin-bottom: 16px;">Engagement Trends</h3>
+        <div class="card">
+          <div class="flex justify-between items-center mb-md">
+            <span class="text-small text-muted">AI Engagement</span>
+            <span class="badge badge-{{ 'green' if student.ai_engagement == 'High' else 'orange' if student.ai_engagement == 'Medium' else 'red' }}">{{ student.ai_engagement }}</span>
+          </div>
+          <div class="mini-chart" style="margin-bottom: 20px;">
+            {% for h in student.ai_trend %}
+            <div class="bar" style="height: {{ h }}%; background-color: var(--accent-blue);"></div>
+            {% endfor %}
+          </div>
+
+          <div class="flex justify-between items-center mb-md">
+            <span class="text-small text-muted">Material Engagement</span>
+            <span class="badge badge-{{ 'green' if student.material_engagement == 'High' else 'orange' if student.material_engagement == 'Medium' else 'red' }}">{{ student.material_engagement }}</span>
+          </div>
+          <div class="mini-chart">
+            {% for h in student.material_trend %}
+            <div class="bar" style="height: {{ h }}%; background-color: var(--accent-green);"></div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column -->
+    <div>
+      <!-- Learning Profile -->
+      <div class="section">
+        <h3 class="section-title" style="margin-bottom: 16px;">Learning Profile</h3>
+        <div class="card">
+          <div class="flex justify-between items-center" style="padding: 8px 0; border-bottom: 1px solid var(--border-light);">
+            <span class="text-small text-muted">Learning Style</span>
+            <span class="text-small" style="font-weight: 500;">{{ student.learning_style }}</span>
+          </div>
+          <div style="padding: 12px 0; border-bottom: 1px solid var(--border-light);">
+            <span class="text-small text-muted">Key Misconceptions</span>
+            <div style="margin-top: 8px;">
+              {% for m in student.misconceptions %}
+              <span class="badge badge-orange" style="margin: 2px;">{{ m }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          <div style="padding: 12px 0;">
+            <span class="text-small text-muted">Strengths</span>
+            <div style="margin-top: 8px;">
+              {% for s in student.strengths %}
+              <span class="badge badge-green" style="margin: 2px;">{{ s }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Summary -->
+      <div class="section">
+        <div class="ai-summary">
+          <h3><i class="fas fa-robot" style="color: var(--accent-blue);"></i> AI Recommendation</h3>
+          <p>{{ student.ai_summary }}</p>
+          <ul>
+            {% for step in student.next_steps %}
+            <li>{{ step }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

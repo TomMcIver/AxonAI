@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AxonAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="container flash-messages" style="position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 10; width: 100%; max-width: 480px;">
+      {% for category, message in messages %}
+      <div class="flash-msg {{ category }}">
+        <span>{{ message }}</span>
+        <button class="flash-close" onclick="this.parentElement.remove()">&times;</button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="hero">
+      <div class="hero-logo">
+        <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="80" height="80" rx="20" fill="#2196F3"/>
+          <path d="M20 55V25l20-10 20 10v30l-20 10-20-10z" fill="white" opacity="0.9"/>
+          <path d="M40 35v20m-10-15l10 5 10-5" stroke="#2196F3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <h1>AxonAI</h1>
+      <p>Intelligent learning, personalized for every student.</p>
+
+      <div class="login-grid">
+        <form method="POST" action="{{ url_for('login') }}">
+          <input type="hidden" name="user_type" value="teacher">
+          <button type="submit" class="login-btn teacher">
+            <div class="login-icon">
+              <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <span class="login-label">Teacher</span>
+            <span class="login-desc">Manage classes & students</span>
+          </button>
+        </form>
+
+        <form method="POST" action="{{ url_for('login') }}">
+          <input type="hidden" name="user_type" value="student">
+          <button type="submit" class="login-btn student">
+            <div class="login-icon">
+              <i class="fas fa-user-graduate"></i>
+            </div>
+            <span class="login-label">Student</span>
+            <span class="login-desc">Learn with AI tutoring</span>
+          </button>
+        </form>
+
+        <form method="POST" action="{{ url_for('login') }}">
+          <input type="hidden" name="user_type" value="parent">
+          <button type="submit" class="login-btn parent">
+            <div class="login-icon">
+              <i class="fas fa-users"></i>
+            </div>
+            <span class="login-label">Parent</span>
+            <span class="login-desc">Track your child's progress</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

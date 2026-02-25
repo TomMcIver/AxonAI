@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}{{ child.name }} - AxonAI{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 40px; padding-bottom: 40px; max-width: 960px;">
+  <div class="breadcrumb">
+    <a href="{{ url_for('parent_dashboard') }}">My Children</a>
+    <span class="sep">/</span>
+    <span>{{ child.name }}</span>
+  </div>
+
+  <!-- Profile Header -->
+  <div class="profile-header">
+    <div class="profile-avatar" style="background-color: var(--accent-purple-light); color: var(--accent-purple);">{{ child.initials }}</div>
+    <div class="profile-info">
+      <h2>{{ child.name }}</h2>
+      <p>{{ child.year_level }} &middot; {{ child.classes|length }} classes enrolled</p>
+    </div>
+    <div style="margin-left: auto;">
+      <span class="trend {{ child.trend }}" style="font-size: 1rem;">
+        <i class="fas fa-arrow-{{ 'up' if child.trend == 'up' else 'down' if child.trend == 'down' else 'right' }}"></i>
+        {{ child.trend_label }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Overall Metrics -->
+  <div class="grid grid-3" style="margin-bottom: 32px;">
+    <div class="metric-card">
+      <div class="card-icon blue"><i class="fas fa-robot"></i></div>
+      <div>
+        <div class="metric-value">{{ child.ai_interactions }}</div>
+        <div class="metric-label">AI Sessions This Week</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="card-icon green"><i class="fas fa-check-circle"></i></div>
+      <div>
+        <div class="metric-value">{{ child.completion_rate }}%</div>
+        <div class="metric-label">Assignment Completion</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="card-icon orange"><i class="fas fa-clock"></i></div>
+      <div>
+        <div class="metric-value">{{ child.avg_study_time }}</div>
+        <div class="metric-label">Avg. Study Time / Day</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress by Class -->
+  <div class="section">
+    <h3 class="section-title" style="margin-bottom: 16px;">Progress by Class</h3>
+    {% for cls in child.classes %}
+    <div class="class-perf-card">
+      <div class="class-perf-header">
+        <div>
+          <div style="font-weight: 600;">{{ cls.name }}</div>
+          <div class="text-small text-muted">{{ cls.subject }}</div>
+        </div>
+        <div class="flex items-center gap-md">
+          <span style="font-weight: 600; font-size: 1.1rem;">{{ cls.grade }}%</span>
+          <span class="trend {{ cls.trend }}">
+            <i class="fas fa-arrow-{{ 'up' if cls.trend == 'up' else 'down' if cls.trend == 'down' else 'right' }}"></i>
+          </span>
+        </div>
+      </div>
+      <div class="progress-bar-wrapper" style="margin-bottom: 12px;">
+        <div class="progress-bar-fill {% if cls.grade >= 70 %}green{% elif cls.grade >= 50 %}orange{% else %}red{% endif %}" style="width: {{ cls.grade }}%;"></div>
+      </div>
+      <div class="perf-items">
+        {% for good in cls.going_well %}
+        <span class="badge badge-green"><i class="fas fa-check" style="margin-right: 4px;"></i> {{ good }}</span>
+        {% endfor %}
+        {% for bad in cls.needs_help %}
+        <span class="badge badge-orange"><i class="fas fa-exclamation-triangle" style="margin-right: 4px;"></i> {{ bad }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Main Blockers -->
+  <div class="section">
+    <h3 class="section-title" style="margin-bottom: 16px;">Current Challenges</h3>
+    <div class="card">
+      {% for blocker in child.blockers %}
+      <div class="flex items-center gap-md" style="padding: 12px 0; {% if not loop.last %}border-bottom: 1px solid var(--border-light);{% endif %}">
+        <div class="card-icon orange" style="width: 36px; height: 36px; font-size: 0.85rem;">
+          <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div>
+          <div class="text-small" style="font-weight: 500;">{{ blocker.subject }}</div>
+          <div class="text-small text-muted">{{ blocker.issue }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- AI Recommendations -->
+  <div class="section">
+    <div class="ai-summary">
+      <h3><i class="fas fa-robot" style="color: var(--accent-blue);"></i> Recommended Interventions</h3>
+      {% for rec in child.recommendations %}
+      <p>{{ rec }}</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
