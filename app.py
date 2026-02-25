@@ -26,10 +26,12 @@ app = Flask(__name__)
 # Add ProxyFix for proper HTTPS handling behind proxy
 from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-# Security: No fallback for secret key - must be set in environment
+# Session secret key - use environment variable, or generate one for demo/serverless
 app.secret_key = os.environ.get("SESSION_SECRET")
 if not app.secret_key:
-    raise ValueError("SESSION_SECRET environment variable must be set for security")
+    import secrets
+    app.secret_key = secrets.token_hex(32)
+    print("Warning: SESSION_SECRET not set. Using auto-generated key (sessions won't persist across restarts).")
 
 # Security: Never log sensitive credentials
 if os.environ.get('DATABASE_URL'):
@@ -40,9 +42,12 @@ if os.environ.get('SESSION_SECRET'):
 # Configure the database with automatic fallback
 database_url = os.environ.get("DATABASE_URL")
 if not database_url:
-    # Fallback to SQLite for development if no DATABASE_URL is set
-    database_url = "sqlite:///school_management.db"
-    print("Warning: DATABASE_URL not set. Using SQLite fallback: sqlite:///school_management.db")
+    # Fallback to SQLite - use /tmp on serverless (read-only filesystem)
+    if os.environ.get('VERCEL'):
+        database_url = "sqlite:////tmp/school_management.db"
+    else:
+        database_url = "sqlite:///school_management.db"
+    print(f"Warning: DATABASE_URL not set. Using SQLite fallback.")
 else:
     # Test PostgreSQL connection and fallback to SQLite if it fails
     if database_url.startswith('postgresql://'):
@@ -55,13 +60,19 @@ else:
         except Exception as e:
             print(f"PostgreSQL connection failed: {e}")
             print("Falling back to SQLite for development")
-            database_url = "sqlite:///school_management.db"
+            if os.environ.get('VERCEL'):
+                database_url = "sqlite:////tmp/school_management.db"
+            else:
+                database_url = "sqlite:///school_management.db"
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
+if database_url.startswith('postgresql'):
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
+else:
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Only show type of database, not the full connection string
