@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getStudentDashboard, getStudentMastery, getStudentPedagogy, getStudentConversations } from '../../api/axonai';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
+import ConversationThread from '../../components/ConversationThread';
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
-const STUDENT_ID = 1;
+const STUDENT_ID = 1; // Demo student: Aroha Ngata
 
 function ProgressBar({ value, max = 100, color = '#0891B2' }) {
   const pct = Math.min((value / max) * 100, 100);
@@ -22,6 +23,7 @@ export default function StudentDashboard() {
   const [conversations, setConversations] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeConversation, setActiveConversation] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -68,8 +70,8 @@ export default function StudentDashboard() {
   const convos = conversations?.conversations || [];
   const lightbulbs = convos.filter(c => c.lightbulb_moment_detected);
 
-  // Build quiz score trend from conversations (chronological)
-  const quizTrend = [...convos].reverse().map((c, i) => ({
+  // Build engagement trend from conversations (chronological)
+  const engagementTrend = [...convos].reverse().map((c, i) => ({
     session: i + 1,
     engagement: +(c.session_engagement_score * 100).toFixed(0),
   }));
@@ -165,11 +167,11 @@ export default function StudentDashboard() {
         </div>
 
         {/* Engagement trend chart */}
-        {quizTrend.length > 0 && (
+        {engagementTrend.length > 0 && (
           <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
             <h3 className="text-sm font-semibold text-[#1F2937] mb-3">Your Engagement Over Time</h3>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={quizTrend}>
+              <LineChart data={engagementTrend}>
                 <XAxis dataKey="session" tick={{ fontSize: 11 }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v) => `${v}%`} />
@@ -197,7 +199,7 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Recent conversations with lightbulbs */}
+        {/* Recent conversations — CLICKABLE to view full message threads */}
         <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
           <h3 className="text-sm font-semibold text-[#1F2937] mb-3">
             Recent Learning Sessions
@@ -205,25 +207,46 @@ export default function StudentDashboard() {
               <span className="ml-2 text-xs font-normal text-[#F59E0B]">{lightbulbs.length} lightbulb moments!</span>
             )}
           </h3>
+          <p className="text-xs text-[#6B7280] mb-3">Click a session to view the full conversation</p>
           <div className="space-y-2">
-            {convos.slice(0, 10).map(c => (
-              <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border border-[#E2E8F0]">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-[#1F2937]">{c.concept_name}</span>
-                    {c.lightbulb_moment_detected && (
-                      <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">Lightbulb!</span>
-                    )}
+            {convos.slice(0, 15).map(c => (
+              <div key={c.id}>
+                <div
+                  className="flex items-center justify-between p-3 rounded-lg border border-[#E2E8F0] hover:bg-[#F8FAFC] cursor-pointer transition-colors"
+                  onClick={() => setActiveConversation(activeConversation === c.id ? null : c.id)}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-[#1F2937]">{c.concept_name}</span>
+                      {c.lightbulb_moment_detected && (
+                        <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">Lightbulb!</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-0.5 text-xs text-[#6B7280]">
+                      <span>{c.subject}</span>
+                      <span>{new Date(c.started_at).toLocaleDateString()}</span>
+                      <span>Engagement: {(c.session_engagement_score * 100).toFixed(0)}%</span>
+                    </div>
                   </div>
-                  <span className="text-xs text-[#6B7280]">{c.subject} — {new Date(c.started_at).toLocaleDateString()}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      c.outcome === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {c.outcome}
+                    </span>
+                    <svg className={`w-4 h-4 text-[#6B7280] transition-transform ${activeConversation === c.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    c.outcome === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {c.outcome}
-                  </span>
-                </div>
+                {activeConversation === c.id && (
+                  <div className="mt-2 ml-4">
+                    <ConversationThread
+                      conversationId={c.id}
+                      onClose={() => setActiveConversation(null)}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>

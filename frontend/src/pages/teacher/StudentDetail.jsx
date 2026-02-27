@@ -116,32 +116,104 @@ export default function StudentDetail() {
         </div>
       </div>
 
-      {/* ML Predictions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-[#6B7280] mb-2">Risk Level</h3>
-          <RiskGauge score={riskScore} size={140} />
-          <p className="text-xs text-[#6B7280] mt-1">Confidence: {((riskPred?.confidence || 0) * 100).toFixed(1)}%</p>
-        </div>
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-[#6B7280] mb-2">Engagement</h3>
-          <div className="text-4xl font-bold text-[#0891B2] my-4">
-            {((engagementPred?.prediction_value?.predicted_engagement || profile.overall_engagement_score) * 100).toFixed(0)}%
+      {/* ML Model Predictions */}
+      <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5 mb-6">
+        <h2 className="text-lg font-semibold text-[#1F2937] mb-4">ML Model Predictions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Risk Prediction Model */}
+          <div className="border border-[#E2E8F0] rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-[#1F2937]">Risk Prediction</h3>
+              <span className="text-[10px] font-mono bg-gray-100 text-[#6B7280] px-1.5 py-0.5 rounded">risk_prediction</span>
+            </div>
+            <RiskGauge score={riskScore} size={140} />
+            <div className="mt-3 space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-[#6B7280]">Risk Probability</span>
+                <span className="font-semibold text-[#1F2937]">{(riskScore * 100).toFixed(2)}%</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-[#6B7280]">At Risk</span>
+                <span className="font-semibold text-[#1F2937]">{riskPred?.prediction_value?.at_risk ? 'Yes' : 'No'}</span>
+              </div>
+              <div className="flex justify-between text-xs items-center">
+                <span className="text-[#6B7280]">Model Confidence</span>
+                <span className="font-bold text-[#10B981]">{((riskPred?.confidence || 0) * 100).toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-[#E2E8F0] rounded-full h-1.5">
+                <div className="h-1.5 rounded-full bg-[#10B981]" style={{ width: `${(riskPred?.confidence || 0) * 100}%` }} />
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-[#6B7280]">Average: {(summary.conversations.avg_engagement * 100).toFixed(0)}%</p>
-        </div>
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-[#6B7280] mb-2">Recommended Action</h3>
-          <div className="my-4">
-            <Badge color={
-              interventionPred?.prediction_value?.intervention === 'monitor_continue' ? 'green'
-              : interventionPred?.prediction_value?.intervention === 'targeted_support' ? 'amber'
-              : 'blue'
-            }>
-              {interventionLabel(interventionPred?.prediction_value?.intervention)}
-            </Badge>
+
+          {/* Engagement Model */}
+          <div className="border border-[#E2E8F0] rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-[#1F2937]">Engagement Prediction</h3>
+              <span className="text-[10px] font-mono bg-gray-100 text-[#6B7280] px-1.5 py-0.5 rounded">engagement</span>
+            </div>
+            <div className="flex items-center justify-center my-4">
+              <div className="text-4xl font-bold text-[#0891B2]">
+                {((engagementPred?.prediction_value?.predicted_engagement || profile.overall_engagement_score) * 100).toFixed(1)}%
+              </div>
+            </div>
+            <div className="mt-3 space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-[#6B7280]">Predicted Engagement</span>
+                <span className="font-semibold text-[#1F2937]">{((engagementPred?.prediction_value?.predicted_engagement || 0) * 100).toFixed(1)}%</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-[#6B7280]">Profile Engagement</span>
+                <span className="font-semibold text-[#1F2937]">{(profile.overall_engagement_score * 100).toFixed(1)}%</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-[#6B7280]">Avg Session Engagement</span>
+                <span className="font-semibold text-[#1F2937]">{(summary.conversations.avg_engagement * 100).toFixed(1)}%</span>
+              </div>
+              <div className="flex justify-between text-xs items-center">
+                <span className="text-[#6B7280]">Model Confidence</span>
+                <span className="font-bold text-[#0891B2]">{((engagementPred?.confidence || 0) * 100).toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-[#E2E8F0] rounded-full h-1.5">
+                <div className="h-1.5 rounded-full bg-[#0891B2]" style={{ width: `${(engagementPred?.confidence || 0) * 100}%` }} />
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-[#6B7280]">Confidence: {((interventionPred?.confidence || 0) * 100).toFixed(0)}%</p>
+
+          {/* Intervention Model */}
+          <div className="border border-[#E2E8F0] rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-[#1F2937]">Intervention Recommendation</h3>
+              <span className="text-[10px] font-mono bg-gray-100 text-[#6B7280] px-1.5 py-0.5 rounded">intervention</span>
+            </div>
+            <div className="flex items-center justify-center my-4">
+              <Badge color={
+                interventionPred?.prediction_value?.intervention === 'monitor_continue' ? 'green'
+                : interventionPred?.prediction_value?.intervention === 'targeted_support' ? 'amber'
+                : interventionPred?.prediction_value?.intervention === 'intensive_intervention' ? 'red'
+                : 'blue'
+              }>
+                {interventionLabel(interventionPred?.prediction_value?.intervention)}
+              </Badge>
+            </div>
+            <div className="mt-3 space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-[#6B7280]">Recommended Action</span>
+                <span className="font-semibold text-[#1F2937] capitalize">{interventionPred?.prediction_value?.intervention?.replace(/_/g, ' ') || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-[#6B7280]">Prediction Type</span>
+                <span className="font-semibold text-[#1F2937]">{interventionPred?.prediction_type || 'recommended_action'}</span>
+              </div>
+              <div className="flex justify-between text-xs items-center">
+                <span className="text-[#6B7280]">Model Confidence</span>
+                <span className="font-bold text-[#F59E0B]">{((interventionPred?.confidence || 0) * 100).toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-[#E2E8F0] rounded-full h-1.5">
+                <div className="h-1.5 rounded-full bg-[#F59E0B]" style={{ width: `${(interventionPred?.confidence || 0) * 100}%` }} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
