@@ -65,41 +65,74 @@ export default function TeacherDashboard() {
       {loading && <LoadingSpinner message={`Loading ${cls?.subject} class data...`} />}
       {error && <ErrorState message={error} onRetry={load} />}
 
-      {!loading && !error && data && (
-        <>
-          {/* Stats row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <StatCard
-              label="Total Students"
-              value={data.student_count}
-              sub={`${data.class_stats?.active_students || data.student_count} active`}
-            />
-            <StatCard
-              label="At-Risk Students"
-              value={data.at_risk_count}
-              sub={`${((data.at_risk_count / data.student_count) * 100).toFixed(0)}% of class`}
-              color="#EF4444"
-            />
-            <StatCard
-              label="Average Engagement"
-              value={`${(data.class_stats?.avg_engagement * 100).toFixed(1)}%`}
-              sub={`${data.class_stats?.total_conversations} total conversations`}
-            />
-            <StatCard
-              label="Improving"
-              value={data.improving_count}
-              sub={`${data.declining_count} declining`}
-              color="#10B981"
-            />
-          </div>
+      {!loading && !error && data && (() => {
+        const students = data.students || [];
+        const avgMastery = students.length
+          ? students.reduce((sum, s) => sum + (s.avg_mastery || 0), 0) / students.length
+          : 0;
+        const avgQuiz = students.filter(s => s.avg_quiz_score != null);
+        const avgQuizScore = avgQuiz.length
+          ? avgQuiz.reduce((sum, s) => sum + s.avg_quiz_score, 0) / avgQuiz.length
+          : 0;
+        const flaggedStudents = students.filter(s => s.active_flags > 0).length;
 
-          {/* Student table */}
-          <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-            <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Students</h2>
-            <StudentTable students={data.students} />
-          </div>
-        </>
-      )}
+        return (
+          <>
+            {/* Stats row */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+              <StatCard
+                label="Total Students"
+                value={data.student_count}
+                sub={`${data.class_stats?.active_students || data.student_count} active`}
+              />
+              <StatCard
+                label="At-Risk Students"
+                value={data.at_risk_count}
+                sub={`${((data.at_risk_count / data.student_count) * 100).toFixed(0)}% of class`}
+                color="#EF4444"
+              />
+              <StatCard
+                label="Avg Class Mastery"
+                value={`${(avgMastery * 100).toFixed(1)}%`}
+                sub={`Quiz avg: ${avgQuizScore.toFixed(1)}%`}
+                color="#0891B2"
+              />
+              <StatCard
+                label="Average Engagement"
+                value={`${(data.class_stats?.avg_engagement * 100).toFixed(1)}%`}
+                sub={`${data.class_stats?.total_conversations} conversations`}
+              />
+              <StatCard
+                label="Improving"
+                value={data.improving_count}
+                sub={`${data.declining_count} declining, ${flaggedStudents} flagged`}
+                color="#10B981"
+              />
+            </div>
+
+            {/* ML Model Note */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-[#0891B2] mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-[#1F2937]">ML Model Insights Available</p>
+                  <p className="text-xs text-[#6B7280] mt-0.5">
+                    Click any student to view their individual ML predictions (risk, engagement, intervention) with model confidence scores. Risk scores shown in the table are from our <span className="font-mono text-[10px] bg-white px-1 py-0.5 rounded">risk_prediction</span> model.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Student table */}
+            <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
+              <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Students</h2>
+              <StudentTable students={students} />
+            </div>
+          </>
+        );
+      })()}
     </Layout>
   );
 }
