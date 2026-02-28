@@ -5,7 +5,7 @@ import Layout from '../../components/Layout';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 import MasteryChart from '../../components/MasteryChart';
-import RiskGauge, { getRiskLevel } from '../../components/RiskGauge';
+import RiskGauge from '../../components/RiskGauge';
 import ConversationThread from '../../components/ConversationThread';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 

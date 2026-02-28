@@ -2,17 +2,28 @@ const BASE_URL = process.env.REACT_APP_API_URL || 'https://73edpnyeqs6gl3eh4gyfn
 
 async function fetchAPI(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  console.log(`[AxonAI API] ${options.method || 'GET'} ${url}`);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+    console.log(`[AxonAI API] ${url} → ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      console.error(`[AxonAI API] Error body:`, errorText);
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    console.log(`[AxonAI API] ${endpoint} response:`, data);
+    return data;
+  } catch (err) {
+    console.error(`[AxonAI API] ${url} failed:`, err.message);
+    throw err;
   }
-  return response.json();
 }
 
 // Health
