@@ -3,6 +3,10 @@
   "outputDirectory": "frontend/build",
   "framework": null,
   "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://73edpnyeqs6gl3eh4gyfnwoji40ldhgo.lambda-url.ap-southeast-2.on.aws/:path*"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
