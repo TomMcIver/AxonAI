@@ -66,40 +66,41 @@ export default function StudentDashboard() {
     }));
   }, [convos]);
 
-  // Build mastery improvement projection based on actual trends
+  // Build mastery improvement projection — shows growth peaking then leveling off
   const masteryProjection = useMemo(() => {
     if (!mastery?.concepts?.length || !convos.length) return [];
 
-    // Build mastery over time from conversations (chronological)
     const sorted = [...convos].reverse();
     const windowSize = 5;
     const points = [];
 
     for (let i = 0; i < sorted.length; i++) {
-      // Running average of engagement as proxy for mastery growth
       const windowStart = Math.max(0, i - windowSize + 1);
-      const window = sorted.slice(windowStart, i + 1);
-      const avgEngagement = window.reduce((s, c) => s + c.session_engagement_score, 0) / window.length;
+      const w = sorted.slice(windowStart, i + 1);
+      const avgEngagement = w.reduce((s, c) => s + c.session_engagement_score, 0) / w.length;
       points.push({
         session: i + 1,
         mastery: +(avgEngagement * 100).toFixed(0),
-        type: 'actual',
       });
     }
 
-    // Project forward 10 sessions based on recent trend
+    // Project forward with asymptotic curve: rapid improvement → peak → plateau
     if (points.length >= 3) {
-      const recent = points.slice(-5);
-      const trend = (recent[recent.length - 1].mastery - recent[0].mastery) / recent.length;
-      const lastMastery = recent[recent.length - 1].mastery;
+      const lastMastery = points[points.length - 1].mastery;
       const lastSession = points[points.length - 1].session;
+      // Bridge: last actual point also gets projected value for line continuity
+      points[points.length - 1].projected = lastMastery;
+      // Target: aim for ~88-92% ceiling (realistic high performance)
+      const ceiling = Math.min(95, Math.max(lastMastery + 20, 85));
+      const gap = ceiling - lastMastery;
 
-      for (let i = 1; i <= 10; i++) {
-        const projected = Math.min(100, Math.max(0, lastMastery + trend * i));
+      for (let i = 1; i <= 12; i++) {
+        // Logarithmic growth: fast at first, slows down approaching ceiling
+        const progress = 1 - Math.exp(-0.35 * i);
+        const projected = Math.min(ceiling, lastMastery + gap * progress);
         points.push({
           session: lastSession + i,
           projected: +projected.toFixed(0),
-          type: 'projected',
         });
       }
     }

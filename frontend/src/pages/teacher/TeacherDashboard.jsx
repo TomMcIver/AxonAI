@@ -132,28 +132,30 @@ export default function TeacherDashboard() {
 
   const cls = CLASSES.find(c => c.id === classId);
 
-  // Smart grouping: 5 failing, 5 excelling, 20 average (max 30 total)
-  const { failing, excelling, average } = useMemo(() => {
-    if (!data?.students) return { failing: [], excelling: [], average: [] };
+  // Smart grouping: 5 needing help, 5 improving, 20 average/stalled (30 total per class)
+  const { needsHelp, improving, average } = useMemo(() => {
+    if (!data?.students) return { needsHelp: [], improving: [], average: [] };
     const students = [...data.students];
 
-    // Sort by risk (highest first) for failing
+    // 5 Needing Help — highest risk score
     const byRisk = [...students].sort((a, b) => b.overall_risk_score - a.overall_risk_score);
-    const failingGroup = byRisk.filter(s => s.overall_risk_score >= 0.2).slice(0, 5);
-    const failingIds = new Set(failingGroup.map(s => s.student_id));
+    const needsHelpGroup = byRisk.slice(0, 5);
+    const helpIds = new Set(needsHelpGroup.map(s => s.student_id));
 
-    // Sort by mastery (highest first) for excelling
-    const byMastery = [...students].sort((a, b) => b.avg_mastery - a.avg_mastery);
-    const excellingGroup = byMastery.filter(s => !failingIds.has(s.student_id)).slice(0, 5);
-    const excellingIds = new Set(excellingGroup.map(s => s.student_id));
+    // 5 Improving — trend = 'improving', sorted by mastery (best first)
+    const improvingCandidates = students
+      .filter(s => !helpIds.has(s.student_id) && s.overall_mastery_trend === 'improving')
+      .sort((a, b) => b.avg_mastery - a.avg_mastery);
+    const improvingGroup = improvingCandidates.slice(0, 5);
+    const improvingIds = new Set(improvingGroup.map(s => s.student_id));
 
-    // Everyone else is average — take up to 20
+    // 20 Average/Stalled — everyone else, alphabetical
     const averageGroup = students
-      .filter(s => !failingIds.has(s.student_id) && !excellingIds.has(s.student_id))
+      .filter(s => !helpIds.has(s.student_id) && !improvingIds.has(s.student_id))
       .sort((a, b) => a.last_name.localeCompare(b.last_name))
       .slice(0, 20);
 
-    return { failing: failingGroup, excelling: excellingGroup, average: averageGroup };
+    return { needsHelp: needsHelpGroup, improving: improvingGroup, average: averageGroup };
   }, [data]);
 
   return (
@@ -246,26 +248,26 @@ export default function TeacherDashboard() {
             {/* Categorized student sections */}
             <div className="space-y-4">
               <StudentSection
-                title="Needs Attention"
-                subtitle="Highest risk students — may need intervention"
-                students={failing}
+                title="Needs Help"
+                subtitle="Highest risk — may need intervention"
+                students={needsHelp}
                 navigate={navigate}
                 highlightColor="red"
                 icon="!!!"
                 accentColor="#EF4444"
               />
               <StudentSection
-                title="Excelling"
-                subtitle="Top performing students by mastery"
-                students={excelling}
+                title="Improving"
+                subtitle="On an upward trend — keep it up"
+                students={improving}
                 navigate={navigate}
                 highlightColor="green"
                 icon="***"
                 accentColor="#10B981"
               />
               <StudentSection
-                title="On Track"
-                subtitle="Average performers — alphabetical"
+                title="Average / Stalled"
+                subtitle="Steady performers — alphabetical"
                 students={average}
                 navigate={navigate}
                 highlightColor="default"
@@ -275,7 +277,7 @@ export default function TeacherDashboard() {
             </div>
 
             <p className="text-xs text-[#6B7280] mt-4 text-center">
-              Showing {failing.length + excelling.length + average.length} of {students.length} students — top 5 at-risk, top 5 excelling, up to 20 on track
+              Showing {needsHelp.length + improving.length + average.length} of {students.length} students
             </p>
           </>
         );

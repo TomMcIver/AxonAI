@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { getConversationMessages } from '../api/axonai';
 import LoadingSpinner from './LoadingSpinner';
 
-function isStudentRole(role) {
-  return ['student', 'user', 'human'].includes((role || '').toLowerCase());
+// Tutor roles — anything NOT matching these is treated as student
+const TUTOR_ROLES = ['tutor', 'assistant', 'ai', 'system', 'bot', 'ai_tutor', 'axonai'];
+
+function isTutorRole(role) {
+  return TUTOR_ROLES.includes((role || '').toLowerCase().replace(/\s+/g, '_'));
 }
 
 export default function ConversationThread({ conversationId, onClose }) {
@@ -22,6 +25,12 @@ export default function ConversationThread({ conversationId, onClose }) {
   if (loading) return <LoadingSpinner message="Loading conversation..." />;
   if (error) return <p className="text-[#EF4444] text-sm p-4">{error}</p>;
 
+  // Determine which side each message goes on
+  // Strategy: check role field, fallback to alternating if all roles are the same
+  const msgs = messages || [];
+  const uniqueRoles = [...new Set(msgs.map(m => (m.role || '').toLowerCase()))];
+  const allSameRole = uniqueRoles.length <= 1;
+
   return (
     <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm">
       <div className="flex items-center justify-between p-4 border-b border-[#E2E8F0]">
@@ -33,8 +42,10 @@ export default function ConversationThread({ conversationId, onClose }) {
         )}
       </div>
       <div className="p-4 space-y-3 max-h-96 overflow-y-auto bg-[#F8FAFC]">
-        {(messages || []).map((msg, i) => {
-          const fromStudent = isStudentRole(msg.role);
+        {msgs.map((msg, i) => {
+          // If all messages have the same role (or no role), alternate: even=student, odd=tutor
+          const fromTutor = allSameRole ? (i % 2 === 1) : isTutorRole(msg.role);
+          const fromStudent = !fromTutor;
           return (
             <div key={i} className={`flex ${fromStudent ? 'justify-end' : 'justify-start'}`}>
               <div
