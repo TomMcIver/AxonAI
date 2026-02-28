@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getClassOverview } from '../../api/axonai';
 import Layout from '../../components/Layout';
-import StudentTable from '../../components/StudentTable';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
+import { getRiskLevel } from '../../components/RiskGauge';
 
 const CLASSES = [
   { id: 1, name: 'Year 12 Mathematics', subject: 'Mathematics' },
@@ -20,7 +21,100 @@ function StatCard({ label, value, sub, color }) {
   );
 }
 
+function TrendBadge({ trend }) {
+  const config = {
+    improving: { label: 'Improving', cls: 'bg-green-100 text-green-700' },
+    declining: { label: 'Declining', cls: 'bg-red-100 text-red-700' },
+    stable: { label: 'Stable', cls: 'bg-gray-100 text-gray-700' },
+  };
+  const c = config[trend] || config.stable;
+  return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.cls}`}>{c.label}</span>;
+}
+
+function StudentRow({ student, navigate, highlight }) {
+  const risk = getRiskLevel(student.overall_risk_score);
+  const bgMap = {
+    red: 'bg-red-50 hover:bg-red-100',
+    amber: 'bg-amber-50 hover:bg-amber-100',
+    green: 'bg-green-50 hover:bg-green-100',
+    blue: 'bg-blue-50 hover:bg-blue-100',
+    default: 'hover:bg-gray-50',
+  };
+  const bg = bgMap[highlight] || bgMap.default;
+
+  return (
+    <tr
+      className={`${bg} cursor-pointer transition-colors`}
+      onClick={() => navigate(`/teacher/student/${student.student_id}`)}
+    >
+      <td className="px-3 py-2.5 text-sm font-medium text-[#1F2937]">
+        <div className="flex items-center gap-2">
+          {student.first_name} {student.last_name}
+          {student.student_id === 1 && (
+            <span className="bg-[#0891B2] text-white px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase">Demo</span>
+          )}
+        </div>
+      </td>
+      <td className="px-3 py-2.5 text-sm">
+        <span className={student.avg_mastery >= 0.7 ? 'text-green-600' : student.avg_mastery >= 0.4 ? 'text-amber-600' : 'text-red-600'}>
+          {(student.avg_mastery * 100).toFixed(1)}%
+        </span>
+      </td>
+      <td className="px-3 py-2.5">
+        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${risk.bg}`} style={{ color: risk.color }}>
+          {risk.label}
+        </span>
+      </td>
+      <td className="px-3 py-2.5 text-sm text-[#1F2937]">{(student.overall_engagement_score * 100).toFixed(0)}%</td>
+      <td className="px-3 py-2.5">
+        <TrendBadge trend={student.overall_mastery_trend} />
+      </td>
+      <td className="px-3 py-2.5 text-sm">
+        {student.active_flags > 0 && (
+          <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium">{student.active_flags}</span>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+function StudentSection({ title, subtitle, students, navigate, highlightColor, icon, accentColor }) {
+  if (!students.length) return null;
+  return (
+    <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
+      <div className="px-5 py-3 border-b border-[#E2E8F0] flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftColor: accentColor }}>
+        <span className="text-lg">{icon}</span>
+        <div>
+          <h3 className="text-sm font-semibold text-[#1F2937]">{title}</h3>
+          <p className="text-xs text-[#6B7280]">{subtitle}</p>
+        </div>
+        <span className="ml-auto text-xs font-medium text-[#6B7280]">{students.length} students</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-[#F8FAFC]">
+            <tr>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Name</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Mastery</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Risk</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Engagement</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Trend</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Flags</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#E2E8F0]">
+            {students.map(s => (
+              <StudentRow key={s.student_id} student={s} navigate={navigate} highlight={highlightColor} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function TeacherDashboard() {
+  const navigate = useNavigate();
   const [classId, setClassId] = useState(1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +131,30 @@ export default function TeacherDashboard() {
   useEffect(() => { load(); }, [load]);
 
   const cls = CLASSES.find(c => c.id === classId);
+
+  // Smart grouping: 5 failing, 5 excelling, 20 average (max 30 total)
+  const { failing, excelling, average } = useMemo(() => {
+    if (!data?.students) return { failing: [], excelling: [], average: [] };
+    const students = [...data.students];
+
+    // Sort by risk (highest first) for failing
+    const byRisk = [...students].sort((a, b) => b.overall_risk_score - a.overall_risk_score);
+    const failingGroup = byRisk.filter(s => s.overall_risk_score >= 0.2).slice(0, 5);
+    const failingIds = new Set(failingGroup.map(s => s.student_id));
+
+    // Sort by mastery (highest first) for excelling
+    const byMastery = [...students].sort((a, b) => b.avg_mastery - a.avg_mastery);
+    const excellingGroup = byMastery.filter(s => !failingIds.has(s.student_id)).slice(0, 5);
+    const excellingIds = new Set(excellingGroup.map(s => s.student_id));
+
+    // Everyone else is average — take up to 20
+    const averageGroup = students
+      .filter(s => !failingIds.has(s.student_id) && !excellingIds.has(s.student_id))
+      .sort((a, b) => a.last_name.localeCompare(b.last_name))
+      .slice(0, 20);
+
+    return { failing: failingGroup, excelling: excellingGroup, average: averageGroup };
+  }, [data]);
 
   return (
     <Layout>
@@ -119,17 +237,46 @@ export default function TeacherDashboard() {
                 <div>
                   <p className="text-sm font-medium text-[#1F2937]">ML Model Insights Available</p>
                   <p className="text-xs text-[#6B7280] mt-0.5">
-                    Click any student to view their individual ML predictions (risk, engagement, intervention) with model confidence scores. Risk scores shown in the table are from our <span className="font-mono text-[10px] bg-white px-1 py-0.5 rounded">risk_prediction</span> model.
+                    Click any student to view their individual ML predictions (risk, engagement, intervention) with model confidence scores.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Student table */}
-            <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-              <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Students</h2>
-              <StudentTable students={students} />
+            {/* Categorized student sections */}
+            <div className="space-y-4">
+              <StudentSection
+                title="Needs Attention"
+                subtitle="Highest risk students — may need intervention"
+                students={failing}
+                navigate={navigate}
+                highlightColor="red"
+                icon="!!!"
+                accentColor="#EF4444"
+              />
+              <StudentSection
+                title="Excelling"
+                subtitle="Top performing students by mastery"
+                students={excelling}
+                navigate={navigate}
+                highlightColor="green"
+                icon="***"
+                accentColor="#10B981"
+              />
+              <StudentSection
+                title="On Track"
+                subtitle="Average performers — alphabetical"
+                students={average}
+                navigate={navigate}
+                highlightColor="default"
+                icon="---"
+                accentColor="#0891B2"
+              />
             </div>
+
+            <p className="text-xs text-[#6B7280] mt-4 text-center">
+              Showing {failing.length + excelling.length + average.length} of {students.length} students — top 5 at-risk, top 5 excelling, up to 20 on track
+            </p>
           </>
         );
       })()}
