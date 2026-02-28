@@ -1,10 +1,4 @@
-// In production (Vercel), use /api proxy to avoid CORS issues
-// In development, hit the Lambda directly or use REACT_APP_API_URL
-const BASE_URL = process.env.REACT_APP_API_URL || (
-  process.env.NODE_ENV === 'production'
-    ? '/api'
-    : 'https://73edpnyeqs6gl3eh4gyfnwoji40ldhgo.lambda-url.ap-southeast-2.on.aws'
-);
+const BASE_URL = process.env.REACT_APP_API_URL || 'https://73edpnyeqs6gl3eh4gyfnwoji40ldhgo.lambda-url.ap-southeast-2.on.aws';
 
 async function fetchAPI(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
