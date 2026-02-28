@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getStudentDashboard, getStudentMastery, getStudentPedagogy, getStudentConversations } from '../../api/axonai';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 import ConversationThread from '../../components/ConversationThread';
-import { XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
 
 const STUDENT_ID = 1; // Demo student: Aroha Ngata
 
@@ -24,6 +24,7 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeConversation, setActiveConversation] = useState(null);
+  const [chatSubjectFilter, setChatSubjectFilter] = useState('all');
 
   const load = useCallback(() => {
     setLoading(true);
@@ -46,6 +47,66 @@ export default function StudentDashboard() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Memoize conversation data
+  const { convos, lightbulbs, subjects, filteredConvos } = useMemo(() => {
+    const allConvos = conversations?.conversations || [];
+    const lbs = allConvos.filter(c => c.lightbulb_moment_detected);
+    const subjs = [...new Set(allConvos.map(c => c.subject).filter(Boolean))].sort();
+    const filtered = chatSubjectFilter === 'all'
+      ? allConvos
+      : allConvos.filter(c => c.subject === chatSubjectFilter);
+    return { convos: allConvos, lightbulbs: lbs, subjects: subjs, filteredConvos: filtered };
+  }, [conversations, chatSubjectFilter]);
+
+  // Build engagement trend from conversations (chronological)
+  const engagementTrend = useMemo(() => {
+    return [...convos].reverse().map((c, i) => ({
+      session: i + 1,
+      engagement: +(c.session_engagement_score * 100).toFixed(0),
+    }));
+  }, [convos]);
+
+  // Build mastery improvement projection based on actual trends
+  const masteryProjection = useMemo(() => {
+    if (!mastery?.concepts?.length || !convos.length) return [];
+
+    // Build mastery over time from conversations (chronological)
+    const sorted = [...convos].reverse();
+    const windowSize = 5;
+    const points = [];
+
+    for (let i = 0; i < sorted.length; i++) {
+      // Running average of engagement as proxy for mastery growth
+      const windowStart = Math.max(0, i - windowSize + 1);
+      const window = sorted.slice(windowStart, i + 1);
+      const avgEngagement = window.reduce((s, c) => s + c.session_engagement_score, 0) / window.length;
+      points.push({
+        session: i + 1,
+        mastery: +(avgEngagement * 100).toFixed(0),
+        type: 'actual',
+      });
+    }
+
+    // Project forward 10 sessions based on recent trend
+    if (points.length >= 3) {
+      const recent = points.slice(-5);
+      const trend = (recent[recent.length - 1].mastery - recent[0].mastery) / recent.length;
+      const lastMastery = recent[recent.length - 1].mastery;
+      const lastSession = points[points.length - 1].session;
+
+      for (let i = 1; i <= 10; i++) {
+        const projected = Math.min(100, Math.max(0, lastMastery + trend * i));
+        points.push({
+          session: lastSession + i,
+          projected: +projected.toFixed(0),
+          type: 'projected',
+        });
+      }
+    }
+
+    return points;
+  }, [mastery, convos]);
+
   if (loading) return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
       <LoadingSpinner message="Loading your dashboard..." />
@@ -66,15 +127,6 @@ export default function StudentDashboard() {
   const bioAvg = concepts.filter(c => c.subject === 'Biology');
   const mathMastery = mathAvg.length ? mathAvg.reduce((s, c) => s + c.mastery_score, 0) / mathAvg.length : 0;
   const bioMastery = bioAvg.length ? bioAvg.reduce((s, c) => s + c.mastery_score, 0) / bioAvg.length : 0;
-
-  const convos = conversations?.conversations || [];
-  const lightbulbs = convos.filter(c => c.lightbulb_moment_detected);
-
-  // Build engagement trend from conversations (chronological)
-  const engagementTrend = [...convos].reverse().map((c, i) => ({
-    session: i + 1,
-    engagement: +(c.session_engagement_score * 100).toFixed(0),
-  }));
 
   const bestApproach = pedagogy?.approaches?.[0];
 
@@ -181,6 +233,44 @@ export default function StudentDashboard() {
           </div>
         )}
 
+        {/* Improvement Projection chart */}
+        {masteryProjection.length > 0 && (
+          <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
+            <h3 className="text-sm font-semibold text-[#1F2937] mb-1">Improvement Projection</h3>
+            <p className="text-xs text-[#6B7280] mb-3">Based on your recent learning trend — dashed line shows projected progress</p>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={masteryProjection}>
+                <XAxis dataKey="session" tick={{ fontSize: 11 }} label={{ value: 'Session', position: 'insideBottom', offset: -5, fontSize: 11 }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} label={{ value: '%', angle: -90, position: 'insideLeft', fontSize: 11 }} />
+                <Tooltip
+                  formatter={(value, name) => [`${value}%`, name === 'mastery' ? 'Actual' : 'Projected']}
+                  labelFormatter={(l) => `Session ${l}`}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="mastery"
+                  stroke="#0891B2"
+                  strokeWidth={2}
+                  dot={{ r: 2 }}
+                  name="Actual"
+                  connectNulls={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="projected"
+                  stroke="#10B981"
+                  strokeWidth={2}
+                  strokeDasharray="6 3"
+                  dot={{ r: 2 }}
+                  name="Projected"
+                  connectNulls={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
         {/* Best teaching approach */}
         {bestApproach && (
           <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
@@ -199,17 +289,52 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Recent conversations — CLICKABLE to view full message threads */}
+        {/* AI Chat Sessions — organized by class */}
         <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-[#1F2937] mb-3">
-            Recent Learning Sessions
-            {lightbulbs.length > 0 && (
-              <span className="ml-2 text-xs font-normal text-[#F59E0B]">{lightbulbs.length} lightbulb moments!</span>
-            )}
-          </h3>
-          <p className="text-xs text-[#6B7280] mb-3">Click a session to view the full conversation</p>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-[#1F2937]">
+                AI Learning Sessions
+                {lightbulbs.length > 0 && (
+                  <span className="ml-2 text-xs font-normal text-[#F59E0B]">{lightbulbs.length} lightbulb moments!</span>
+                )}
+              </h3>
+              <p className="text-xs text-[#6B7280]">Click a session to view the full conversation</p>
+            </div>
+          </div>
+
+          {/* Subject filter tabs */}
+          <div className="flex gap-2 mb-4 border-b border-[#E2E8F0] pb-3">
+            <button
+              onClick={() => setChatSubjectFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                chatSubjectFilter === 'all'
+                  ? 'bg-[#1E2761] text-white'
+                  : 'bg-[#F1F5F9] text-[#6B7280] hover:bg-[#E2E8F0]'
+              }`}
+            >
+              All Subjects ({convos.length})
+            </button>
+            {subjects.map(subj => {
+              const count = convos.filter(c => c.subject === subj).length;
+              return (
+                <button
+                  key={subj}
+                  onClick={() => setChatSubjectFilter(subj)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    chatSubjectFilter === subj
+                      ? 'bg-[#1E2761] text-white'
+                      : 'bg-[#F1F5F9] text-[#6B7280] hover:bg-[#E2E8F0]'
+                  }`}
+                >
+                  {subj} ({count})
+                </button>
+              );
+            })}
+          </div>
+
           <div className="space-y-2">
-            {convos.slice(0, 15).map(c => (
+            {filteredConvos.slice(0, 15).map(c => (
               <div key={c.id}>
                 <div
                   className="flex items-center justify-between p-3 rounded-lg border border-[#E2E8F0] hover:bg-[#F8FAFC] cursor-pointer transition-colors"
@@ -218,12 +343,16 @@ export default function StudentDashboard() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-[#1F2937]">{c.concept_name}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                        c.subject === 'Mathematics' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                      }`}>
+                        {c.subject}
+                      </span>
                       {c.lightbulb_moment_detected && (
                         <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">Lightbulb!</span>
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 text-xs text-[#6B7280]">
-                      <span>{c.subject}</span>
                       <span>{new Date(c.started_at).toLocaleDateString()}</span>
                       <span>Engagement: {(c.session_engagement_score * 100).toFixed(0)}%</span>
                     </div>
@@ -249,6 +378,9 @@ export default function StudentDashboard() {
                 )}
               </div>
             ))}
+            {filteredConvos.length === 0 && (
+              <p className="text-sm text-[#6B7280] text-center py-4">No conversations found for this subject.</p>
+            )}
           </div>
         </div>
 

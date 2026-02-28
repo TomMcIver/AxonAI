@@ -1,20 +1,47 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getConcepts } from '../api/axonai';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorState from './ErrorState';
 
+const DIFFICULTY_CONFIG = {
+  5: { label: 'Very Hard', color: '#EF4444', bg: 'bg-red-100', text: 'text-red-700', ring: 'ring-red-300' },
+  4: { label: 'Hard', color: '#F97316', bg: 'bg-orange-100', text: 'text-orange-700', ring: 'ring-orange-300' },
+  3: { label: 'Medium', color: '#F59E0B', bg: 'bg-amber-100', text: 'text-amber-700', ring: 'ring-amber-300' },
+  2: { label: 'Easy', color: '#10B981', bg: 'bg-green-100', text: 'text-green-700', ring: 'ring-green-300' },
+  1: { label: 'Foundational', color: '#10B981', bg: 'bg-emerald-100', text: 'text-emerald-700', ring: 'ring-emerald-300' },
+};
+
 function DifficultyBadge({ level }) {
-  const colors = {
-    1: 'bg-green-100 text-green-700',
-    2: 'bg-green-100 text-green-700',
-    3: 'bg-amber-100 text-amber-700',
-    4: 'bg-orange-100 text-orange-700',
-    5: 'bg-red-100 text-red-700',
-  };
+  const cfg = DIFFICULTY_CONFIG[level] || DIFFICULTY_CONFIG[3];
   return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors[level] || colors[3]}`}>
-      Level {level}
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
+      Level {level} — {cfg.label}
     </span>
+  );
+}
+
+function ConceptNode({ concept, isSelected, isHovered, onSelect, onHover, onLeave }) {
+  const diff = concept.difficulty_level || 3;
+  const cfg = DIFFICULTY_CONFIG[diff] || DIFFICULTY_CONFIG[3];
+  return (
+    <div
+      className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all border-2 ${
+        isSelected
+          ? `${cfg.bg} ${cfg.text} border-current shadow-md scale-105`
+          : isHovered
+            ? `bg-white ${cfg.text} border-current shadow-sm`
+            : 'bg-white text-[#1F2937] border-[#E2E8F0] hover:shadow-sm'
+      }`}
+      onClick={() => onSelect(concept.id)}
+      onMouseEnter={() => onHover(concept.id)}
+      onMouseLeave={onLeave}
+    >
+      <span
+        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+        style={{ backgroundColor: cfg.color }}
+      />
+      <span className="truncate max-w-[160px]">{concept.name}</span>
+    </div>
   );
 }
 
@@ -23,8 +50,8 @@ export default function KnowledgeGraph({ subject }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [hovered, setHovered] = useState(null);
   const [search, setSearch] = useState('');
-  const canvasRef = useRef(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -36,66 +63,29 @@ export default function KnowledgeGraph({ subject }) {
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    if (!data || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const concepts = data.concepts || [];
-    const edges = data.prerequisites || [];
-    const W = canvas.width = canvas.parentElement.clientWidth;
-    const H = canvas.height = 400;
-
-    // Simple grid layout
-    const cols = Math.ceil(Math.sqrt(concepts.length));
-    const padX = 60, padY = 50;
-    const gapX = (W - 2 * padX) / Math.max(cols - 1, 1);
-    const gapY = (H - 2 * padY) / Math.max(Math.ceil(concepts.length / cols) - 1, 1);
-
-    const positions = {};
-    concepts.forEach((c, i) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      positions[c.id] = { x: padX + col * gapX, y: padY + row * gapY };
-    });
-
-    ctx.clearRect(0, 0, W, H);
-
-    // Draw edges
-    ctx.strokeStyle = '#CBD5E1';
-    ctx.lineWidth = 1;
-    edges.forEach(e => {
-      const from = positions[e.prerequisite_concept_id];
-      const to = positions[e.concept_id];
-      if (from && to) {
-        ctx.beginPath();
-        ctx.moveTo(from.x, from.y);
-        ctx.lineTo(to.x, to.y);
-        ctx.stroke();
-      }
-    });
-
-    // Draw nodes
-    concepts.forEach(c => {
-      const pos = positions[c.id];
-      if (!pos) return;
-      const diff = c.difficulty_level || 3;
-      const colors = ['#10B981', '#10B981', '#F59E0B', '#F97316', '#EF4444'];
-      ctx.fillStyle = colors[diff - 1] || '#0891B2';
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
-      ctx.fill();
-    });
-  }, [data]);
-
   if (loading) return <LoadingSpinner message={`Loading ${subject} concepts...`} />;
   if (error) return <ErrorState message={error} onRetry={load} />;
   if (!data) return null;
 
   const concepts = data.concepts || [];
   const edges = data.prerequisites || [];
-  const filtered = search
-    ? concepts.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
-    : concepts;
+
+  // Group by difficulty level, ranked from hardest (top) to easiest (bottom)
+  const ranks = [5, 4, 3, 2, 1];
+  const grouped = {};
+  ranks.forEach(r => { grouped[r] = []; });
+  concepts.forEach(c => {
+    const lvl = c.difficulty_level || 3;
+    if (!grouped[lvl]) grouped[lvl] = [];
+    grouped[lvl].push(c);
+  });
+  // Sort each group alphabetically
+  ranks.forEach(r => {
+    grouped[r].sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  // Filter for search
+  const matchesSearch = (c) => !search || c.name.toLowerCase().includes(search.toLowerCase());
 
   const selectedConcept = selected ? concepts.find(c => c.id === selected) : null;
   const prereqs = selected ? edges.filter(e => e.concept_id === selected).map(e => {
@@ -122,82 +112,135 @@ export default function KnowledgeGraph({ subject }) {
         />
       </div>
 
+      {/* Ranked concept map — top = hardest, bottom = easiest */}
       <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 mb-4">
-        <canvas ref={canvasRef} className="w-full" />
-        <div className="flex items-center gap-4 mt-2 text-xs text-[#6B7280]">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[#10B981] inline-block" /> Easy (1-2)</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[#F59E0B] inline-block" /> Medium (3)</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[#F97316] inline-block" /> Hard (4)</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[#EF4444] inline-block" /> Very Hard (5)</span>
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold text-[#1F2937]">Concept Hierarchy</h4>
+          <span className="text-xs text-[#6B7280]">Hardest at top, easiest at bottom</span>
+        </div>
+
+        <div className="space-y-1">
+          {ranks.map(rank => {
+            const cfg = DIFFICULTY_CONFIG[rank] || DIFFICULTY_CONFIG[3];
+            const items = grouped[rank]?.filter(matchesSearch) || [];
+            if (items.length === 0 && search) return null;
+            return (
+              <div key={rank} className="flex items-start gap-3 py-3 border-b border-[#E2E8F0] last:border-0">
+                {/* Rank label */}
+                <div className="w-24 flex-shrink-0 pt-1">
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${cfg.bg} ${cfg.text} uppercase tracking-wider`}>
+                    Lvl {rank}
+                  </span>
+                  <p className="text-[10px] text-[#6B7280] mt-0.5">{cfg.label}</p>
+                </div>
+                {/* Concept nodes */}
+                <div className="flex flex-wrap gap-2 flex-1 min-h-[32px]">
+                  {items.length > 0 ? items.map(c => (
+                    <ConceptNode
+                      key={c.id}
+                      concept={c}
+                      isSelected={selected === c.id}
+                      isHovered={hovered === c.id}
+                      onSelect={setSelected}
+                      onHover={setHovered}
+                      onLeave={() => setHovered(null)}
+                    />
+                  )) : (
+                    <span className="text-xs text-[#CBD5E1] italic py-1">No concepts at this level</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[#E2E8F0] text-xs text-[#6B7280]">
+          {ranks.map(r => {
+            const cfg = DIFFICULTY_CONFIG[r];
+            return (
+              <span key={r} className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: cfg.color }} />
+                {cfg.label} ({r})
+              </span>
+            );
+          })}
         </div>
       </div>
 
+      {/* Detail panel */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
-          <div className="p-3 bg-[#F8FAFC] border-b border-[#E2E8F0]">
-            <h4 className="text-sm font-semibold text-[#1F2937]">All Concepts</h4>
-          </div>
-          <div className="max-h-96 overflow-y-auto divide-y divide-[#E2E8F0]">
-            {filtered.map(c => (
-              <div
-                key={c.id}
-                className={`px-3 py-2 cursor-pointer transition-colors ${selected === c.id ? 'bg-[#0891B2]/10' : 'hover:bg-[#F1F5F9]'}`}
-                onClick={() => setSelected(c.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-[#1F2937]">{c.name}</span>
-                  <DifficultyBadge level={c.difficulty_level} />
-                </div>
-                <span className="text-xs text-[#6B7280] capitalize">{c.concept_type}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Hover / selected tooltip */}
+        {(selectedConcept || hovered) && (() => {
+          const showConcept = selectedConcept || concepts.find(c => c.id === hovered);
+          if (!showConcept) return null;
+          const showPrereqs = edges.filter(e => e.concept_id === showConcept.id).map(e => {
+            const pc = concepts.find(c => c.id === e.prerequisite_concept_id);
+            return pc ? { ...pc, strength: e.strength } : null;
+          }).filter(Boolean);
+          const showDeps = edges.filter(e => e.prerequisite_concept_id === showConcept.id).map(e => {
+            const dc = concepts.find(c => c.id === e.concept_id);
+            return dc ? { ...dc, strength: e.strength } : null;
+          }).filter(Boolean);
 
-        {selectedConcept && (
-          <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm">
-            <div className="p-4 border-b border-[#E2E8F0]">
-              <h4 className="font-semibold text-[#1F2937]">{selectedConcept.name}</h4>
-              <div className="flex items-center gap-2 mt-1">
-                <DifficultyBadge level={selectedConcept.difficulty_level} />
-                <span className="text-xs text-[#6B7280] capitalize">{selectedConcept.concept_type}</span>
+          return (
+            <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm lg:col-span-2">
+              <div className="p-4 border-b border-[#E2E8F0]">
+                <h4 className="font-semibold text-[#1F2937]">{showConcept.name}</h4>
+                <div className="flex items-center gap-2 mt-1">
+                  <DifficultyBadge level={showConcept.difficulty_level} />
+                  <span className="text-xs text-[#6B7280] capitalize">{showConcept.concept_type}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[#E2E8F0]">
+                <div className="p-4">
+                  <h5 className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-2">
+                    Prerequisites ({showPrereqs.length})
+                  </h5>
+                  {showPrereqs.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {showPrereqs.map(p => (
+                        <div key={p.id} className="flex items-center justify-between text-sm">
+                          <span className="text-[#1F2937] cursor-pointer hover:text-[#0891B2]" onClick={() => setSelected(p.id)}>
+                            {p.name}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <DifficultyBadge level={p.difficulty_level} />
+                            <span className="text-xs text-[#6B7280]">{p.strength}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#CBD5E1]">No prerequisites — this is a foundational concept</p>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h5 className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-2">
+                    Required By ({showDeps.length})
+                  </h5>
+                  {showDeps.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {showDeps.map(d => (
+                        <div key={d.id} className="flex items-center justify-between text-sm">
+                          <span className="text-[#1F2937] cursor-pointer hover:text-[#0891B2]" onClick={() => setSelected(d.id)}>
+                            {d.name}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <DifficultyBadge level={d.difficulty_level} />
+                            <span className="text-xs text-[#6B7280]">{d.strength}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#CBD5E1]">No dependent concepts</p>
+                  )}
+                </div>
               </div>
             </div>
-            {prereqs.length > 0 && (
-              <div className="p-4 border-b border-[#E2E8F0]">
-                <h5 className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-2">Prerequisites</h5>
-                <div className="space-y-1">
-                  {prereqs.map(p => (
-                    <div key={p.id} className="flex items-center justify-between text-sm">
-                      <span className="text-[#1F2937] cursor-pointer hover:text-[#0891B2]" onClick={() => setSelected(p.id)}>
-                        {p.name}
-                      </span>
-                      <span className="text-xs text-[#6B7280]">strength: {p.strength}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {dependents.length > 0 && (
-              <div className="p-4">
-                <h5 className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-2">Required By</h5>
-                <div className="space-y-1">
-                  {dependents.map(d => (
-                    <div key={d.id} className="flex items-center justify-between text-sm">
-                      <span className="text-[#1F2937] cursor-pointer hover:text-[#0891B2]" onClick={() => setSelected(d.id)}>
-                        {d.name}
-                      </span>
-                      <span className="text-xs text-[#6B7280]">strength: {d.strength}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {prereqs.length === 0 && dependents.length === 0 && (
-              <div className="p-4 text-sm text-[#6B7280]">No prerequisite connections found.</div>
-            )}
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
