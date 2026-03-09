@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -366,14 +367,14 @@ function ClassAverageRing({ value }) {
    ───────────────────────────────────────────── */
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', active: true },
-  { icon: Users, label: 'Students', active: false },
-  { icon: BookOpen, label: 'Subjects', active: false },
-  { icon: Network, label: 'Knowledge Graph', active: false },
-  { icon: Settings, label: 'Settings', active: false },
+  { icon: LayoutDashboard, label: 'Dashboard', active: true, path: '/teacher' },
+  { icon: Users, label: 'Students', active: false, path: '/teacher/students' },
+  { icon: BookOpen, label: 'Subjects', active: false, path: '/teacher/subjects' },
+  { icon: Network, label: 'Knowledge Graph', active: false, path: '/teacher/knowledge-graph' },
+  { icon: Settings, label: 'Settings', active: false, path: '/teacher/settings' },
 ];
 
-function Sidebar() {
+function Sidebar({ navigate }) {
   return (
     <aside
       style={{
@@ -409,6 +410,7 @@ function Sidebar() {
           return (
             <button
               key={item.label}
+              onClick={() => !item.active && navigate(item.path)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -585,6 +587,7 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
           action.primary ? (
             <button
               key={i}
+              onClick={action.onClick}
               style={{
                 fontFamily: "'Lexend', sans-serif",
                 fontWeight: 500,
@@ -605,6 +608,7 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
           ) : (
             <button
               key={i}
+              onClick={action.onClick}
               style={{
                 fontFamily: "'Lexend', sans-serif",
                 fontWeight: 500,
@@ -625,7 +629,7 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
   );
 }
 
-function NeedsAttentionSection() {
+function NeedsAttentionSection({ navigate }) {
   return (
     <section>
       <h2
@@ -651,8 +655,8 @@ function NeedsAttentionSection() {
           body="3 prerequisite concepts for Trigonometry are below mastery threshold: Similar Triangles (42%), Angle Relationships (38%), Coordinate Geometry (55%)."
           recommendation="Focused review of angle properties and triangle similarity before continuing the Trigonometry unit."
           actions={[
-            { label: 'View Profile', primary: false },
-            { label: 'Start Intervention', primary: true },
+            { label: 'View Profile', primary: false, onClick: () => navigate('/teacher/student/1') },
+            { label: 'Start Intervention', primary: true, onClick: () => navigate('/teacher/student/1') },
           ]}
         />
         <AlertCard
@@ -665,8 +669,8 @@ function NeedsAttentionSection() {
           body="Engagement has declined 38% over the past 14 days. Last active 5 days ago. Overall mastery has dropped from 31% to 23% this week."
           recommendation="Recommend direct teacher check-in. Disengagement pattern may indicate external factors. Consider pastoral care referral."
           actions={[
-            { label: 'View Profile', primary: false },
-            { label: 'Contact Student', primary: true },
+            { label: 'View Profile', primary: false, onClick: () => navigate('/teacher/student/2') },
+            { label: 'Contact Student', primary: true, onClick: () => navigate('/teacher/student/2') },
           ]}
         />
       </div>
@@ -691,7 +695,10 @@ function ActivityIcon({ type, colour }) {
   }
 }
 
-function ActivityFeedSection() {
+const studentIdByName = {};
+students.forEach(s => { studentIdByName[s.name] = s.id; });
+
+function ActivityFeedSection({ navigate }) {
   return (
     <section>
       <h2
@@ -717,6 +724,10 @@ function ActivityFeedSection() {
         {activityFeed.map((item, i) => (
           <div
             key={i}
+            onClick={() => {
+              const sid = studentIdByName[item.student];
+              if (sid) navigate(`/teacher/student/${sid}`);
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -724,7 +735,11 @@ function ActivityFeedSection() {
               padding: '12px 20px',
               borderLeft: `2px solid ${colourVar(item.colour)}`,
               borderBottom: i < activityFeed.length - 1 ? '1px solid var(--surface-muted)' : 'none',
+              cursor: 'pointer',
+              transition: 'background 150ms',
             }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--primary-50)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             {/* Avatar */}
             <div
@@ -800,7 +815,7 @@ function hasTrigOutgoing(nodeId) {
   return knowledgeEdges.some(([src, tgt]) => src === nodeId && trigNodeIds.has(tgt));
 }
 
-function KnowledgeGraphPreview() {
+function KnowledgeGraphPreview({ navigate }) {
   const [tooltip, setTooltip] = useState(null);
   const svgRef = useRef(null);
   const nodeMap = {};
@@ -825,18 +840,22 @@ function KnowledgeGraphPreview() {
         >
           Knowledge Graph
         </h2>
-        <span
+        <button
+          onClick={() => navigate('/teacher/knowledge-graph')}
           style={{
             fontFamily: "'Lexend', sans-serif",
             fontWeight: 500,
             fontSize: 12,
             textTransform: 'uppercase',
             letterSpacing: '0.04em',
-            color: 'var(--text-tertiary)',
+            color: 'var(--primary-700)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
           }}
         >
-          Trigonometry cluster
-        </span>
+          View Full Graph →
+        </button>
       </div>
       <div
         style={{
@@ -1007,7 +1026,7 @@ function KnowledgeGraphPreview() {
    CLASS PULSE SECTION
    ───────────────────────────────────────────── */
 
-function ClassPulseSection() {
+function ClassPulseSection({ navigate }) {
   const sortedStudents = [...students].sort((a, b) => a.mastery - b.mastery);
   const classAvg = Math.round(students.reduce((s, st) => s + st.mastery, 0) / students.length);
 
@@ -1065,7 +1084,8 @@ function ClassPulseSection() {
               <div
                 key={st.id}
                 title={`${st.name}: ${st.mastery}%`}
-                style={{ cursor: 'default' }}
+                onClick={() => navigate(`/teacher/student/${st.id}`)}
+                style={{ cursor: 'pointer' }}
               >
                 <SmallMasteryRing mastery={st.mastery} index={i} />
               </div>
@@ -1087,6 +1107,8 @@ function ClassPulseSection() {
    ───────────────────────────────────────────── */
 
 export default function TeacherDashboard() {
+  const navigate = useNavigate();
+
   return (
     <>
       <style>{cssStyles}</style>
@@ -1097,7 +1119,7 @@ export default function TeacherDashboard() {
           background: 'var(--surface-base)',
         }}
       >
-        <Sidebar />
+        <Sidebar navigate={navigate} />
 
         {/* Main content */}
         <main
@@ -1110,10 +1132,10 @@ export default function TeacherDashboard() {
         >
           <div className="flex flex-col gap-8">
             {/* Class Pulse */}
-            <ClassPulseSection />
+            <ClassPulseSection navigate={navigate} />
 
             {/* Needs Attention */}
-            <NeedsAttentionSection />
+            <NeedsAttentionSection navigate={navigate} />
 
             {/* Bottom row: Activity + Knowledge Graph */}
             <div
@@ -1123,8 +1145,8 @@ export default function TeacherDashboard() {
                 gap: 24,
               }}
             >
-              <ActivityFeedSection />
-              <KnowledgeGraphPreview />
+              <ActivityFeedSection navigate={navigate} />
+              <KnowledgeGraphPreview navigate={navigate} />
             </div>
           </div>
         </main>
