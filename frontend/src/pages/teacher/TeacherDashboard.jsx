@@ -1,287 +1,1134 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getClassOverview } from '../../api/axonai';
-import Layout from '../../components/Layout';
-import LoadingSpinner from '../../components/LoadingSpinner';
-import ErrorState from '../../components/ErrorState';
-import { getRiskLevel } from '../../components/RiskGauge';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  Network,
+  Settings,
+  ChevronDown,
+  AlertTriangle,
+  AlertCircle,
+  Sparkles,
+  Trophy,
+  CheckCircle,
+  Clock,
+} from 'lucide-react';
 
-const CLASSES = [
-  { id: 1, name: 'Year 12 Mathematics', subject: 'Mathematics' },
-  { id: 2, name: 'Year 12 Biology', subject: 'Biology' },
+/* ─────────────────────────────────────────────
+   MOCK DATA
+   ───────────────────────────────────────────── */
+
+const students = [
+  { id: 1, name: "Aroha Ngata", mastery: 64, risk: "needs-attention", lastActive: "2h ago", engagement: 72, trend: "down" },
+  { id: 2, name: "James Tūhoe", mastery: 23, risk: "at-risk", lastActive: "3d ago", engagement: 41, trend: "down" },
+  { id: 3, name: "Priya Sharma", mastery: 88, risk: "on-track", lastActive: "1h ago", engagement: 91, trend: "up" },
+  { id: 4, name: "Liam Chen", mastery: 76, risk: "on-track", lastActive: "4h ago", engagement: 83, trend: "up" },
+  { id: 5, name: "Sofia Ramirez", mastery: 45, risk: "needs-attention", lastActive: "1d ago", engagement: 58, trend: "flat" },
+  { id: 6, name: "Noah Williams", mastery: 92, risk: "mastered", lastActive: "30m ago", engagement: 95, trend: "up" },
+  { id: 7, name: "Ella Parata", mastery: 67, risk: "in-progress", lastActive: "5h ago", engagement: 74, trend: "up" },
+  { id: 8, name: "Mason Patel", mastery: 31, risk: "needs-attention", lastActive: "2d ago", engagement: 49, trend: "down" },
+  { id: 9, name: "Isla Mackenzie", mastery: 79, risk: "on-track", lastActive: "3h ago", engagement: 86, trend: "up" },
+  { id: 10, name: "Ethan Brown", mastery: 55, risk: "in-progress", lastActive: "6h ago", engagement: 67, trend: "flat" },
+  { id: 11, name: "Chloe Davis", mastery: 84, risk: "on-track", lastActive: "2h ago", engagement: 88, trend: "up" },
+  { id: 12, name: "Oliver Thompson", mastery: 18, risk: "at-risk", lastActive: "5d ago", engagement: 32, trend: "down" },
+  { id: 13, name: "Ava Wilson", mastery: 71, risk: "in-progress", lastActive: "1h ago", engagement: 79, trend: "up" },
+  { id: 14, name: "Lucas Taylor", mastery: 60, risk: "in-progress", lastActive: "8h ago", engagement: 70, trend: "flat" },
+  { id: 15, name: "Mia Anderson", mastery: 95, risk: "mastered", lastActive: "45m ago", engagement: 97, trend: "up" },
+  { id: 16, name: "Henry Moore", mastery: 48, risk: "needs-attention", lastActive: "1d ago", engagement: 55, trend: "flat" },
+  { id: 17, name: "Zara Jackson", mastery: 82, risk: "on-track", lastActive: "3h ago", engagement: 87, trend: "up" },
+  { id: 18, name: "Jack Martin", mastery: 37, risk: "needs-attention", lastActive: "2d ago", engagement: 44, trend: "down" },
+  { id: 19, name: "Lily White", mastery: 74, risk: "on-track", lastActive: "4h ago", engagement: 80, trend: "up" },
+  { id: 20, name: "Samuel Harris", mastery: 63, risk: "in-progress", lastActive: "7h ago", engagement: 72, trend: "flat" },
+  { id: 21, name: "Grace Clark", mastery: 89, risk: "on-track", lastActive: "1h ago", engagement: 92, trend: "up" },
+  { id: 22, name: "Benjamin Lewis", mastery: 52, risk: "in-progress", lastActive: "6h ago", engagement: 61, trend: "flat" },
+  { id: 23, name: "Amelia Hall", mastery: 77, risk: "on-track", lastActive: "2h ago", engagement: 83, trend: "up" },
+  { id: 24, name: "William Young", mastery: 41, risk: "needs-attention", lastActive: "3d ago", engagement: 50, trend: "down" },
+  { id: 25, name: "Charlotte Allen", mastery: 68, risk: "in-progress", lastActive: "5h ago", engagement: 75, trend: "up" },
+  { id: 26, name: "James King", mastery: 85, risk: "on-track", lastActive: "2h ago", engagement: 89, trend: "up" },
+  { id: 27, name: "Poppy Wright", mastery: 73, risk: "in-progress", lastActive: "4h ago", engagement: 78, trend: "up" },
+  { id: 28, name: "Thomas Scott", mastery: 56, risk: "in-progress", lastActive: "9h ago", engagement: 65, trend: "flat" },
 ];
 
-function StatCard({ label, value, sub, color }) {
+const knowledgeNodes = [
+  { id: "integers", label: "Integers", x: 80, y: 220, mastery: 91, size: "leaf" },
+  { id: "fractions", label: "Fractions", x: 80, y: 320, mastery: 88, size: "leaf" },
+  { id: "algebra_1", label: "Linear Equations", x: 200, y: 200, mastery: 84, size: "intermediate" },
+  { id: "algebra_2", label: "Quadratic Eq.", x: 200, y: 320, mastery: 78, size: "intermediate" },
+  { id: "coord_geom", label: "Coord. Geometry", x: 320, y: 260, mastery: 55, size: "intermediate" },
+  { id: "angles", label: "Angle Relationships", x: 440, y: 200, mastery: 38, size: "foundational" },
+  { id: "sim_tri", label: "Similar Triangles", x: 440, y: 340, mastery: 42, size: "foundational" },
+  { id: "pythagoras", label: "Pythagoras", x: 560, y: 270, mastery: 61, size: "intermediate" },
+  { id: "trig_ratios", label: "Trig Ratios", x: 680, y: 200, mastery: 35, size: "foundational" },
+  { id: "trig_graphs", label: "Trig Graphs", x: 800, y: 160, mastery: 20, size: "intermediate" },
+  { id: "trig_eq", label: "Trig Equations", x: 800, y: 280, mastery: 18, size: "leaf" },
+  { id: "unit_circle", label: "Unit Circle", x: 680, y: 340, mastery: 22, size: "intermediate" },
+];
+
+const knowledgeEdges = [
+  ["integers", "algebra_1"],
+  ["fractions", "algebra_1"],
+  ["algebra_1", "coord_geom"],
+  ["algebra_2", "coord_geom"],
+  ["coord_geom", "angles"],
+  ["coord_geom", "sim_tri"],
+  ["angles", "pythagoras"],
+  ["sim_tri", "pythagoras"],
+  ["pythagoras", "trig_ratios"],
+  ["angles", "trig_ratios"],
+  ["sim_tri", "trig_ratios"],
+  ["trig_ratios", "trig_graphs"],
+  ["trig_ratios", "unit_circle"],
+  ["trig_graphs", "trig_eq"],
+];
+
+const activityFeed = [
+  { time: "2h ago", student: "Priya Sharma", action: "Mastered", concept: "Quadratic Equations", icon: "trophy", colour: "mastered" },
+  { time: "3h ago", student: "Aroha Ngata", action: "AI Tutor session:", concept: "Angle Relationships", icon: "sparkle", colour: "primary" },
+  { time: "4h ago", student: "Mia Anderson", action: "Mastered", concept: "Trigonometric Ratios", icon: "trophy", colour: "mastered" },
+  { time: "5h ago", student: "Noah Williams", action: "Completed quiz:", concept: "Quadratic Factoring", icon: "check", colour: "in-progress" },
+  { time: "6h ago", student: "Mason Patel", action: "Needs review:", concept: "Linear Equations", icon: "alert", colour: "needs-attention" },
+  { time: "8h ago", student: "Oliver Thompson", action: "Inactive —", concept: "last seen 5 days ago", icon: "clock", colour: "inactive" },
+];
+
+/* ─────────────────────────────────────────────
+   HELPERS
+   ───────────────────────────────────────────── */
+
+function masteryColor(mastery) {
+  if (mastery >= 91) return 'var(--mastered)';
+  if (mastery >= 76) return 'var(--on-track)';
+  if (mastery >= 51) return 'var(--in-progress)';
+  if (mastery >= 26) return 'var(--needs-attention)';
+  return 'var(--at-risk)';
+}
+
+function nodeColor(mastery) {
+  if (mastery >= 91) return "#059669";
+  if (mastery >= 76) return "#0F766E";
+  if (mastery >= 51) return "#2563EB";
+  if (mastery >= 26) return "#D97706";
+  return "#DC2626";
+}
+
+function nodeRadius(size) {
+  if (size === 'leaf') return 20;
+  if (size === 'intermediate') return 26;
+  return 32;
+}
+
+function getInitials(name) {
+  return name.split(' ').map(w => w[0]).join('').toUpperCase();
+}
+
+function colourVar(colour) {
+  const map = {
+    mastered: 'var(--mastered)',
+    primary: 'var(--primary-500)',
+    'in-progress': 'var(--in-progress)',
+    'needs-attention': 'var(--needs-attention)',
+    inactive: 'var(--inactive)',
+  };
+  return map[colour] || 'var(--text-tertiary)';
+}
+
+function colourBgVar(colour) {
+  const map = {
+    mastered: 'var(--mastered-bg)',
+    primary: 'var(--primary-50)',
+    'in-progress': 'var(--in-progress-bg)',
+    'needs-attention': 'var(--needs-attention-bg)',
+    inactive: 'var(--inactive-bg)',
+  };
+  return map[colour] || 'var(--surface-muted)';
+}
+
+/* ─────────────────────────────────────────────
+   CSS STYLES (injected via <style>)
+   ───────────────────────────────────────────── */
+
+const cssStyles = `
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Lexend:wght@400;500&display=swap');
+
+:root {
+  /* Brand */
+  --primary-900: #134E48;
+  --primary-700: #0F766E;
+  --primary-500: #14B8A6;
+  --primary-300: #5EEAD4;
+  --primary-100: #CCFBF1;
+  --primary-50:  #F0FDFA;
+
+  /* Surfaces */
+  --surface-base:    #F8FAFB;
+  --surface-card:    #FFFFFF;
+  --surface-sidebar: #F1F5F4;
+  --surface-muted:   #F1F5F9;
+
+  /* Text */
+  --text-primary:   #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary:  #94A3B8;
+  --text-inverse:   #FFFFFF;
+
+  /* Semantic */
+  --mastered:         #059669;
+  --mastered-bg:      #ECFDF5;
+  --on-track:         #0F766E;
+  --on-track-bg:      #F0FDFA;
+  --in-progress:      #2563EB;
+  --in-progress-bg:   #EFF6FF;
+  --needs-attention:  #D97706;
+  --needs-attention-bg: #FFFBEB;
+  --at-risk:          #DC2626;
+  --at-risk-bg:       #FEF2F2;
+  --inactive:         #94A3B8;
+  --inactive-bg:      #F1F5F9;
+
+  /* Shadows */
+  --shadow-1: 0 1px 3px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.06);
+  --shadow-2: 0 4px 6px rgba(15,23,42,0.04), 0 2px 4px rgba(15,23,42,0.06);
+  --shadow-3: 0 12px 24px rgba(15,23,42,0.08), 0 4px 8px rgba(15,23,42,0.04);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1.0; }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.kg-tooltip {
+  pointer-events: none;
+  position: absolute;
+  background: var(--surface-card);
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  box-shadow: var(--shadow-2);
+  z-index: 50;
+  white-space: nowrap;
+}
+`;
+
+/* ─────────────────────────────────────────────
+   SMALL MASTERY RING (24px)
+   ───────────────────────────────────────────── */
+
+function SmallMasteryRing({ mastery, index }) {
+  const size = 24;
+  const strokeWidth = 3;
+  const r = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * r;
+  const [offset, setOffset] = useState(circumference);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setOffset(circumference * (1 - mastery / 100));
+    }, index * 30);
+    return () => clearTimeout(timer);
+  }, [mastery, index, circumference]);
+
   return (
-    <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-      <p className="text-sm text-[#6B7280] mb-1">{label}</p>
-      <p className="text-2xl font-bold" style={{ color: color || '#1F2937' }}>{value}</p>
-      {sub && <p className="text-xs text-[#6B7280] mt-1">{sub}</p>}
+    <svg width={size} height={size} style={{ display: 'block' }}>
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="var(--surface-muted)"
+        strokeWidth={strokeWidth}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={masteryColor(mastery)}
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ transition: 'stroke-dashoffset 800ms ease-out' }}
+      />
+    </svg>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   LARGE MASTERY RING (80px) — Class Average
+   ───────────────────────────────────────────── */
+
+function ClassAverageRing({ value }) {
+  const size = 80;
+  const strokeWidth = 8;
+  const r = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * r;
+  const [offset, setOffset] = useState(circumference);
+  const [displayVal, setDisplayVal] = useState(0);
+
+  useEffect(() => {
+    // Animate arc
+    const timer = setTimeout(() => {
+      setOffset(circumference * (1 - value / 100));
+    }, 100);
+
+    // Animate number count-up
+    const duration = 800;
+    const startTime = Date.now() + 100;
+    let raf;
+    function tick() {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 0) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayVal(Math.round(eased * value));
+      if (progress < 1) {
+        raf = requestAnimationFrame(tick);
+      }
+    }
+    raf = requestAnimationFrame(tick);
+    return () => {
+      clearTimeout(timer);
+      cancelAnimationFrame(raf);
+    };
+  }, [value, circumference]);
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div style={{ position: 'relative', width: size, height: size }}>
+        <svg width={size} height={size}>
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke="var(--surface-muted)"
+            strokeWidth={strokeWidth}
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke="var(--on-track)"
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            style={{ transition: 'stroke-dashoffset 800ms ease-out' }}
+          />
+        </svg>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: 700,
+            fontSize: 22,
+            color: 'var(--text-primary)',
+          }}
+        >
+          {displayVal}%
+        </div>
+      </div>
+      <span
+        style={{
+          fontFamily: "'Lexend', sans-serif",
+          fontWeight: 400,
+          fontSize: 14,
+          color: 'var(--text-tertiary)',
+        }}
+      >
+        Class Average
+      </span>
     </div>
   );
 }
 
-function TrendBadge({ trend }) {
-  const config = {
-    improving: { label: 'Improving', cls: 'bg-green-100 text-green-700' },
-    declining: { label: 'Declining', cls: 'bg-red-100 text-red-700' },
-    stable: { label: 'Stable', cls: 'bg-gray-100 text-gray-700' },
-  };
-  const c = config[trend] || config.stable;
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.cls}`}>{c.label}</span>;
-}
+/* ─────────────────────────────────────────────
+   SIDEBAR
+   ───────────────────────────────────────────── */
 
-function StudentRow({ student, navigate, highlight }) {
-  const risk = getRiskLevel(student.overall_risk_score);
-  const bgMap = {
-    red: 'bg-red-50 hover:bg-red-100',
-    amber: 'bg-amber-50 hover:bg-amber-100',
-    green: 'bg-green-50 hover:bg-green-100',
-    blue: 'bg-blue-50 hover:bg-blue-100',
-    default: 'hover:bg-gray-50',
-  };
-  const bg = bgMap[highlight] || bgMap.default;
+const navItems = [
+  { icon: LayoutDashboard, label: 'Dashboard', active: true },
+  { icon: Users, label: 'Students', active: false },
+  { icon: BookOpen, label: 'Subjects', active: false },
+  { icon: Network, label: 'Knowledge Graph', active: false },
+  { icon: Settings, label: 'Settings', active: false },
+];
 
+function Sidebar() {
   return (
-    <tr
-      className={`${bg} cursor-pointer transition-colors`}
-      onClick={() => navigate(`/teacher/student/${student.student_id}`)}
+    <aside
+      style={{
+        width: 260,
+        height: '100vh',
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        background: 'var(--surface-sidebar)',
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 40,
+      }}
     >
-      <td className="px-3 py-2.5 text-sm font-medium text-[#1F2937]">
-        <div className="flex items-center gap-2">
-          {student.first_name} {student.last_name}
-          {student.student_id === 1 && (
-            <span className="bg-[#0891B2] text-white px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase">Demo</span>
-          )}
+      {/* Wordmark */}
+      <div className="px-6 pt-6 pb-8">
+        <span
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: 700,
+            fontSize: 20,
+          }}
+        >
+          <span style={{ color: 'var(--text-primary)' }}>axon</span>
+          <span style={{ color: 'var(--primary-700)' }}>AI</span>
+        </span>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 flex flex-col gap-1 px-3">
+        {navItems.map(item => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.label}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                height: 44,
+                paddingLeft: 16,
+                paddingRight: 12,
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+                cursor: 'pointer',
+                width: '100%',
+                fontFamily: "'Lexend', sans-serif",
+                fontWeight: 500,
+                fontSize: 14,
+                background: item.active ? 'var(--primary-50)' : 'transparent',
+                color: item.active ? 'var(--primary-700)' : 'var(--text-secondary)',
+                borderLeft: item.active ? '3px solid var(--primary-700)' : '3px solid transparent',
+                transition: 'background 150ms, color 150ms',
+              }}
+              onMouseEnter={e => {
+                if (!item.active) e.currentTarget.style.background = 'rgba(0,0,0,0.03)';
+              }}
+              onMouseLeave={e => {
+                if (!item.active) e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <Icon size={20} />
+              {item.label}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* User area */}
+      <div
+        className="px-4 py-4 mx-3 mb-3"
+        style={{
+          borderTop: '1px solid rgba(0,0,0,0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            background: 'var(--primary-100)',
+            color: 'var(--primary-700)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: 600,
+            fontSize: 13,
+            flexShrink: 0,
+          }}
+        >
+          MW
         </div>
-      </td>
-      <td className="px-3 py-2.5 text-sm">
-        <span className={student.avg_mastery >= 0.7 ? 'text-green-600' : student.avg_mastery >= 0.4 ? 'text-amber-600' : 'text-red-600'}>
-          {(student.avg_mastery * 100).toFixed(1)}%
-        </span>
-      </td>
-      <td className="px-3 py-2.5">
-        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${risk.bg}`} style={{ color: risk.color }}>
-          {risk.label}
-        </span>
-      </td>
-      <td className="px-3 py-2.5 text-sm text-[#1F2937]">{(student.overall_engagement_score * 100).toFixed(0)}%</td>
-      <td className="px-3 py-2.5">
-        <TrendBadge trend={student.overall_mastery_trend} />
-      </td>
-      <td className="px-3 py-2.5 text-sm">
-        {student.active_flags > 0 && (
-          <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium">{student.active_flags}</span>
-        )}
-      </td>
-    </tr>
+        <div className="flex-1" style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontFamily: "'Lexend', sans-serif",
+              fontWeight: 500,
+              fontSize: 14,
+              color: 'var(--text-primary)',
+            }}
+          >
+            Ms. Williams
+          </div>
+          <span
+            style={{
+              display: 'inline-block',
+              fontFamily: "'Lexend', sans-serif",
+              fontWeight: 500,
+              fontSize: 11,
+              textTransform: 'uppercase',
+              background: 'var(--primary-100)',
+              color: 'var(--primary-700)',
+              padding: '2px 8px',
+              borderRadius: 'var(--radius-full)',
+              marginTop: 2,
+            }}
+          >
+            Teacher
+          </span>
+        </div>
+        <ChevronDown size={16} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+      </div>
+    </aside>
   );
 }
 
-function StudentSection({ title, subtitle, students, navigate, highlightColor, icon, accentColor }) {
-  if (!students.length) return null;
+/* ─────────────────────────────────────────────
+   NEEDS ATTENTION CARDS
+   ───────────────────────────────────────────── */
+
+function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, pillColor, body, recommendation, actions }) {
   return (
-    <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
-      <div className="px-5 py-3 border-b border-[#E2E8F0] flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftColor: accentColor }}>
-        <span className="text-lg">{icon}</span>
-        <div>
-          <h3 className="text-sm font-semibold text-[#1F2937]">{title}</h3>
-          <p className="text-xs text-[#6B7280]">{subtitle}</p>
-        </div>
-        <span className="ml-auto text-xs font-medium text-[#6B7280]">{students.length} students</span>
+    <div
+      style={{
+        background: 'var(--surface-card)',
+        borderRadius: 'var(--radius-lg)',
+        borderLeft: `4px solid ${borderColor}`,
+        boxShadow: 'var(--shadow-1)',
+        padding: '20px 24px',
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-3">
+        <IconComponent size={18} style={{ color: borderColor, flexShrink: 0 }} />
+        <span
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: 600,
+            fontSize: 15,
+            color: 'var(--text-primary)',
+          }}
+        >
+          {name}
+        </span>
+        <span
+          style={{
+            fontFamily: "'Lexend', sans-serif",
+            fontWeight: 500,
+            fontSize: 11,
+            textTransform: 'uppercase',
+            background: pillBg,
+            color: pillColor,
+            padding: '2px 10px',
+            borderRadius: 'var(--radius-full)',
+          }}
+        >
+          {severity}
+        </span>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-[#F8FAFC]">
-            <tr>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Name</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Mastery</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Risk</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Engagement</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Trend</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Flags</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#E2E8F0]">
-            {students.map(s => (
-              <StudentRow key={s.student_id} student={s} navigate={navigate} highlight={highlightColor} />
-            ))}
-          </tbody>
-        </table>
+
+      {/* Body */}
+      <p
+        style={{
+          fontFamily: "'Lexend', sans-serif",
+          fontWeight: 400,
+          fontSize: 15,
+          lineHeight: 1.6,
+          color: 'var(--text-secondary)',
+          margin: '0 0 12px 0',
+        }}
+      >
+        {body}
+      </p>
+
+      {/* AI Recommendation */}
+      <div className="flex items-start gap-2 mb-4" style={{ padding: '10px 12px', background: 'var(--primary-50)', borderRadius: 'var(--radius-sm)' }}>
+        <Sparkles size={14} style={{ color: 'var(--primary-500)', flexShrink: 0, marginTop: 3 }} />
+        <p
+          style={{
+            fontFamily: "'Lexend', sans-serif",
+            fontWeight: 400,
+            fontSize: 14,
+            lineHeight: 1.5,
+            color: 'var(--text-secondary)',
+            margin: 0,
+          }}
+        >
+          {recommendation}
+        </p>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-3">
+        {actions.map((action, i) =>
+          action.primary ? (
+            <button
+              key={i}
+              style={{
+                fontFamily: "'Lexend', sans-serif",
+                fontWeight: 500,
+                fontSize: 14,
+                background: 'var(--primary-700)',
+                color: 'var(--text-inverse)',
+                border: 'none',
+                borderRadius: 'var(--radius-sm)',
+                padding: '8px 16px',
+                cursor: 'pointer',
+                transition: 'opacity 150ms',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              {action.label}
+            </button>
+          ) : (
+            <button
+              key={i}
+              style={{
+                fontFamily: "'Lexend', sans-serif",
+                fontWeight: 500,
+                fontSize: 14,
+                background: 'transparent',
+                color: 'var(--primary-700)',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '8px 4px',
+              }}
+            >
+              {action.label}
+            </button>
+          )
+        )}
       </div>
     </div>
   );
 }
 
-export default function TeacherDashboard() {
-  const navigate = useNavigate();
-  const [classId, setClassId] = useState(1);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    getClassOverview(classId)
-      .then(d => { setData(d); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
-  }, [classId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const cls = CLASSES.find(c => c.id === classId);
-
-  // Smart grouping: 5 needing help, 5 improving, 20 average/stalled (30 total per class)
-  const { needsHelp, improving, average } = useMemo(() => {
-    if (!data?.students) return { needsHelp: [], improving: [], average: [] };
-    const students = [...data.students];
-
-    // 5 Needing Help — highest risk score
-    const byRisk = [...students].sort((a, b) => b.overall_risk_score - a.overall_risk_score);
-    const needsHelpGroup = byRisk.slice(0, 5);
-    const helpIds = new Set(needsHelpGroup.map(s => s.student_id));
-
-    // 5 Improving — trend = 'improving', sorted by mastery (best first)
-    const improvingCandidates = students
-      .filter(s => !helpIds.has(s.student_id) && s.overall_mastery_trend === 'improving')
-      .sort((a, b) => b.avg_mastery - a.avg_mastery);
-    const improvingGroup = improvingCandidates.slice(0, 5);
-    const improvingIds = new Set(improvingGroup.map(s => s.student_id));
-
-    // 20 Average/Stalled — everyone else, alphabetical
-    const averageGroup = students
-      .filter(s => !helpIds.has(s.student_id) && !improvingIds.has(s.student_id))
-      .sort((a, b) => a.last_name.localeCompare(b.last_name))
-      .slice(0, 20);
-
-    return { needsHelp: needsHelpGroup, improving: improvingGroup, average: averageGroup };
-  }, [data]);
-
+function NeedsAttentionSection() {
   return (
-    <Layout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#1F2937]">Kia ora, Sarah</h1>
-        <p className="text-[#6B7280]">Teacher Dashboard — {cls?.name}</p>
+    <section>
+      <h2
+        style={{
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontWeight: 600,
+          fontSize: 20,
+          letterSpacing: '-0.01em',
+          color: 'var(--text-primary)',
+          margin: '0 0 16px 0',
+        }}
+      >
+        Needs Attention
+      </h2>
+      <div className="flex flex-col gap-4">
+        <AlertCard
+          name="Aroha Ngata"
+          severity="Needs Attention"
+          icon={AlertTriangle}
+          borderColor="var(--needs-attention)"
+          pillBg="var(--needs-attention-bg)"
+          pillColor="var(--needs-attention)"
+          body="3 prerequisite concepts for Trigonometry are below mastery threshold: Similar Triangles (42%), Angle Relationships (38%), Coordinate Geometry (55%)."
+          recommendation="Focused review of angle properties and triangle similarity before continuing the Trigonometry unit."
+          actions={[
+            { label: 'View Profile', primary: false },
+            { label: 'Start Intervention', primary: true },
+          ]}
+        />
+        <AlertCard
+          name="James Tūhoe"
+          severity="At Risk"
+          icon={AlertCircle}
+          borderColor="var(--at-risk)"
+          pillBg="var(--at-risk-bg)"
+          pillColor="var(--at-risk)"
+          body="Engagement has declined 38% over the past 14 days. Last active 5 days ago. Overall mastery has dropped from 31% to 23% this week."
+          recommendation="Recommend direct teacher check-in. Disengagement pattern may indicate external factors. Consider pastoral care referral."
+          actions={[
+            { label: 'View Profile', primary: false },
+            { label: 'Contact Student', primary: true },
+          ]}
+        />
       </div>
+    </section>
+  );
+}
 
-      {/* Class selector */}
-      <div className="flex gap-2 mb-6">
-        {CLASSES.map(c => (
-          <button
-            key={c.id}
-            onClick={() => setClassId(c.id)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              classId === c.id
-                ? 'bg-[#1E2761] text-white'
-                : 'bg-white text-[#6B7280] border border-[#E2E8F0] hover:bg-[#F1F5F9]'
-            }`}
+/* ─────────────────────────────────────────────
+   TODAY'S ACTIVITY FEED
+   ───────────────────────────────────────────── */
+
+function ActivityIcon({ type, colour }) {
+  const c = colourVar(colour);
+  const props = { size: 14, style: { color: c } };
+  switch (type) {
+    case 'trophy': return <Trophy {...props} />;
+    case 'sparkle': return <Sparkles {...props} />;
+    case 'check': return <CheckCircle {...props} />;
+    case 'alert': return <AlertTriangle {...props} />;
+    case 'clock': return <Clock {...props} />;
+    default: return null;
+  }
+}
+
+function ActivityFeedSection() {
+  return (
+    <section>
+      <h2
+        style={{
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontWeight: 600,
+          fontSize: 20,
+          letterSpacing: '-0.01em',
+          color: 'var(--text-primary)',
+          margin: '0 0 16px 0',
+        }}
+      >
+        Today's Activity
+      </h2>
+      <div
+        style={{
+          background: 'var(--surface-card)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-1)',
+          overflow: 'hidden',
+        }}
+      >
+        {activityFeed.map((item, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '12px 20px',
+              borderLeft: `2px solid ${colourVar(item.colour)}`,
+              borderBottom: i < activityFeed.length - 1 ? '1px solid var(--surface-muted)' : 'none',
+            }}
           >
-            {c.subject}
-          </button>
-        ))}
-      </div>
-
-      {loading && <LoadingSpinner message={`Loading ${cls?.subject} class data...`} />}
-      {error && <ErrorState message={error} onRetry={load} />}
-
-      {!loading && !error && data && (() => {
-        const students = data.students || [];
-        const avgMastery = students.length
-          ? students.reduce((sum, s) => sum + (s.avg_mastery || 0), 0) / students.length
-          : 0;
-        const avgQuiz = students.filter(s => s.avg_quiz_score != null);
-        const avgQuizScore = avgQuiz.length
-          ? avgQuiz.reduce((sum, s) => sum + s.avg_quiz_score, 0) / avgQuiz.length
-          : 0;
-        const flaggedStudents = students.filter(s => s.active_flags > 0).length;
-
-        return (
-          <>
-            {/* Stats row */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-              <StatCard
-                label="Total Students"
-                value={data.student_count}
-                sub={`${data.class_stats?.active_students || data.student_count} active`}
-              />
-              <StatCard
-                label="At-Risk Students"
-                value={data.at_risk_count}
-                sub={`${((data.at_risk_count / data.student_count) * 100).toFixed(0)}% of class`}
-                color="#EF4444"
-              />
-              <StatCard
-                label="Avg Class Mastery"
-                value={`${(avgMastery * 100).toFixed(1)}%`}
-                sub={`Quiz avg: ${avgQuizScore.toFixed(1)}%`}
-                color="#0891B2"
-              />
-              <StatCard
-                label="Average Engagement"
-                value={`${(data.class_stats?.avg_engagement * 100).toFixed(1)}%`}
-                sub={`${data.class_stats?.total_conversations} conversations`}
-              />
-              <StatCard
-                label="Improving"
-                value={data.improving_count}
-                sub={`${data.declining_count} declining, ${flaggedStudents} flagged`}
-                color="#10B981"
-              />
+            {/* Avatar */}
+            <div
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                background: colourBgVar(item.colour),
+                color: colourVar(item.colour),
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 9,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              {getInitials(item.student)}
             </div>
-
-            {/* ML Model Note */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-[#0891B2] mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <p className="text-sm font-medium text-[#1F2937]">ML Model Insights Available</p>
-                  <p className="text-xs text-[#6B7280] mt-0.5">
-                    Click any student to view their individual ML predictions (risk, engagement, intervention) with model confidence scores.
-                  </p>
-                </div>
+            {/* Content */}
+            <div className="flex-1" style={{ minWidth: 0 }}>
+              <div className="flex items-center gap-2">
+                <span
+                  style={{
+                    fontFamily: "'Lexend', sans-serif",
+                    fontWeight: 500,
+                    fontSize: 14,
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {item.student}
+                </span>
+                <ActivityIcon type={item.icon} colour={item.colour} />
+                <span
+                  style={{
+                    fontFamily: "'Lexend', sans-serif",
+                    fontWeight: 400,
+                    fontSize: 14,
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  {item.action} {item.concept}
+                </span>
               </div>
             </div>
+            {/* Timestamp */}
+            <span
+              style={{
+                fontFamily: "'Lexend', sans-serif",
+                fontWeight: 400,
+                fontSize: 12,
+                color: 'var(--text-tertiary)',
+                flexShrink: 0,
+              }}
+            >
+              {item.time}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
-            {/* Categorized student sections */}
-            <div className="space-y-4">
-              <StudentSection
-                title="Needs Help"
-                subtitle="Highest risk — may need intervention"
-                students={needsHelp}
-                navigate={navigate}
-                highlightColor="red"
-                icon="!!!"
-                accentColor="#EF4444"
+/* ─────────────────────────────────────────────
+   KNOWLEDGE GRAPH PREVIEW
+   ───────────────────────────────────────────── */
+
+const trigNodeIds = new Set(['trig_ratios', 'trig_graphs', 'trig_eq', 'unit_circle']);
+
+function hasTrigOutgoing(nodeId) {
+  return knowledgeEdges.some(([src, tgt]) => src === nodeId && trigNodeIds.has(tgt));
+}
+
+function KnowledgeGraphPreview() {
+  const [tooltip, setTooltip] = useState(null);
+  const svgRef = useRef(null);
+  const nodeMap = {};
+  knowledgeNodes.forEach(n => { nodeMap[n.id] = n; });
+
+  const svgWidth = 900;
+  const svgHeight = 420;
+  const pad = 50;
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <h2
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: 600,
+            fontSize: 20,
+            letterSpacing: '-0.01em',
+            color: 'var(--text-primary)',
+            margin: 0,
+          }}
+        >
+          Knowledge Graph
+        </h2>
+        <span
+          style={{
+            fontFamily: "'Lexend', sans-serif",
+            fontWeight: 500,
+            fontSize: 12,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            color: 'var(--text-tertiary)',
+          }}
+        >
+          Trigonometry cluster
+        </span>
+      </div>
+      <div
+        style={{
+          background: 'var(--surface-card)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-1)',
+          padding: 16,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+          width="100%"
+          style={{ display: 'block' }}
+        >
+          <defs>
+            <marker
+              id="arrowhead"
+              markerWidth="8"
+              markerHeight="6"
+              refX="8"
+              refY="3"
+              orient="auto"
+            >
+              <polygon
+                points="0 0, 8 3, 0 6"
+                fill="var(--text-tertiary)"
+                opacity="0.3"
               />
-              <StudentSection
-                title="Improving"
-                subtitle="On an upward trend — keep it up"
-                students={improving}
-                navigate={navigate}
-                highlightColor="green"
-                icon="***"
-                accentColor="#10B981"
+            </marker>
+          </defs>
+
+          {/* Edges */}
+          {knowledgeEdges.map(([srcId, tgtId], i) => {
+            const src = nodeMap[srcId];
+            const tgt = nodeMap[tgtId];
+            if (!src || !tgt) return null;
+            const tgtR = nodeRadius(tgt.size);
+            const dx = tgt.x - src.x;
+            const dy = tgt.y - src.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const endX = tgt.x - (dx / dist) * tgtR;
+            const endY = tgt.y - (dy / dist) * tgtR;
+            return (
+              <line
+                key={i}
+                x1={src.x}
+                y1={src.y}
+                x2={endX}
+                y2={endY}
+                stroke="var(--text-tertiary)"
+                strokeWidth={1.5}
+                opacity={0.3}
+                markerEnd="url(#arrowhead)"
               />
-              <StudentSection
-                title="Average / Stalled"
-                subtitle="Steady performers — alphabetical"
-                students={average}
-                navigate={navigate}
-                highlightColor="default"
-                icon="---"
-                accentColor="#0891B2"
-              />
+            );
+          })}
+
+          {/* Nodes */}
+          {knowledgeNodes.map(node => {
+            const r = nodeRadius(node.size);
+            const shouldPulse = node.mastery < 50 && knowledgeEdges.some(
+              ([src]) => src === node.id && trigNodeIds.has(knowledgeEdges.find(([s]) => s === node.id)?.[1])
+            );
+            const pulseNode = node.mastery < 50 && (
+              hasTrigOutgoing(node.id) || trigNodeIds.has(node.id)
+            );
+            return (
+              <g
+                key={node.id}
+                onMouseEnter={e => {
+                  const svgRect = svgRef.current.getBoundingClientRect();
+                  const svgScaleX = svgRect.width / svgWidth;
+                  const svgScaleY = svgRect.height / svgHeight;
+                  setTooltip({
+                    label: node.label,
+                    mastery: node.mastery,
+                    x: svgRect.left + node.x * svgScaleX,
+                    y: svgRect.top + (node.y - r - 12) * svgScaleY,
+                  });
+                }}
+                onMouseLeave={() => setTooltip(null)}
+                style={{ cursor: 'pointer' }}
+              >
+                {pulseNode && (
+                  <circle
+                    cx={node.x}
+                    cy={node.y}
+                    r={r + 6}
+                    fill="none"
+                    stroke="#D97706"
+                    strokeWidth={2}
+                    className="pulse-glow"
+                  />
+                )}
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={r}
+                  fill={nodeColor(node.mastery)}
+                  opacity={0.9}
+                />
+                <text
+                  x={node.x}
+                  y={node.y + r + 16}
+                  textAnchor="middle"
+                  style={{
+                    fontFamily: "'Lexend', sans-serif",
+                    fontWeight: 400,
+                    fontSize: 11,
+                    fill: 'var(--text-secondary)',
+                  }}
+                >
+                  {node.label}
+                </text>
+                <text
+                  x={node.x}
+                  y={node.y + 4}
+                  textAnchor="middle"
+                  style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontWeight: 700,
+                    fontSize: r >= 26 ? 12 : 10,
+                    fill: '#FFFFFF',
+                  }}
+                >
+                  {node.mastery}%
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Tooltip (portal-style, positioned absolutely) */}
+        {tooltip && (
+          <div
+            style={{
+              position: 'fixed',
+              left: tooltip.x,
+              top: tooltip.y - 8,
+              transform: 'translateX(-50%)',
+              background: 'var(--surface-card)',
+              border: '1px solid #E2E8F0',
+              borderRadius: 'var(--radius-sm)',
+              padding: '6px 10px',
+              boxShadow: 'var(--shadow-2)',
+              zIndex: 50,
+              whiteSpace: 'nowrap',
+              pointerEvents: 'none',
+            }}
+          >
+            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
+              {tooltip.label}
             </div>
+            <div style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 12, color: 'var(--text-tertiary)' }}>
+              Class average: {tooltip.mastery}%
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
-            <p className="text-xs text-[#6B7280] mt-4 text-center">
-              Showing {needsHelp.length + improving.length + average.length} of {students.length} students
-            </p>
-          </>
-        );
-      })()}
-    </Layout>
+/* ─────────────────────────────────────────────
+   CLASS PULSE SECTION
+   ───────────────────────────────────────────── */
+
+function ClassPulseSection() {
+  const sortedStudents = [...students].sort((a, b) => a.mastery - b.mastery);
+  const classAvg = Math.round(students.reduce((s, st) => s + st.mastery, 0) / students.length);
+
+  return (
+    <section
+      style={{
+        background: 'var(--surface-card)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-2)',
+        padding: '32px 36px',
+      }}
+    >
+      <div className="flex items-start justify-between gap-8">
+        {/* Left — Distribution */}
+        <div className="flex-1">
+          <span
+            style={{
+              fontFamily: "'Lexend', sans-serif",
+              fontWeight: 500,
+              fontSize: 12,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              color: 'var(--text-tertiary)',
+            }}
+          >
+            CLASS PULSE
+          </span>
+          <h1
+            style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 700,
+              fontSize: 28,
+              letterSpacing: '-0.02em',
+              color: 'var(--text-primary)',
+              margin: '4px 0 4px 0',
+            }}
+          >
+            Year 11 Mathematics
+          </h1>
+          <p
+            style={{
+              fontFamily: "'Lexend', sans-serif",
+              fontWeight: 400,
+              fontSize: 14,
+              color: 'var(--text-tertiary)',
+              margin: '0 0 24px 0',
+            }}
+          >
+            28 students · Term 1, Week 8
+          </p>
+
+          {/* Mini mastery rings */}
+          <div className="flex flex-wrap gap-2">
+            {sortedStudents.map((st, i) => (
+              <div
+                key={st.id}
+                title={`${st.name}: ${st.mastery}%`}
+                style={{ cursor: 'default' }}
+              >
+                <SmallMasteryRing mastery={st.mastery} index={i} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right — Class Average */}
+        <div className="flex items-center justify-center" style={{ paddingTop: 32 }}>
+          <ClassAverageRing value={classAvg} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   MAIN DASHBOARD
+   ───────────────────────────────────────────── */
+
+export default function TeacherDashboard() {
+  return (
+    <>
+      <style>{cssStyles}</style>
+      <div
+        style={{
+          display: 'flex',
+          minHeight: '100vh',
+          background: 'var(--surface-base)',
+        }}
+      >
+        <Sidebar />
+
+        {/* Main content */}
+        <main
+          style={{
+            marginLeft: 260,
+            flex: 1,
+            padding: '32px 40px',
+            maxWidth: 1120,
+          }}
+        >
+          <div className="flex flex-col gap-8">
+            {/* Class Pulse */}
+            <ClassPulseSection />
+
+            {/* Needs Attention */}
+            <NeedsAttentionSection />
+
+            {/* Bottom row: Activity + Knowledge Graph */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1.6fr',
+                gap: 24,
+              }}
+            >
+              <ActivityFeedSection />
+              <KnowledgeGraphPreview />
+            </div>
+          </div>
+        </main>
+      </div>
+    </>
   );
 }
