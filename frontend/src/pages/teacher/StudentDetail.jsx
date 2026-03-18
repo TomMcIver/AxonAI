@@ -37,6 +37,18 @@ export default function StudentDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Hooks must be called unconditionally (even while loading).
+  const focusConcepts = useMemo(() => {
+    const cs = mastery?.concepts || [];
+    return [...cs]
+      .sort((a, b) => (a.mastery_score ?? 0) - (b.mastery_score ?? 0))
+      .slice(0, 5);
+  }, [mastery]);
+
+  const recentConvos = useMemo(() => {
+    return (conversations?.conversations || []).slice(0, 6);
+  }, [conversations]);
+
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
@@ -88,15 +100,6 @@ export default function StudentDetail() {
   const { student, profile, wellbeing, summary } = dashboard;
   const risk = clamp01(profile?.overall_risk_score);
   const tone = riskTone(risk);
-
-  const focusConcepts = useMemo(() => {
-    const cs = mastery?.concepts || [];
-    return [...cs]
-      .sort((a, b) => (a.mastery_score ?? 0) - (b.mastery_score ?? 0))
-      .slice(0, 5);
-  }, [mastery]);
-
-  const recentConvos = (conversations?.conversations || []).slice(0, 6);
 
   return (
     <DashboardShell subtitle="Student · detail">

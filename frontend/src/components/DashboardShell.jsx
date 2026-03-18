@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -11,18 +11,48 @@ import {
   ChevronDown,
 } from 'lucide-react';
 
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/teacher' },
-  { icon: Users, label: 'Students', path: '/teacher/students' },
-  { icon: BookOpen, label: 'Subjects', path: '/teacher/subjects' },
-  { icon: Network, label: 'Knowledge Graph', path: '/teacher/knowledge-graph' },
-  { icon: Settings, label: 'Settings', path: '/teacher/settings' },
-];
+const NAVS = {
+  teacher: [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/teacher' },
+    { icon: Users, label: 'Students', path: '/teacher/students' },
+    { icon: BookOpen, label: 'Subjects', path: '/teacher/subjects' },
+    { icon: Network, label: 'Knowledge Graph', path: '/teacher/knowledge-graph' },
+    { icon: Settings, label: 'Settings', path: '/teacher/settings' },
+  ],
+  student: [{ icon: LayoutDashboard, label: 'Overview', path: '/student' }],
+  parent: [{ icon: LayoutDashboard, label: 'Overview', path: '/parent' }],
+};
 
-export default function DashboardShell({ children, subtitle }) {
+export default function DashboardShell({ children, subtitle, mode: modeProp }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [qaOpen, setQaOpen] = useState(false);
+  const qaRef = useRef(null);
+
+  const mode = useMemo(() => {
+    if (modeProp) return modeProp;
+    if (location.pathname.startsWith('/student')) return 'student';
+    if (location.pathname.startsWith('/parent')) return 'parent';
+    return 'teacher';
+  }, [location.pathname, modeProp]);
+
+  const navItems = NAVS[mode] || NAVS.teacher;
+
+  useEffect(() => {
+    function onDown(e) {
+      if (!qaRef.current) return;
+      if (!qaRef.current.contains(e.target)) setQaOpen(false);
+    }
+    if (!qaOpen) return undefined;
+    window.addEventListener('mousedown', onDown, true);
+    return () => window.removeEventListener('mousedown', onDown, true);
+  }, [qaOpen]);
+
+  useEffect(() => {
+    setQaOpen(false);
+    setMobileNavOpen(false);
+  }, [location.pathname]);
 
   return (
     <div className="app-shell min-h-screen text-slate-100">
@@ -54,7 +84,9 @@ export default function DashboardShell({ children, subtitle }) {
           </div>
 
           <nav className="flex-1 px-3 py-4 space-y-1">
-            <p className="axon-label px-3 pb-1 pt-0">Teacher View</p>
+            <p className="axon-label px-3 pb-1 pt-0">
+              {mode === 'teacher' ? 'Teacher view' : mode === 'student' ? 'Student view' : 'Parent view'}
+            </p>
             {navItems.map(item => {
               const Icon = item.icon;
               const isActive =
@@ -97,9 +129,11 @@ export default function DashboardShell({ children, subtitle }) {
                   <span className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950" />
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-medium text-slate-100">Ms. Williams</p>
+                  <p className="text-sm font-medium text-slate-100">
+                    {mode === 'teacher' ? 'Ms. Williams' : mode === 'student' ? 'Aroha Ngata' : 'Whānau view'}
+                  </p>
                   <p className="text-[0.7rem] tracking-[0.18em] uppercase text-slate-500">
-                    Year 11 Mathematics
+                    {mode === 'teacher' ? 'Year 11 Mathematics' : mode === 'student' ? 'Year 12' : 'Caregiver'}
                   </p>
                 </div>
               </div>
@@ -122,7 +156,9 @@ export default function DashboardShell({ children, subtitle }) {
                   <Menu size={18} />
                 </button>
                 <div>
-                  <p className="axon-label mb-0.5">Teacher · AxonAI</p>
+                  <p className="axon-label mb-0.5">
+                    {mode === 'teacher' ? 'Teacher' : mode === 'student' ? 'Student' : 'Parent'} · AxonAI
+                  </p>
                   <p className="axon-h2 text-base sm:text-lg text-slate-50">
                     {subtitle || 'Class mastery overview'}
                   </p>
@@ -137,10 +173,58 @@ export default function DashboardShell({ children, subtitle }) {
                     NCEA feed
                   </p>
                 </div>
-                <button className="axon-btn axon-btn-ghost hidden sm:inline-flex">
-                  <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
-                  Quick actions
-                </button>
+                <div className="relative hidden sm:block" ref={qaRef}>
+                  <button
+                    className="axon-btn axon-btn-ghost inline-flex"
+                    onClick={() => setQaOpen(v => !v)}
+                    aria-haspopup="menu"
+                    aria-expanded={qaOpen}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+                    Quick actions
+                  </button>
+                  {qaOpen && (
+                    <div
+                      role="menu"
+                      className="absolute right-0 mt-2 w-56 axon-card-ghost overflow-hidden shadow-[0_0_0_1px_rgba(148,163,184,0.18),0_18px_45px_rgba(15,23,42,0.85)]"
+                    >
+                      <button
+                        role="menuitem"
+                        className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-900/70 transition-colors"
+                        onClick={() => navigate('/login')}
+                      >
+                        Switch role
+                      </button>
+                      {mode === 'teacher' && (
+                        <>
+                          <button
+                            role="menuitem"
+                            className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-900/70 transition-colors"
+                            onClick={() => navigate('/teacher/students')}
+                          >
+                            Open student roster
+                          </button>
+                          <button
+                            role="menuitem"
+                            className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-900/70 transition-colors"
+                            onClick={() => navigate('/teacher/subjects')}
+                          >
+                            Upload class content
+                          </button>
+                        </>
+                      )}
+                      {mode !== 'teacher' && (
+                        <button
+                          role="menuitem"
+                          className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-900/70 transition-colors"
+                          onClick={() => navigate(`/${mode}`)}
+                        >
+                          Go to overview
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </header>
@@ -190,7 +274,9 @@ export default function DashboardShell({ children, subtitle }) {
                 </button>
               </div>
               <nav className="px-3 py-4 space-y-1">
-                <p className="axon-label px-2 pb-1">Teacher View</p>
+                <p className="axon-label px-2 pb-1">
+                  {mode === 'teacher' ? 'Teacher view' : mode === 'student' ? 'Student view' : 'Parent view'}
+                </p>
                 {navItems.map(item => {
                   const Icon = item.icon;
                   const isActive =

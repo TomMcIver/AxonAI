@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { getConcepts } from '../api/axonai';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorState from './ErrorState';
@@ -52,6 +52,7 @@ export default function KnowledgeGraph({ subject }) {
   const [selected, setSelected] = useState(null);
   const [hovered, setHovered] = useState(null);
   const [search, setSearch] = useState('');
+  const detailRef = useRef(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -97,6 +98,14 @@ export default function KnowledgeGraph({ subject }) {
     return dc ? { ...dc, strength: e.strength } : null;
   }).filter(Boolean) : [];
 
+  function handleSelect(conceptId) {
+    setSelected(conceptId);
+    // Jump down to the detail panel for a more "drill-in" feel.
+    requestAnimationFrame(() => {
+      detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   return (
     <div>
       <div className="mb-4 flex items-center gap-4">
@@ -141,7 +150,7 @@ export default function KnowledgeGraph({ subject }) {
                       concept={c}
                       isSelected={selected === c.id}
                       isHovered={hovered === c.id}
-                      onSelect={setSelected}
+                      onSelect={handleSelect}
                       onHover={setHovered}
                       onLeave={() => setHovered(null)}
                     />
@@ -169,7 +178,7 @@ export default function KnowledgeGraph({ subject }) {
       </div>
 
       {/* Detail panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div ref={detailRef} className="grid grid-cols-1 lg:grid-cols-2 gap-4 scroll-mt-24">
         {/* Hover / selected tooltip */}
         {(selectedConcept || hovered) && (() => {
           const showConcept = selectedConcept || concepts.find(c => c.id === hovered);
@@ -201,7 +210,7 @@ export default function KnowledgeGraph({ subject }) {
                     <div className="space-y-1.5">
                       {showPrereqs.map(p => (
                         <div key={p.id} className="flex items-center justify-between text-sm">
-                          <span className="text-[#1F2937] cursor-pointer hover:text-[#0891B2]" onClick={() => setSelected(p.id)}>
+                          <span className="text-[#1F2937] cursor-pointer hover:text-[#0891B2]" onClick={() => handleSelect(p.id)}>
                             {p.name}
                           </span>
                           <div className="flex items-center gap-2">
@@ -223,7 +232,7 @@ export default function KnowledgeGraph({ subject }) {
                     <div className="space-y-1.5">
                       {showDeps.map(d => (
                         <div key={d.id} className="flex items-center justify-between text-sm">
-                          <span className="text-[#1F2937] cursor-pointer hover:text-[#0891B2]" onClick={() => setSelected(d.id)}>
+                          <span className="text-[#1F2937] cursor-pointer hover:text-[#0891B2]" onClick={() => handleSelect(d.id)}>
                             {d.name}
                           </span>
                           <div className="flex items-center gap-2">
