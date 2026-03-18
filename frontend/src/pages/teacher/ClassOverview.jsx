@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { getClassOverview } from '../../api/axonai';
-import Layout from '../../components/Layout';
 import StudentTable from '../../components/StudentTable';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import DashboardShell from '../../components/DashboardShell';
+
+const ROSTER_LIMIT = 25;
 
 export default function ClassOverview() {
   const { id } = useParams();
@@ -23,8 +25,24 @@ export default function ClassOverview() {
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading) return <Layout><LoadingSpinner message="Loading class data..." /></Layout>;
-  if (error) return <Layout><ErrorState message={error} onRetry={load} /></Layout>;
+  if (loading) {
+    return (
+      <DashboardShell subtitle="Class overview">
+        <div className="flex items-center justify-center py-16">
+          <LoadingSpinner message="Loading class data..." />
+        </div>
+      </DashboardShell>
+    );
+  }
+  if (error) {
+    return (
+      <DashboardShell subtitle="Class overview">
+        <div className="flex items-center justify-center py-16">
+          <ErrorState message={error} onRetry={load} />
+        </div>
+      </DashboardShell>
+    );
+  }
   if (!data) return null;
 
   const trendData = [
@@ -38,66 +56,90 @@ export default function ClassOverview() {
     { name: 'On Track', value: data.student_count - data.at_risk_count, color: '#10B981' },
   ];
 
+  const roster = (data.students || []).slice(0, ROSTER_LIMIT);
+
   return (
-    <Layout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#1F2937]">{data.class?.name}</h1>
-        <p className="text-[#6B7280]">{data.class?.subject} — Year {data.class?.year_level} — {data.class?.academic_year}</p>
-      </div>
+    <DashboardShell subtitle={`${data.class?.name || 'Class'} · overview`}>
+      <div className="space-y-5">
+        <div className="axon-card-subtle p-5 sm:p-6">
+          <p className="axon-label mb-1">Class</p>
+          <h1 className="axon-h2 text-lg sm:text-xl text-slate-50">
+            {data.class?.name}
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            {data.class?.subject} · Year {data.class?.year_level} · {data.class?.academic_year}
+          </p>
+          <p className="text-[0.72rem] text-slate-500 mt-3">
+            Roster is capped to {ROSTER_LIMIT} students for this demo.
+          </p>
+        </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-          <p className="text-sm text-[#6B7280]">Students</p>
-          <p className="text-2xl font-bold text-[#1F2937]">{data.student_count}</p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="axon-card-ghost p-4">
+            <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">Students</p>
+            <p className="text-2xl font-semibold text-slate-50">
+              {Math.min(data.student_count, ROSTER_LIMIT)}
+            </p>
+          </div>
+          <div className="axon-card-ghost p-4">
+            <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">At risk</p>
+            <p className="text-2xl font-semibold text-rose-300">
+              {Math.min(data.at_risk_count, ROSTER_LIMIT)}
+            </p>
+          </div>
+          <div className="axon-card-ghost p-4">
+            <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">Avg engagement</p>
+            <p className="text-2xl font-semibold text-sky-300">
+              {(data.class_stats?.avg_engagement * 100).toFixed(0)}%
+            </p>
+          </div>
+          <div className="axon-card-ghost p-4">
+            <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">Resolve rate</p>
+            <p className="text-2xl font-semibold text-emerald-300">
+              {(data.class_stats?.resolve_rate * 100).toFixed(0)}%
+            </p>
+          </div>
         </div>
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-          <p className="text-sm text-[#6B7280]">At-Risk</p>
-          <p className="text-2xl font-bold text-[#EF4444]">{data.at_risk_count}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-          <p className="text-sm text-[#6B7280]">Avg Engagement</p>
-          <p className="text-2xl font-bold text-[#0891B2]">{(data.class_stats?.avg_engagement * 100).toFixed(1)}%</p>
-        </div>
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-          <p className="text-sm text-[#6B7280]">Resolve Rate</p>
-          <p className="text-2xl font-bold text-[#10B981]">{(data.class_stats?.resolve_rate * 100).toFixed(1)}%</p>
-        </div>
-      </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-[#1F2937] mb-3">Mastery Trends</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={trendData} cx="50%" cy="50%" outerRadius={70} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
-                {trendData.map((d, i) => <Cell key={i} fill={d.color} />)}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="axon-card-subtle p-5">
+            <p className="text-sm font-semibold text-slate-100 mb-3">Trends</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={trendData} cx="50%" cy="50%" outerRadius={70} dataKey="value">
+                  {trendData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="axon-card-subtle p-5">
+            <p className="text-sm font-semibold text-slate-100 mb-3">Risk</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={riskData} cx="50%" cy="50%" outerRadius={70} dataKey="value">
+                  {riskData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-[#1F2937] mb-3">Risk Distribution</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={riskData} cx="50%" cy="50%" outerRadius={70} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
-                {riskData.map((d, i) => <Cell key={i} fill={d.color} />)}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
 
-      {/* Student table */}
-      <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-        <h2 className="text-lg font-semibold text-[#1F2937] mb-4">All Students</h2>
-        <StudentTable students={data.students} />
+        <div className="axon-card-subtle p-5">
+          <div className="flex items-end justify-between gap-3 mb-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-100">Students</p>
+              <p className="text-xs text-slate-500">
+                Showing {roster.length} of {data.student_count} (demo cap).
+              </p>
+            </div>
+          </div>
+          <StudentTable students={roster} />
+        </div>
       </div>
-    </Layout>
+    </DashboardShell>
   );
 }
