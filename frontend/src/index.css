@@ -125,6 +125,30 @@ body {
     box-shadow var(--transition-med), transform var(--transition-fast), border-color var(--transition-fast);
 }
 
+.axon-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.28), 0 0 0 1px rgba(56, 189, 248, 0.55);
+}
+
+.axon-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.axon-btn-primary:focus-visible {
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22), 0 0 0 1px rgba(56, 189, 248, 0.62), 0 18px 45px rgba(56, 189, 248, 0.35);
+}
+
+.axon-btn-ghost:active {
+  transform: translateY(0);
+}
+
+.axon-btn-quiet:active {
+  transform: translateY(0);
+}
+
 .axon-btn-primary {
   background: radial-gradient(circle at top left, #38bdf8, #0ea5e9);
   color: #0b1120;

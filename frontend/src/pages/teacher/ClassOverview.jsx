@@ -45,18 +45,34 @@ export default function ClassOverview() {
   }
   if (!data) return null;
 
+  const roster = (data.students || []).slice(0, ROSTER_LIMIT);
+
+  const counts = roster.reduce(
+    (acc, s) => {
+      const trend = s.overall_mastery_trend || 'stable';
+      if (trend === 'improving') acc.improving += 1;
+      else if (trend === 'declining') acc.declining += 1;
+      else acc.stable += 1;
+
+      const riskScore = s.overall_risk_score ?? 0;
+      if (riskScore >= 0.4) acc.atRisk += 1;
+      else acc.onTrack += 1;
+
+      return acc;
+    },
+    { improving: 0, declining: 0, stable: 0, atRisk: 0, onTrack: 0 },
+  );
+
   const trendData = [
-    { name: 'Improving', value: data.improving_count, color: '#10B981' },
-    { name: 'Declining', value: data.declining_count, color: '#EF4444' },
-    { name: 'Stable', value: data.student_count - data.improving_count - data.declining_count, color: '#6B7280' },
+    { name: 'Improving', value: counts.improving, color: '#10B981' },
+    { name: 'Declining', value: counts.declining, color: '#EF4444' },
+    { name: 'Stable', value: counts.stable, color: '#6B7280' },
   ].filter(d => d.value > 0);
 
   const riskData = [
-    { name: 'At Risk', value: data.at_risk_count, color: '#EF4444' },
-    { name: 'On Track', value: data.student_count - data.at_risk_count, color: '#10B981' },
-  ];
-
-  const roster = (data.students || []).slice(0, ROSTER_LIMIT);
+    { name: 'At Risk', value: counts.atRisk, color: '#EF4444' },
+    { name: 'On Track', value: counts.onTrack, color: '#10B981' },
+  ].filter(d => d.value > 0);
 
   return (
     <DashboardShell subtitle={`${data.class?.name || 'Class'} · overview`}>
@@ -78,13 +94,13 @@ export default function ClassOverview() {
           <div className="axon-card-ghost p-4">
             <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">Students</p>
             <p className="text-2xl font-semibold text-slate-50">
-              {Math.min(data.student_count, ROSTER_LIMIT)}
+              {roster.length}
             </p>
           </div>
           <div className="axon-card-ghost p-4">
             <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">At risk</p>
             <p className="text-2xl font-semibold text-rose-300">
-              {Math.min(data.at_risk_count, ROSTER_LIMIT)}
+              {counts.atRisk}
             </p>
           </div>
           <div className="axon-card-ghost p-4">

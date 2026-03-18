@@ -589,20 +589,8 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
             <button
               key={i}
               onClick={action.onClick}
-              style={{
-                fontFamily: "'Lexend', sans-serif",
-                fontWeight: 500,
-                fontSize: 14,
-                background: 'var(--primary-700)',
-                color: 'var(--text-inverse)',
-                border: 'none',
-                borderRadius: 'var(--radius-sm)',
-                padding: '8px 16px',
-                cursor: 'pointer',
-                transition: 'opacity 150ms',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
-              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              className="axon-btn axon-btn-primary"
+              style={{ textTransform: 'none', letterSpacing: '0.02em' }}
             >
               {action.label}
             </button>
@@ -610,16 +598,8 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
             <button
               key={i}
               onClick={action.onClick}
-              style={{
-                fontFamily: "'Lexend', sans-serif",
-                fontWeight: 500,
-                fontSize: 14,
-                background: 'transparent',
-                color: 'var(--primary-700)',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '8px 4px',
-              }}
+              className="axon-btn axon-btn-ghost"
+              style={{ textTransform: 'none', letterSpacing: '0.02em' }}
             >
               {action.label}
             </button>

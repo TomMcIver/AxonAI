@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Layout from '../../components/Layout';
+import DashboardShell from '../../components/DashboardShell';
 import KnowledgeGraph from '../../components/KnowledgeGraph';
 
 const SUBJECTS = ['Mathematics', 'Biology'];
@@ -8,29 +8,38 @@ export default function KnowledgeGraphPage() {
   const [subject, setSubject] = useState('Mathematics');
 
   return (
-    <Layout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#1F2937]">Knowledge Graph</h1>
-        <p className="text-[#6B7280]">Explore concept prerequisites and dependencies</p>
+    <DashboardShell subtitle="Knowledge graph · prerequisites">
+      <div className="axon-card-subtle p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="axon-label mb-1">Explore</p>
+            <h1 className="axon-h2 text-lg sm:text-xl text-slate-50">
+              Knowledge Graph
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Click a concept to jump to prerequisites and dependents.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            {SUBJECTS.map(s => (
+              <button
+                key={s}
+                onClick={() => setSubject(s)}
+                className={`axon-btn ${
+                  subject === s ? 'axon-btn-primary' : 'axon-btn-ghost'
+                }`}
+                style={{ textTransform: 'none', letterSpacing: '0.02em' }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="flex gap-2 mb-6">
-        {SUBJECTS.map(s => (
-          <button
-            key={s}
-            onClick={() => setSubject(s)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              subject === s
-                ? 'bg-[#1E2761] text-white'
-                : 'bg-white text-[#6B7280] border border-[#E2E8F0] hover:bg-[#F1F5F9]'
-            }`}
-          >
-            {s}
-          </button>
-        ))}
+      <div className="axon-card-subtle p-5 sm:p-6">
+        <KnowledgeGraph subject={subject} />
       </div>
-
-      <KnowledgeGraph subject={subject} />
-    </Layout>
+    </DashboardShell>
   );
 }
