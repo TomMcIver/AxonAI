@@ -82,7 +82,7 @@ export default function Landing() {
   return (
     <div className="app-shell min-h-screen flex flex-col">
       <header className="app-shell-blur border-b border-slate-800/80 bg-slate-950/50">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-3">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-3">
           <button
             onClick={() => navigate('/')}
             className="group flex items-center gap-2"
@@ -114,7 +114,7 @@ export default function Landing() {
       </header>
 
       <main className="flex-1">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 lg:py-16 grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)] items-center">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10 xl:px-12 py-10 lg:py-16 grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.1fr)] xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)] items-stretch lg:items-center">
           {/* Left: hero copy */}
           <section className="space-y-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-sky-500/10 px-3 py-1.5">
@@ -227,7 +227,7 @@ export default function Landing() {
       </main>
 
       <footer className="border-t border-slate-800/80 bg-slate-950/40">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-[0.7rem] text-slate-500">
             Built as an AI-first demo for{' '}
             <span className="text-slate-300">Aotearoa New Zealand secondary schools</span>.

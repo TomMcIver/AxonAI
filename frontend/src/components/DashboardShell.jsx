@@ -112,7 +112,7 @@ export default function DashboardShell({ children, subtitle }) {
         <div className="flex-1 flex flex-col">
           {/* Top bar */}
           <header className="app-shell-blur sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/60">
-            <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
+            <div className="mx-auto w-full max-w-7xl flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
               <div className="flex items-center gap-3">
                 <button
                   className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-200 hover:bg-slate-900"
@@ -146,8 +146,8 @@ export default function DashboardShell({ children, subtitle }) {
           </header>
 
           {/* Content */}
-          <main className="flex-1 px-4 sm:px-6 lg:px-8 py-5 lg:py-7">
-            <div className="mx-auto max-w-6xl space-y-6 sm:space-y-8">
+          <main className="flex-1 px-3 sm:px-5 lg:px-8 py-5 lg:py-7">
+            <div className="mx-auto w-full max-w-7xl space-y-6 sm:space-y-8">
               {children}
             </div>
           </main>
