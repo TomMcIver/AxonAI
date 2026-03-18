@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -14,6 +14,7 @@ import {
   CheckCircle,
   Clock,
 } from 'lucide-react';
+import DashboardShell from '../../components/DashboardShell';
 
 /* ─────────────────────────────────────────────
    MOCK DATA
@@ -1110,47 +1111,20 @@ export default function TeacherDashboard() {
   const navigate = useNavigate();
 
   return (
-    <>
-      <style>{cssStyles}</style>
-      <div
-        style={{
-          display: 'flex',
-          minHeight: '100vh',
-          background: 'var(--surface-base)',
-        }}
-      >
-        <Sidebar navigate={navigate} />
+    <DashboardShell subtitle="Year 11 Mathematics · Mastery signal">
+      <div className="grid gap-6 lg:gap-7">
+        {/* Top: class pulse + at-risk */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)]">
+          <ClassPulseSection navigate={navigate} />
+          <NeedsAttentionSection navigate={navigate} />
+        </div>
 
-        {/* Main content */}
-        <main
-          style={{
-            marginLeft: 260,
-            flex: 1,
-            padding: '32px 40px',
-            maxWidth: 1120,
-          }}
-        >
-          <div className="flex flex-col gap-8">
-            {/* Class Pulse */}
-            <ClassPulseSection navigate={navigate} />
-
-            {/* Needs Attention */}
-            <NeedsAttentionSection navigate={navigate} />
-
-            {/* Bottom row: Activity + Knowledge Graph */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1.6fr',
-                gap: 24,
-              }}
-            >
-              <ActivityFeedSection navigate={navigate} />
-              <KnowledgeGraphPreview navigate={navigate} />
-            </div>
-          </div>
-        </main>
+        {/* Bottom: activity + knowledge graph */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)]">
+          <ActivityFeedSection navigate={navigate} />
+          <KnowledgeGraphPreview navigate={navigate} />
+        </div>
       </div>
-    </>
+    </DashboardShell>
   );
 }

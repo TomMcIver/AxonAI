@@ -1,64 +1,15 @@
-import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
   BookOpen,
   Network,
   Settings,
+  Menu,
+  X,
   ChevronDown,
 } from 'lucide-react';
-
-const cssStyles = `
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Lexend:wght@400;500&display=swap');
-
-:root {
-  /* Brand */
-  --primary-900: #134E48;
-  --primary-700: #0F766E;
-  --primary-500: #14B8A6;
-  --primary-300: #5EEAD4;
-  --primary-100: #CCFBF1;
-  --primary-50:  #F0FDFA;
-
-  /* Surfaces */
-  --surface-base:    #F8FAFB;
-  --surface-card:    #FFFFFF;
-  --surface-sidebar: #F1F5F4;
-  --surface-muted:   #F1F5F9;
-
-  /* Text */
-  --text-primary:   #0F172A;
-  --text-secondary: #475569;
-  --text-tertiary:  #94A3B8;
-  --text-inverse:   #FFFFFF;
-
-  /* Semantic */
-  --mastered:         #059669;
-  --mastered-bg:      #ECFDF5;
-  --on-track:         #0F766E;
-  --on-track-bg:      #F0FDFA;
-  --in-progress:      #2563EB;
-  --in-progress-bg:   #EFF6FF;
-  --needs-attention:  #D97706;
-  --needs-attention-bg: #FFFBEB;
-  --at-risk:          #DC2626;
-  --at-risk-bg:       #FEF2F2;
-  --inactive:         #94A3B8;
-  --inactive-bg:      #F1F5F9;
-
-  /* Shadows */
-  --shadow-1: 0 1px 3px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.06);
-  --shadow-2: 0 4px 6px rgba(15,23,42,0.04), 0 2px 4px rgba(15,23,42,0.06);
-  --shadow-3: 0 12px 24px rgba(15,23,42,0.08), 0 4px 8px rgba(15,23,42,0.04);
-
-  /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-full: 9999px;
-}
-`;
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/teacher' },
@@ -68,162 +19,216 @@ const navItems = [
   { icon: Settings, label: 'Settings', path: '/teacher/settings' },
 ];
 
-export default function DashboardShell({ children }) {
-  const navigate = useNavigate();
+export default function DashboardShell({ children, subtitle }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
-    <>
-      <style>{cssStyles}</style>
-      <div
-        style={{
-          display: 'flex',
-          minHeight: '100vh',
-          background: 'var(--surface-base)',
-        }}
-      >
+    <div className="app-shell min-h-screen text-slate-100">
+      <div className="flex min-h-screen">
         {/* Sidebar */}
-        <aside
-          style={{
-            width: 260,
-            height: '100vh',
-            position: 'fixed',
-            left: 0,
-            top: 0,
-            background: 'var(--surface-sidebar)',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 40,
-          }}
-        >
-          {/* Wordmark */}
-          <div className="px-6 pt-6 pb-8">
-            <span
-              onClick={() => navigate('/teacher')}
-              style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: 700,
-                fontSize: 20,
-                cursor: 'pointer',
-              }}
+        <aside className="app-shell-blur hidden lg:flex lg:flex-col w-64 xl:w-72 border-r border-slate-800/80 bg-slate-900/60">
+          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-800/70">
+            <button
+              onClick={() => navigate('/')}
+              className="group flex items-center gap-2"
             >
-              <span style={{ color: 'var(--text-primary)' }}>axon</span>
-              <span style={{ color: 'var(--primary-700)' }}>AI</span>
-            </span>
+              <div className="relative">
+                <div className="h-8 w-8 rounded-2xl bg-sky-400/90 group-hover:bg-sky-300 text-slate-950 font-semibold flex items-center justify-center text-lg transition-colors">
+                  A
+                </div>
+                <div className="absolute -right-1 -bottom-1 h-4 w-4 rounded-full bg-slate-900 ring-2 ring-slate-950 flex items-center justify-center">
+                  <div className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)]" />
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <span className="axon-h2 text-base leading-tight text-slate-100">
+                  AxonAI
+                </span>
+                <span className="text-[0.62rem] tracking-[0.19em] uppercase text-slate-500">
+                  School Intelligence
+                </span>
+              </div>
+            </button>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 flex flex-col gap-1 px-3">
+          <nav className="flex-1 px-3 py-4 space-y-1">
+            <p className="axon-label px-3 pb-1 pt-0">Teacher View</p>
             {navItems.map(item => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+              const isActive =
+                location.pathname === item.path ||
+                (item.path !== '/teacher' &&
+                  location.pathname.startsWith(item.path));
+
               return (
                 <button
-                  key={item.label}
+                  key={item.path}
                   onClick={() => navigate(item.path)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    height: 44,
-                    paddingLeft: 16,
-                    paddingRight: 12,
-                    borderRadius: 'var(--radius-sm)',
-                    border: 'none',
-                    cursor: 'pointer',
-                    width: '100%',
-                    fontFamily: "'Lexend', sans-serif",
-                    fontWeight: 500,
-                    fontSize: 14,
-                    background: isActive ? 'var(--primary-50)' : 'transparent',
-                    color: isActive ? 'var(--primary-700)' : 'var(--text-secondary)',
-                    borderLeft: isActive ? '3px solid var(--primary-700)' : '3px solid transparent',
-                    transition: 'background 150ms, color 150ms',
-                  }}
-                  onMouseEnter={e => {
-                    if (!isActive) e.currentTarget.style.background = 'rgba(0,0,0,0.03)';
-                  }}
-                  onMouseLeave={e => {
-                    if (!isActive) e.currentTarget.style.background = 'transparent';
-                  }}
+                  className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                    isActive
+                      ? 'bg-slate-900/80 text-slate-50 shadow-[0_0_0_1px_rgba(148,163,184,0.5),0_14px_35px_rgba(15,23,42,0.9)]'
+                      : 'text-slate-400 hover:bg-slate-900/40 hover:text-slate-100'
+                  }`}
                 >
-                  <Icon size={20} />
-                  {item.label}
+                  <span
+                    className={`inline-flex h-7 w-7 items-center justify-center rounded-full border ${
+                      isActive
+                        ? 'border-sky-400/80 bg-sky-400/10 text-sky-300'
+                        : 'border-slate-700/80 bg-slate-900/40 text-slate-400 group-hover:border-slate-500/80 group-hover:text-slate-100'
+                    }`}
+                  >
+                    <Icon size={16} />
+                  </span>
+                  <span className="truncate">{item.label}</span>
                 </button>
               );
             })}
           </nav>
 
-          {/* User area */}
-          <div
-            className="px-4 py-4 mx-3 mb-3"
-            style={{
-              borderTop: '1px solid rgba(0,0,0,0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: 'var(--primary-100)',
-                color: 'var(--primary-700)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: 600,
-                fontSize: 13,
-                flexShrink: 0,
-              }}
-            >
-              MW
-            </div>
-            <div className="flex-1" style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  fontFamily: "'Lexend', sans-serif",
-                  fontWeight: 500,
-                  fontSize: 14,
-                  color: 'var(--text-primary)',
-                }}
-              >
-                Ms. Williams
+          <div className="border-t border-slate-800/70 px-4 py-4">
+            <button className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 hover:bg-slate-900/50 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="h-8 w-8 rounded-full bg-sky-500/20 text-sky-300 flex items-center justify-center text-xs font-semibold">
+                    MW
+                  </div>
+                  <span className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-slate-100">Ms. Williams</p>
+                  <p className="text-[0.7rem] tracking-[0.18em] uppercase text-slate-500">
+                    Year 11 Mathematics
+                  </p>
+                </div>
               </div>
-              <span
-                style={{
-                  display: 'inline-block',
-                  fontFamily: "'Lexend', sans-serif",
-                  fontWeight: 500,
-                  fontSize: 11,
-                  textTransform: 'uppercase',
-                  background: 'var(--primary-100)',
-                  color: 'var(--primary-700)',
-                  padding: '2px 8px',
-                  borderRadius: 'var(--radius-full)',
-                  marginTop: 2,
-                }}
-              >
-                Teacher
-              </span>
-            </div>
-            <ChevronDown size={16} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+              <ChevronDown size={16} className="text-slate-500" />
+            </button>
           </div>
         </aside>
 
-        {/* Main content */}
-        <main
-          style={{
-            marginLeft: 260,
-            flex: 1,
-          }}
-        >
-          {children}
-        </main>
+        {/* Main region */}
+        <div className="flex-1 flex flex-col">
+          {/* Top bar */}
+          <header className="app-shell-blur sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/60">
+            <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
+              <div className="flex items-center gap-3">
+                <button
+                  className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-200 hover:bg-slate-900"
+                  onClick={() => setMobileNavOpen(true)}
+                  aria-label="Open navigation"
+                >
+                  <Menu size={18} />
+                </button>
+                <div>
+                  <p className="axon-label mb-0.5">Teacher · AxonAI</p>
+                  <p className="axon-h2 text-base sm:text-lg text-slate-50">
+                    {subtitle || 'Class mastery overview'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/80 px-3 py-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]" />
+                  <p className="text-xs text-slate-400">
+                    <span className="font-medium text-slate-200">Live</span>{' '}
+                    NCEA feed
+                  </p>
+                </div>
+                <button className="axon-btn axon-btn-ghost hidden sm:inline-flex">
+                  <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+                  Quick actions
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Content */}
+          <main className="flex-1 px-4 sm:px-6 lg:px-8 py-5 lg:py-7">
+            <div className="mx-auto max-w-6xl space-y-6 sm:space-y-8">
+              {children}
+            </div>
+          </main>
+        </div>
+
+        {/* Mobile drawer */}
+        {mobileNavOpen && (
+          <div className="fixed inset-0 z-40 flex lg:hidden">
+            <div
+              className="flex-1 bg-black/50 backdrop-blur-sm"
+              onClick={() => setMobileNavOpen(false)}
+            />
+            <div className="relative w-72 max-w-full app-shell-blur bg-slate-950/90 border-l border-slate-800/80">
+              <button
+                className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-700/70 bg-slate-900/80 text-slate-200 hover:bg-slate-900"
+                onClick={() => setMobileNavOpen(false)}
+                aria-label="Close navigation"
+              >
+                <X size={16} />
+              </button>
+              <div className="px-4 pt-6 pb-4 border-b border-slate-800/70">
+                <button
+                  onClick={() => {
+                    navigate('/');
+                    setMobileNavOpen(false);
+                  }}
+                  className="group flex items-center gap-2"
+                >
+                  <div className="h-8 w-8 rounded-2xl bg-sky-400/90 text-slate-950 font-semibold flex items-center justify-center text-lg">
+                    A
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="axon-h2 text-base leading-tight text-slate-100">
+                      AxonAI
+                    </span>
+                    <span className="text-[0.62rem] tracking-[0.19em] uppercase text-slate-500">
+                      School Intelligence
+                    </span>
+                  </div>
+                </button>
+              </div>
+              <nav className="px-3 py-4 space-y-1">
+                <p className="axon-label px-2 pb-1">Teacher View</p>
+                {navItems.map(item => {
+                  const Icon = item.icon;
+                  const isActive =
+                    location.pathname === item.path ||
+                    (item.path !== '/teacher' &&
+                      location.pathname.startsWith(item.path));
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => {
+                        navigate(item.path);
+                        setMobileNavOpen(false);
+                      }}
+                      className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                        isActive
+                          ? 'bg-slate-900 text-slate-50'
+                          : 'text-slate-400 hover:bg-slate-900/60 hover:text-slate-100'
+                      }`}
+                    >
+                      <span
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full border ${
+                          isActive
+                            ? 'border-sky-400/80 bg-sky-400/10 text-sky-300'
+                            : 'border-slate-700/80 bg-slate-900/60 text-slate-400 group-hover:border-slate-500/80 group-hover:text-slate-100'
+                        }`}
+                      >
+                        <Icon size={16} />
+                      </span>
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
+
