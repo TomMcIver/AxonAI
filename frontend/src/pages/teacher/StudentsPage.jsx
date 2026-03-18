@@ -34,9 +34,6 @@ const students = [
   { id: 23, name: "Amelia Hall", mastery: 77, risk: "on-track", lastActive: "2h ago", engagement: 83, trend: "up" },
   { id: 24, name: "William Young", mastery: 41, risk: "needs-attention", lastActive: "3d ago", engagement: 50, trend: "down" },
   { id: 25, name: "Charlotte Allen", mastery: 68, risk: "in-progress", lastActive: "5h ago", engagement: 75, trend: "up" },
-  { id: 26, name: "James King", mastery: 85, risk: "on-track", lastActive: "2h ago", engagement: 89, trend: "up" },
-  { id: 27, name: "Poppy Wright", mastery: 73, risk: "in-progress", lastActive: "4h ago", engagement: 78, trend: "up" },
-  { id: 28, name: "Thomas Scott", mastery: 56, risk: "in-progress", lastActive: "9h ago", engagement: 65, trend: "flat" },
 ];
 
 function riskPill(risk) {
