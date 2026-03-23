@@ -69,7 +69,7 @@ function riskPill(riskScore) {
 function trendArrow(trend) {
   if (trend === 'improving') return <span style={{ color: 'var(--mastered)', fontSize: 14 }}>↑</span>;
   if (trend === 'declining') return <span style={{ color: 'var(--at-risk)', fontSize: 14 }}>↓</span>;
-  return <span style={{ color: 'var(--text-tertiary)', fontSize: 14 }}>→</span>;
+  return <span style={{ color: '#64748B', fontSize: 14 }}>→</span>;
 }
 
 function getInitials(name) {
@@ -172,7 +172,7 @@ export default function StudentsPage() {
                 fontSize: 12,
                 textTransform: 'uppercase',
                 letterSpacing: '0.04em',
-                color: 'var(--text-tertiary)',
+                color: '#64748B',
               }}
             >
               STUDENT ROSTER
@@ -183,13 +183,13 @@ export default function StudentsPage() {
                 fontWeight: 700,
                 fontSize: 28,
                 letterSpacing: '-0.02em',
-                color: 'var(--text-primary)',
+                color: '#F1F5F9',
                 margin: '4px 0 4px 0',
               }}
             >
               Students
             </h1>
-            <p style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 14, color: 'var(--text-tertiary)', margin: 0 }}>
+            <p style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 14, color: '#64748B', margin: 0 }}>
               {data?.class?.subject || 'Mathematics'} · {DEMO_CLASS_SIZE} students
             </p>
           </div>
@@ -228,13 +228,13 @@ export default function StudentsPage() {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              background: 'var(--surface-card)',
+              background: 'rgba(30,41,59,0.7)',
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid #E2E8F0',
+              border: '1px solid rgba(100,116,139,0.3)',
               padding: '8px 12px',
             }}
           >
-            <Search size={16} style={{ color: 'var(--text-tertiary)' }} />
+            <Search size={16} style={{ color: '#64748B' }} />
             <input
               type="text"
               placeholder="Search students..."
@@ -247,7 +247,7 @@ export default function StudentsPage() {
                 fontFamily: "'Lexend', sans-serif",
                 fontWeight: 400,
                 fontSize: 14,
-                color: 'var(--text-primary)',
+                color: '#F1F5F9',
                 width: '100%',
               }}
             />
@@ -257,7 +257,7 @@ export default function StudentsPage() {
         {/* Table */}
         <div
           style={{
-            background: 'var(--surface-card)',
+            background: 'rgba(30,41,59,0.7)',
             borderRadius: 'var(--radius-lg)',
             boxShadow: 'var(--shadow-1)',
             overflow: 'hidden',
@@ -267,10 +267,10 @@ export default function StudentsPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 40px',
+              gridTemplateColumns: '2fr 1fr 1fr 1fr 0.7fr 0.7fr 40px',
               padding: '12px 20px',
-              borderBottom: '1px solid var(--surface-muted)',
-              background: 'var(--surface-muted)',
+              borderBottom: '1px solid rgba(100,116,139,0.2)',
+              background: 'rgba(51,65,85,0.5)',
             }}
           >
             {[
@@ -279,6 +279,7 @@ export default function StudentsPage() {
               { label: 'Engagement', field: 'overall_engagement_score' },
               { label: 'Status', field: null },
               { label: 'Trend', field: null },
+              { label: 'Flags', field: null },
             ].map(col => (
               <button
                 key={col.label}
@@ -292,7 +293,7 @@ export default function StudentsPage() {
                   fontSize: 12,
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
-                  color: 'var(--text-tertiary)',
+                  color: '#64748B',
                   background: 'none',
                   border: 'none',
                   cursor: col.field ? 'pointer' : 'default',
@@ -313,14 +314,14 @@ export default function StudentsPage() {
               onClick={() => navigate(`/teacher/student/${student.student_id}`)}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 40px',
+                gridTemplateColumns: '2fr 1fr 1fr 1fr 0.7fr 0.7fr 40px',
                 padding: '14px 20px',
-                borderBottom: '1px solid var(--surface-muted)',
+                borderBottom: '1px solid rgba(100,116,139,0.2)',
                 cursor: 'pointer',
                 transition: 'background 150ms',
                 alignItems: 'center',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--primary-50)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(51,65,85,0.5)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               <div className="flex items-center gap-3">
@@ -329,8 +330,8 @@ export default function StudentsPage() {
                     width: 32,
                     height: 32,
                     borderRadius: '50%',
-                    background: 'var(--primary-100)',
-                    color: 'var(--primary-700)',
+                    background: 'rgba(20,184,166,0.15)',
+                    color: '#5EEAD4',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -342,7 +343,7 @@ export default function StudentsPage() {
                 >
                   {getInitials(`${student.first_name} ${student.last_name}`)}
                 </div>
-                <span style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-primary)' }}>
+                <span style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 500, fontSize: 14, color: '#F1F5F9' }}>
                   {student.first_name} {student.last_name}
                 </span>
               </div>
@@ -352,14 +353,19 @@ export default function StudentsPage() {
                 </span>
                 {trendArrow(student.overall_mastery_trend)}
               </div>
-              <span style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 14, color: 'var(--text-secondary)' }}>
+              <span style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 14, color: '#94A3B8' }}>
                 {(student.overall_engagement_score * 100).toFixed(0)}%
               </span>
               {riskPill(student.overall_risk_score)}
               <span>
                 {trendArrow(student.overall_mastery_trend)}
               </span>
-              <ChevronRight size={16} style={{ color: 'var(--text-tertiary)' }} />
+              <span style={{ fontFamily: "'Lexend', sans-serif", fontSize: 12, color: '#94A3B8' }}>
+                {student.active_flags > 0
+                  ? <span style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171', padding: '2px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 600 }}>{student.active_flags}</span>
+                  : '—'}
+              </span>
+              <ChevronRight size={16} style={{ color: '#64748B' }} />
             </div>
           ))}
         </div>
