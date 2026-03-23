@@ -416,7 +416,7 @@ function NeedsAttentionSection({ students, navigate }) {
       seen.add(s.student_id);
       return true;
     })
-    .slice(0, 2);
+    .slice(0, 1);
 
   const sectionHeading = (
     <h2
@@ -425,7 +425,7 @@ function NeedsAttentionSection({ students, navigate }) {
         fontWeight: 600,
         fontSize: 20,
         letterSpacing: '-0.01em',
-        color: 'var(--text-primary)',
+        color: '#F1F5F9',
         margin: '0 0 16px 0',
       }}
     >
@@ -527,7 +527,7 @@ function ActivityFeedSection({ navigate }) {
           fontWeight: 600,
           fontSize: 20,
           letterSpacing: '-0.01em',
-          color: 'var(--text-primary)',
+          color: '#F1F5F9',
           margin: '0 0 16px 0',
         }}
       >
@@ -718,7 +718,7 @@ function KnowledgeGraphPreview({ nodes: allNodes, edges: allEdges, navigate }) {
             fontWeight: 600,
             fontSize: 20,
             letterSpacing: '-0.01em',
-            color: 'var(--text-primary)',
+            color: '#F1F5F9',
             margin: 0,
           }}
         >
