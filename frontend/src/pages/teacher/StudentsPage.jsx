@@ -15,8 +15,8 @@ import ErrorState from '../../components/ErrorState';
 const DEMO_CLASS_SIZE = 28;
 
 /**
- * Pick a representative sample that gives ~20% at-risk (red),
- * ~50% needs-attention (amber), ~30% on-track (blue/green).
+ * Pick `size` evenly-spaced students across the full mastery range so every
+ * student has a different mastery score.
  */
 function selectRepresentativeSample(students, size = DEMO_CLASS_SIZE) {
   if (!students || students.length === 0) return [];
@@ -24,21 +24,12 @@ function selectRepresentativeSample(students, size = DEMO_CLASS_SIZE) {
 
   const sorted = [...students].sort((a, b) => (a.avg_mastery || 0) - (b.avg_mastery || 0));
   const n = sorted.length;
-
-  const redCount    = Math.round(size * 0.20);
-  const yellowCount = Math.round(size * 0.50);
-  const greenCount  = size - redCount - yellowCount;
-
-  const bottom = sorted.slice(0, redCount);
-
-  const midStart  = Math.floor(n * 0.30);
-  const midSlice  = sorted.slice(midStart, Math.floor(n * 0.70));
-  const midOffset = Math.max(0, Math.floor((midSlice.length - yellowCount) / 2));
-  const middle    = midSlice.slice(midOffset, midOffset + yellowCount);
-
-  const top = sorted.slice(-greenCount);
-
-  return [...bottom, ...middle, ...top].slice(0, size);
+  const step = n / size;
+  const picked = [];
+  for (let i = 0; i < size; i++) {
+    picked.push(sorted[Math.floor(i * step)]);
+  }
+  return picked;
 }
 
 function riskPill(riskScore) {

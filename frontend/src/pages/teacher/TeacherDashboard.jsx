@@ -75,9 +75,9 @@ function colourBgVar(colour) {
 const DEMO_CLASS_SIZE = 28;
 
 /**
- * From all API students, pick a representative sample of `size` that gives
- * a realistic distribution: ~20% at-risk (red), ~50% needs-attention (amber),
- * ~30% on-track/mastered (blue/green).
+ * Pick `size` evenly-spaced students across the full mastery range so every
+ * student has a different mastery score.  The result naturally produces a
+ * spread of red / amber / blue / green rings.
  */
 function selectRepresentativeSample(students, size = DEMO_CLASS_SIZE) {
   if (!students || students.length === 0) return [];
@@ -85,22 +85,12 @@ function selectRepresentativeSample(students, size = DEMO_CLASS_SIZE) {
 
   const sorted = [...students].sort((a, b) => (a.avg_mastery || 0) - (b.avg_mastery || 0));
   const n = sorted.length;
-
-  const redCount    = Math.round(size * 0.20); // ~6  at-risk (< 26%)
-  const yellowCount = Math.round(size * 0.50); // ~14 needs-attention (26-51%)
-  const greenCount  = size - redCount - yellowCount; // ~8 on-track (> 51%)
-
-  const bottom = sorted.slice(0, redCount);
-
-  // Pull yellow students from ~30-70% percentile band
-  const midStart  = Math.floor(n * 0.30);
-  const midSlice  = sorted.slice(midStart, Math.floor(n * 0.70));
-  const midOffset = Math.max(0, Math.floor((midSlice.length - yellowCount) / 2));
-  const middle    = midSlice.slice(midOffset, midOffset + yellowCount);
-
-  const top = sorted.slice(-greenCount);
-
-  return [...bottom, ...middle, ...top].slice(0, size);
+  const step = n / size;
+  const picked = [];
+  for (let i = 0; i < size; i++) {
+    picked.push(sorted[Math.floor(i * step)]);
+  }
+  return picked;
 }
 
 /* ─────────────────────────────────────────────
@@ -613,42 +603,91 @@ function ActivityFeedSection({ navigate }) {
 }
 
 /* ─────────────────────────────────────────────
-   KNOWLEDGE GRAPH PREVIEW (from real API data)
+   KNOWLEDGE GRAPH PREVIEW
+   Shows a curated subset of concepts in a clean
+   left-to-right prerequisite chain layout.
    ───────────────────────────────────────────── */
 
-function KnowledgeGraphPreview({ nodes, edges, navigate, loading, error }) {
-  const [tooltip, setTooltip] = useState(null);
-  const svgRef = useRef(null);
+/**
+ * From the full 97-concept DAG, pick ~12 concepts that form a readable
+ * prerequisite chain across difficulty levels 1 → 5.
+ */
+function selectPreviewConcepts(allConcepts, allEdges) {
+  if (!allConcepts?.length) return { nodes: [], edges: [] };
 
-  if (loading) return <p className="text-sm text-slate-400">Loading knowledge graph...</p>;
-  if (error) return <p className="text-sm text-red-500">{error}</p>;
-  if (!nodes || nodes.length === 0) return <p className="text-sm text-slate-400">No concepts available.</p>;
-
-  const nodeMap = {};
-  nodes.forEach(n => { nodeMap[n.id] = n; });
-
-  // Simple layout: position nodes in 3 columns by difficulty
-  const grouped = { easy: [], medium: [], hard: [] };
-  nodes.forEach(n => {
-    const diff = n.difficulty_level || 3;
-    if (diff <= 2) grouped.easy.push(n);
-    else if (diff <= 4) grouped.medium.push(n);
-    else grouped.hard.push(n);
+  // Pick 2-3 concepts per difficulty level, favouring ones with edges
+  const byLevel = {};
+  allConcepts.forEach(c => {
+    const lvl = c.difficulty_level || 3;
+    if (!byLevel[lvl]) byLevel[lvl] = [];
+    byLevel[lvl].push(c);
   });
 
-  const positionedNodes = [];
-  let x = 100, y = 60;
-  [grouped.easy, grouped.medium, grouped.hard].forEach((group, colIdx) => {
-    x = 100 + colIdx * 300;
-    y = 60;
-    group.forEach(n => {
-      positionedNodes.push({ ...n, x, y });
-      y += 80;
+  // Build edge counts so we pick "hub" concepts
+  const edgeCount = {};
+  (allEdges || []).forEach(e => {
+    edgeCount[e.concept_id] = (edgeCount[e.concept_id] || 0) + 1;
+    edgeCount[e.prerequisite_concept_id] = (edgeCount[e.prerequisite_concept_id] || 0) + 1;
+  });
+
+  const picked = new Set();
+  const pickedNodes = [];
+
+  [1, 2, 3, 4, 5].forEach(lvl => {
+    const pool = (byLevel[lvl] || [])
+      .sort((a, b) => (edgeCount[b.id] || 0) - (edgeCount[a.id] || 0));
+    // Take top 2-3 most-connected concepts at this level
+    const take = lvl <= 2 || lvl >= 5 ? 2 : 3;
+    pool.slice(0, take).forEach(c => {
+      picked.add(c.id);
+      pickedNodes.push(c);
     });
   });
 
+  // Edges between picked concepts only
+  const pickedEdges = (allEdges || []).filter(
+    e => picked.has(e.concept_id) && picked.has(e.prerequisite_concept_id)
+  );
+
+  return { nodes: pickedNodes, edges: pickedEdges };
+}
+
+function KnowledgeGraphPreview({ nodes: allNodes, edges: allEdges, navigate }) {
+  const [tooltip, setTooltip] = useState(null);
+  const svgRef = useRef(null);
+
+  if (!allNodes || allNodes.length === 0) {
+    return <p className="text-sm text-slate-400">No concepts available.</p>;
+  }
+
+  const { nodes, edges } = selectPreviewConcepts(allNodes, allEdges);
+
+  // Layout: position by difficulty level (columns) with staggered rows
   const svgWidth = 900;
-  const svgHeight = 420;
+  const svgHeight = 400;
+  const colX = { 1: 90, 2: 250, 3: 450, 4: 650, 5: 810 };
+  const colCount = {};
+
+  const positionedNodes = nodes.map(n => {
+    const lvl = n.difficulty_level || 3;
+    const col = colCount[lvl] || 0;
+    colCount[lvl] = col + 1;
+    const x = colX[lvl] || 450;
+    const y = 80 + col * 110;
+    return { ...n, x, y };
+  });
+
+  const posMap = {};
+  positionedNodes.forEach(n => { posMap[n.id] = n; });
+
+  // Difficulty level colors for node fill
+  function difficultyColor(level) {
+    if (level <= 1) return '#10B981'; // green — foundational
+    if (level <= 2) return '#0891B2'; // teal
+    if (level <= 3) return '#3B82F6'; // blue
+    if (level <= 4) return '#F59E0B'; // amber
+    return '#EF4444';                 // red — hardest
+  }
 
   return (
     <section>
@@ -710,32 +749,52 @@ function KnowledgeGraphPreview({ nodes, edges, navigate, loading, error }) {
               <polygon
                 points="0 0, 8 3, 0 6"
                 fill="var(--text-tertiary)"
-                opacity="0.3"
+                opacity="0.4"
               />
             </marker>
           </defs>
 
-          {/* Edges */}
-          {(edges || []).map((edge, i) => {
-            const src = positionedNodes.find(n => n.id === edge.prerequisite_concept_id);
-            const tgt = positionedNodes.find(n => n.id === edge.concept_id);
+          {/* Column labels */}
+          {[
+            { x: 90, label: 'Foundational' },
+            { x: 250, label: 'Basic' },
+            { x: 450, label: 'Intermediate' },
+            { x: 650, label: 'Advanced' },
+            { x: 810, label: 'Complex' },
+          ].map(col => (
+            <text
+              key={col.label}
+              x={col.x}
+              y={30}
+              textAnchor="middle"
+              style={{
+                fontFamily: "'Lexend', sans-serif",
+                fontWeight: 500,
+                fontSize: 10,
+                fill: 'var(--text-tertiary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+              }}
+            >
+              {col.label}
+            </text>
+          ))}
+
+          {/* Edges — curved paths for clarity */}
+          {edges.map((edge, i) => {
+            const src = posMap[edge.prerequisite_concept_id];
+            const tgt = posMap[edge.concept_id];
             if (!src || !tgt) return null;
-            const tgtR = nodeRadius(tgt.difficulty_level);
-            const dx = tgt.x - src.x;
-            const dy = tgt.y - src.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const endX = tgt.x - (dx / dist) * tgtR;
-            const endY = tgt.y - (dy / dist) * tgtR;
+            const mx = (src.x + tgt.x) / 2;
+            const my = (src.y + tgt.y) / 2 - 20;
             return (
-              <line
+              <path
                 key={i}
-                x1={src.x}
-                y1={src.y}
-                x2={endX}
-                y2={endY}
+                d={`M${src.x},${src.y} Q${mx},${my} ${tgt.x},${tgt.y}`}
+                fill="none"
                 stroke="var(--text-tertiary)"
                 strokeWidth={1.5}
-                opacity={0.3}
+                opacity={Math.max(0.2, edge.strength || 0.4)}
                 markerEnd="url(#arrowhead)"
               />
             );
@@ -743,34 +802,43 @@ function KnowledgeGraphPreview({ nodes, edges, navigate, loading, error }) {
 
           {/* Nodes */}
           {positionedNodes.map(node => {
-            const r = nodeRadius(node.difficulty_level);
+            const r = 22;
+            const fill = difficultyColor(node.difficulty_level);
             return (
               <g
                 key={node.id}
                 onMouseEnter={e => {
                   const svgRect = svgRef.current.getBoundingClientRect();
-                  const svgScaleX = svgRect.width / svgWidth;
-                  const svgScaleY = svgRect.height / svgHeight;
+                  const sx = svgRect.width / svgWidth;
+                  const sy = svgRect.height / svgHeight;
                   setTooltip({
                     label: node.name,
-                    mastery: (node.mastery_score * 100).toFixed(0),
-                    x: svgRect.left + node.x * svgScaleX,
-                    y: svgRect.top + (node.y - r - 12) * svgScaleY,
+                    level: node.difficulty_level,
+                    type: node.concept_type,
+                    x: svgRect.left + node.x * sx,
+                    y: svgRect.top + (node.y - r - 12) * sy,
                   });
                 }}
                 onMouseLeave={() => setTooltip(null)}
                 style={{ cursor: 'pointer' }}
               >
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r={r}
-                  fill={nodeColor(node.mastery_score || 0.5)}
-                  opacity={0.9}
-                />
+                <circle cx={node.x} cy={node.y} r={r} fill={fill} opacity={0.85} />
                 <text
                   x={node.x}
-                  y={node.y + r + 12}
+                  y={node.y + 4}
+                  textAnchor="middle"
+                  style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontWeight: 700,
+                    fontSize: 9,
+                    fill: '#FFFFFF',
+                  }}
+                >
+                  L{node.difficulty_level}
+                </text>
+                <text
+                  x={node.x}
+                  y={node.y + r + 14}
                   textAnchor="middle"
                   style={{
                     fontFamily: "'Lexend', sans-serif",
@@ -779,7 +847,7 @@ function KnowledgeGraphPreview({ nodes, edges, navigate, loading, error }) {
                     fill: 'var(--text-secondary)',
                   }}
                 >
-                  {node.name.substring(0, 12)}
+                  {node.name.length > 18 ? node.name.substring(0, 16) + '…' : node.name}
                 </text>
               </g>
             );
@@ -808,10 +876,26 @@ function KnowledgeGraphPreview({ nodes, edges, navigate, loading, error }) {
               {tooltip.label}
             </div>
             <div style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 12, color: 'var(--text-tertiary)' }}>
-              {tooltip.mastery}%
+              Level {tooltip.level} · {tooltip.type}
             </div>
           </div>
         )}
+
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-6 mt-3 pt-3" style={{ borderTop: '1px solid var(--surface-muted)' }}>
+          {[
+            { label: 'Foundational', color: '#10B981' },
+            { label: 'Basic', color: '#0891B2' },
+            { label: 'Intermediate', color: '#3B82F6' },
+            { label: 'Advanced', color: '#F59E0B' },
+            { label: 'Complex', color: '#EF4444' },
+          ].map(item => (
+            <span key={item.label} className="flex items-center gap-1.5" style={{ fontFamily: "'Lexend', sans-serif", fontSize: 11, color: 'var(--text-tertiary)' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, display: 'inline-block' }} />
+              {item.label}
+            </span>
+          ))}
+        </div>
       </div>
     </section>
   );
