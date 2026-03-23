@@ -359,7 +359,6 @@ export default function StudentDetail() {
                 )}
               </div>
             )}
-          </div>
           </>) : (
             <div className="text-center py-4">
               <p className="text-sm font-semibold text-slate-100 mb-1">AI summary</p>
