@@ -71,11 +71,36 @@ function colourBgVar(colour) {
   return map[colour] || 'var(--surface-muted)';
 }
 
-function getTrendFromScore(score) {
-  // Map overall_mastery_trend to trend arrows for visualization
-  if (score === 'improving') return 'up';
-  if (score === 'declining') return 'down';
-  return 'flat';
+// Canonical class sizes matching SubjectsPage demo data
+const DEMO_CLASS_SIZE = 28;
+
+/**
+ * From all API students, pick a representative sample of `size` that gives
+ * a realistic distribution: ~20% at-risk (red), ~50% needs-attention (amber),
+ * ~30% on-track/mastered (blue/green).
+ */
+function selectRepresentativeSample(students, size = DEMO_CLASS_SIZE) {
+  if (!students || students.length === 0) return [];
+  if (students.length <= size) return students;
+
+  const sorted = [...students].sort((a, b) => (a.avg_mastery || 0) - (b.avg_mastery || 0));
+  const n = sorted.length;
+
+  const redCount    = Math.round(size * 0.20); // ~6  at-risk (< 26%)
+  const yellowCount = Math.round(size * 0.50); // ~14 needs-attention (26-51%)
+  const greenCount  = size - redCount - yellowCount; // ~8 on-track (> 51%)
+
+  const bottom = sorted.slice(0, redCount);
+
+  // Pull yellow students from ~30-70% percentile band
+  const midStart  = Math.floor(n * 0.30);
+  const midSlice  = sorted.slice(midStart, Math.floor(n * 0.70));
+  const midOffset = Math.max(0, Math.floor((midSlice.length - yellowCount) / 2));
+  const middle    = midSlice.slice(midOffset, midOffset + yellowCount);
+
+  const top = sorted.slice(-greenCount);
+
+  return [...bottom, ...middle, ...top].slice(0, size);
 }
 
 /* ─────────────────────────────────────────────
@@ -922,10 +947,9 @@ export default function TeacherDashboard() {
     );
   }
 
-  const students = classData?.students || [];
-  const classAvg = classData?.class_stats?.avg_engagement
-    ? Math.round((classData.class_stats.avg_engagement) * 100)
-    : students.length > 0
+  // Cap to demo class size with representative mastery distribution
+  const students = selectRepresentativeSample(classData?.students || [], DEMO_CLASS_SIZE);
+  const classAvg = students.length > 0
     ? Math.round(students.reduce((s, st) => s + (st.avg_mastery || 0), 0) / students.length * 100)
     : 0;
 
