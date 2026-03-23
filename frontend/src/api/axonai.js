@@ -56,6 +56,10 @@ export function getStudentPredictions(studentId) {
   return fetchAPI(`/student/${studentId}/predictions`);
 }
 
+export function getStudentInsights(studentId) {
+  return fetchAPI(`/student/${studentId}/insights`);
+}
+
 // Conversation messages
 export function getConversationMessages(conversationId) {
   return fetchAPI(`/conversation/${conversationId}/messages`);

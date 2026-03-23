@@ -4,7 +4,10 @@ import {
   getStudentConversations,
   getStudentDashboard,
   getStudentFlags,
+  getStudentInsights,
   getStudentMastery,
+  getStudentPedagogy,
+  getStudentPredictions,
 } from '../../api/axonai';
 import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -22,8 +25,26 @@ function riskTone(score) {
   return { pill: 'axon-pill-success', label: 'On track' };
 }
 
+function trendTone(trend) {
+  if (!trend) return { pill: 'axon-pill', label: null };
+  const t = trend.toLowerCase();
+  if (t === 'improving') return { pill: 'axon-pill-success', label: '↑ Improving' };
+  if (t === 'declining') return { pill: 'axon-pill-danger', label: '↓ Declining' };
+  return { pill: 'axon-pill', label: '→ Stable' };
+}
+
 function pct(v) {
   return `${Math.round(clamp01(v) * 100)}%`;
+}
+
+function InfoRow({ label, value }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start justify-between gap-3 text-sm">
+      <span className="text-slate-400 shrink-0">{label}</span>
+      <span className="text-slate-100 text-right">{value}</span>
+    </div>
+  );
 }
 
 export default function StudentDetail() {
@@ -33,11 +54,13 @@ export default function StudentDetail() {
   const [mastery, setMastery] = useState(null);
   const [flags, setFlags] = useState(null);
   const [conversations, setConversations] = useState(null);
+  const [pedagogy, setPedagogy] = useState(null);
+  const [predictions, setPredictions] = useState(null);
+  const [insights, setInsights] = useState(null);
   const [activeConversation, setActiveConversation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Hooks must be called unconditionally (even while loading).
   const focusConcepts = useMemo(() => {
     const cs = mastery?.concepts || [];
     return [...cs]
@@ -57,12 +80,18 @@ export default function StudentDetail() {
       getStudentMastery(id),
       getStudentFlags(id),
       getStudentConversations(id, 20, 0),
+      getStudentPedagogy(id).catch(() => null),
+      getStudentPredictions(id).catch(() => null),
+      getStudentInsights(id).catch(() => null),
     ])
-      .then(([d, m, f, c]) => {
+      .then(([d, m, f, c, p, pr, ins]) => {
         setDashboard(d);
         setMastery(m);
         setFlags(f);
         setConversations(c);
+        setPedagogy(p);
+        setPredictions(pr);
+        setInsights(ins);
         setLoading(false);
       })
       .catch(e => {
@@ -100,10 +129,39 @@ export default function StudentDetail() {
   const { student, profile, wellbeing, summary } = dashboard;
   const risk = clamp01(profile?.overall_risk_score);
   const tone = riskTone(risk);
+  const trend = trendTone(profile?.overall_mastery_trend);
+
+  // Flatten arrays from student profile
+  const interestsList = Array.isArray(student?.interests)
+    ? student.interests.join(', ')
+    : student?.interests || null;
+  const activitiesList = Array.isArray(student?.extracurricular_activities)
+    ? student.extracurricular_activities.join(', ')
+    : student?.extracurricular_activities || null;
+
+  // Pedagogy data
+  const strategies = pedagogy?.recommended_strategies || pedagogy?.strategies || [];
+  const pedagogyNotes = pedagogy?.notes || pedagogy?.summary || null;
+
+  // Predictions data
+  const predRisk = predictions?.risk_score ?? predictions?.predicted_risk ?? null;
+  const predGrade = predictions?.predicted_grade ?? predictions?.predicted_final_grade ?? null;
+  const predConfidence = predictions?.confidence ?? predictions?.confidence_level ?? null;
+  const riskFactors = predictions?.risk_factors || [];
+  const improvementAreas = predictions?.improvement_areas || [];
+
+  // AI Insights data — from TeacherAIInsight via /student/:id/insights
+  const aiSummary = insights?.summary || insights?.ai_summary || insights?.narrative || null;
+  const insightType = insights?.insight_type || null;
+  const suggestedInterventions = insights?.suggested_interventions || [];
+  const successfulStrategies = insights?.successful_strategies || [];
+  const failedStrategies = insights?.failed_strategies || [];
+  const generatedAt = insights?.generated_at || null;
 
   return (
     <DashboardShell subtitle="Student · detail">
       <div className="space-y-5">
+        {/* ── Navigation ── */}
         <div className="flex items-center justify-between gap-3">
           <button
             className="axon-btn axon-btn-quiet"
@@ -119,6 +177,7 @@ export default function StudentDetail() {
           </button>
         </div>
 
+        {/* ── Student Header ── */}
         <div className="axon-card-subtle p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -131,12 +190,21 @@ export default function StudentDetail() {
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span className={`axon-pill ${tone.pill}`}>{tone.label}</span>
+                {trend.label && (
+                  <span className={`axon-pill ${trend.pill}`}>{trend.label}</span>
+                )}
                 <span className="axon-pill">
                   Attendance {wellbeing?.attendance_percentage?.toFixed?.(0) ?? wellbeing?.attendance_percentage ?? '—'}%
                 </span>
                 <span className="axon-pill">
                   {summary?.active_flags ?? 0} flags
                 </span>
+                {student?.learning_style && (
+                  <span className="axon-pill">{student.learning_style} learner</span>
+                )}
+                {student?.learning_difficulty && (
+                  <span className="axon-pill axon-pill-soft">{student.learning_difficulty}</span>
+                )}
               </div>
             </div>
 
@@ -161,11 +229,143 @@ export default function StudentDetail() {
                     {summary?.conversations?.total_conversations ?? 0}
                   </span>
                 </div>
+                {predGrade != null && (
+                  <div className="flex items-center justify-between text-sm border-t border-slate-700 pt-2 mt-2">
+                    <span className="text-slate-400">Predicted grade</span>
+                    <span className="text-sky-300 font-medium">
+                      {typeof predGrade === 'number' ? `${Math.round(predGrade)}%` : predGrade}
+                      {predConfidence != null && (
+                        <span className="text-slate-500 text-xs ml-1">
+                          ({Math.round(clamp01(predConfidence) * 100)}% conf.)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+                {predRisk != null && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Predicted risk</span>
+                    <span className={`font-medium text-sm ${clamp01(predRisk) >= 0.4 ? 'text-rose-400' : clamp01(predRisk) >= 0.2 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                      {pct(predRisk)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
+        {/* ── Student Profile Info ── */}
+        {(student?.learning_style || student?.learning_difficulty || student?.primary_language ||
+          student?.preferred_difficulty || interestsList || student?.academic_goals ||
+          activitiesList || student?.major_life_event) && (
+          <div className="axon-card-subtle p-5 sm:p-6">
+            <p className="text-sm font-semibold text-slate-100 mb-3">Student profile</p>
+            <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+              <InfoRow label="Learning style" value={student?.learning_style} />
+              <InfoRow label="Preferred difficulty" value={student?.preferred_difficulty} />
+              <InfoRow label="Learning difficulty" value={student?.learning_difficulty} />
+              <InfoRow label="Primary language" value={student?.primary_language} />
+              <InfoRow label="Secondary language" value={student?.secondary_language} />
+              <InfoRow label="Academic goals" value={student?.academic_goals} />
+              <InfoRow label="Interests" value={interestsList} />
+              <InfoRow label="Activities" value={activitiesList} />
+              {student?.major_life_event && (
+                <div className="sm:col-span-2 flex items-start gap-3 text-sm rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 mt-1">
+                  <span className="text-amber-400 shrink-0">⚠ Life event</span>
+                  <span className="text-slate-200">{student.major_life_event}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── AI Summary ── */}
+        {(aiSummary || suggestedInterventions.length > 0 || successfulStrategies.length > 0 || failedStrategies.length > 0) && (
+          <div className="axon-card-subtle p-5 sm:p-6 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-100">AI summary</p>
+                {insightType && (
+                  <span className={`axon-pill text-[0.7rem] mt-1 inline-block ${
+                    insightType === 'at_risk' ? 'axon-pill-danger'
+                    : insightType === 'improving' ? 'axon-pill-success'
+                    : 'axon-pill-soft'
+                  }`}>
+                    {insightType.replace(/_/g, ' ')}
+                  </span>
+                )}
+              </div>
+              {generatedAt && (
+                <p className="text-[0.65rem] text-slate-600 shrink-0 mt-0.5">
+                  Generated {new Date(generatedAt).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+
+            {aiSummary && (
+              <p className="text-sm text-slate-300 leading-relaxed">{aiSummary}</p>
+            )}
+
+            {suggestedInterventions.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                  Suggested interventions
+                </p>
+                <ul className="space-y-1.5">
+                  {suggestedInterventions.map((item, i) => {
+                    const text = typeof item === 'string' ? item : (item.action || item.description || JSON.stringify(item));
+                    return (
+                      <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                        <span className="text-sky-400 mt-0.5 shrink-0">→</span>
+                        {text}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {(successfulStrategies.length > 0 || failedStrategies.length > 0) && (
+              <div className="grid gap-3 sm:grid-cols-2 pt-1 border-t border-slate-800">
+                {successfulStrategies.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-500 mb-1.5">What's working</p>
+                    <ul className="space-y-1">
+                      {successfulStrategies.map((s, i) => {
+                        const text = typeof s === 'string' ? s : (s.strategy || s.name || JSON.stringify(s));
+                        return (
+                          <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                            <span className="text-emerald-400 mt-0.5 shrink-0">✓</span>
+                            {text}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+                {failedStrategies.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-rose-500 mb-1.5">What hasn't worked</p>
+                    <ul className="space-y-1">
+                      {failedStrategies.map((s, i) => {
+                        const text = typeof s === 'string' ? s : (s.strategy || s.name || JSON.stringify(s));
+                        return (
+                          <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                            <span className="text-rose-400 mt-0.5 shrink-0">✗</span>
+                            {text}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Main Grid: Focus Concepts + Flags + Sessions ── */}
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
           <div className="axon-card-subtle p-5 sm:p-6">
             <div className="flex items-end justify-between gap-3 mb-3">
@@ -256,6 +456,66 @@ export default function StudentDetail() {
           </div>
         </div>
 
+        {/* ── Pedagogy Recommendations ── */}
+        {(strategies.length > 0 || pedagogyNotes) && (
+          <div className="axon-card-subtle p-5 sm:p-6">
+            <p className="text-sm font-semibold text-slate-100 mb-3">Teaching recommendations</p>
+            {pedagogyNotes && (
+              <p className="text-xs text-slate-400 mb-3">{pedagogyNotes}</p>
+            )}
+            {strategies.length > 0 && (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {strategies.map((s, i) => {
+                  const name = typeof s === 'string' ? s : (s.name || s.strategy || JSON.stringify(s));
+                  const desc = typeof s === 'object' ? (s.description || s.detail || null) : null;
+                  return (
+                    <div
+                      key={i}
+                      className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-3 py-2"
+                    >
+                      <p className="text-xs font-medium text-sky-200">{name}</p>
+                      {desc && <p className="text-[0.7rem] text-slate-400 mt-0.5">{desc}</p>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Predictions: Risk Factors & Improvement Areas ── */}
+        {(riskFactors.length > 0 || improvementAreas.length > 0) && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {riskFactors.length > 0 && (
+              <div className="axon-card-subtle p-5 sm:p-6">
+                <p className="text-sm font-semibold text-slate-100 mb-2">Risk factors</p>
+                <ul className="space-y-1">
+                  {riskFactors.map((f, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                      <span className="text-rose-400 mt-0.5 shrink-0">•</span>
+                      {typeof f === 'string' ? f : JSON.stringify(f)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {improvementAreas.length > 0 && (
+              <div className="axon-card-subtle p-5 sm:p-6">
+                <p className="text-sm font-semibold text-slate-100 mb-2">Improvement areas</p>
+                <ul className="space-y-1">
+                  {improvementAreas.map((a, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                      <span className="text-emerald-400 mt-0.5 shrink-0">•</span>
+                      {typeof a === 'string' ? a : JSON.stringify(a)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Conversation Thread ── */}
         {activeConversation && (
           <div className="axon-card-subtle p-5 sm:p-6">
             <ConversationThread
@@ -268,4 +528,3 @@ export default function StudentDetail() {
     </DashboardShell>
   );
 }
-
