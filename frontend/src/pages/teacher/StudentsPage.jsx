@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -6,37 +6,17 @@ import {
   ArrowUpDown,
   ChevronRight,
 } from 'lucide-react';
+import { getClassOverview } from '../../api/axonai';
 import DashboardShell from '../../components/DashboardShell';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import ErrorState from '../../components/ErrorState';
 
-const students = [
-  { id: 1, name: "Aroha Ngata", mastery: 64, risk: "needs-attention", lastActive: "2h ago", engagement: 72, trend: "down" },
-  { id: 2, name: "James Tūhoe", mastery: 23, risk: "at-risk", lastActive: "3d ago", engagement: 41, trend: "down" },
-  { id: 3, name: "Priya Sharma", mastery: 88, risk: "on-track", lastActive: "1h ago", engagement: 91, trend: "up" },
-  { id: 4, name: "Liam Chen", mastery: 76, risk: "on-track", lastActive: "4h ago", engagement: 83, trend: "up" },
-  { id: 5, name: "Sofia Ramirez", mastery: 45, risk: "needs-attention", lastActive: "1d ago", engagement: 58, trend: "flat" },
-  { id: 6, name: "Noah Williams", mastery: 92, risk: "mastered", lastActive: "30m ago", engagement: 95, trend: "up" },
-  { id: 7, name: "Ella Parata", mastery: 67, risk: "in-progress", lastActive: "5h ago", engagement: 74, trend: "up" },
-  { id: 8, name: "Mason Patel", mastery: 31, risk: "needs-attention", lastActive: "2d ago", engagement: 49, trend: "down" },
-  { id: 9, name: "Isla Mackenzie", mastery: 79, risk: "on-track", lastActive: "3h ago", engagement: 86, trend: "up" },
-  { id: 10, name: "Ethan Brown", mastery: 55, risk: "in-progress", lastActive: "6h ago", engagement: 67, trend: "flat" },
-  { id: 11, name: "Chloe Davis", mastery: 84, risk: "on-track", lastActive: "2h ago", engagement: 88, trend: "up" },
-  { id: 12, name: "Oliver Thompson", mastery: 18, risk: "at-risk", lastActive: "5d ago", engagement: 32, trend: "down" },
-  { id: 13, name: "Ava Wilson", mastery: 71, risk: "in-progress", lastActive: "1h ago", engagement: 79, trend: "up" },
-  { id: 14, name: "Lucas Taylor", mastery: 60, risk: "in-progress", lastActive: "8h ago", engagement: 70, trend: "flat" },
-  { id: 15, name: "Mia Anderson", mastery: 95, risk: "mastered", lastActive: "45m ago", engagement: 97, trend: "up" },
-  { id: 16, name: "Henry Moore", mastery: 48, risk: "needs-attention", lastActive: "1d ago", engagement: 55, trend: "flat" },
-  { id: 17, name: "Zara Jackson", mastery: 82, risk: "on-track", lastActive: "3h ago", engagement: 87, trend: "up" },
-  { id: 18, name: "Jack Martin", mastery: 37, risk: "needs-attention", lastActive: "2d ago", engagement: 44, trend: "down" },
-  { id: 19, name: "Lily White", mastery: 74, risk: "on-track", lastActive: "4h ago", engagement: 80, trend: "up" },
-  { id: 20, name: "Samuel Harris", mastery: 63, risk: "in-progress", lastActive: "7h ago", engagement: 72, trend: "flat" },
-  { id: 21, name: "Grace Clark", mastery: 89, risk: "on-track", lastActive: "1h ago", engagement: 92, trend: "up" },
-  { id: 22, name: "Benjamin Lewis", mastery: 52, risk: "in-progress", lastActive: "6h ago", engagement: 61, trend: "flat" },
-  { id: 23, name: "Amelia Hall", mastery: 77, risk: "on-track", lastActive: "2h ago", engagement: 83, trend: "up" },
-  { id: 24, name: "William Young", mastery: 41, risk: "needs-attention", lastActive: "3d ago", engagement: 50, trend: "down" },
-  { id: 25, name: "Charlotte Allen", mastery: 68, risk: "in-progress", lastActive: "5h ago", engagement: 75, trend: "up" },
-];
+function riskPill(riskScore) {
+  let risk;
+  if (riskScore >= 0.4) risk = 'at-risk';
+  else if (riskScore >= 0.2) risk = 'needs-attention';
+  else risk = 'on-track';
 
-function riskPill(risk) {
   const styles = {
     mastered: { bg: 'var(--mastered-bg)', color: 'var(--mastered)', label: 'Mastered' },
     'on-track': { bg: 'var(--on-track-bg)', color: 'var(--on-track)', label: 'On Track' },
@@ -66,8 +46,8 @@ function riskPill(risk) {
 }
 
 function trendArrow(trend) {
-  if (trend === 'up') return <span style={{ color: 'var(--mastered)', fontSize: 14 }}>↑</span>;
-  if (trend === 'down') return <span style={{ color: 'var(--at-risk)', fontSize: 14 }}>↓</span>;
+  if (trend === 'improving') return <span style={{ color: 'var(--mastered)', fontSize: 14 }}>↑</span>;
+  if (trend === 'declining') return <span style={{ color: 'var(--at-risk)', fontSize: 14 }}>↓</span>;
   return <span style={{ color: 'var(--text-tertiary)', fontSize: 14 }}>→</span>;
 }
 
@@ -76,37 +56,85 @@ function getInitials(name) {
 }
 
 function masteryColor(mastery) {
-  if (mastery >= 91) return 'var(--mastered)';
-  if (mastery >= 76) return 'var(--on-track)';
-  if (mastery >= 51) return 'var(--in-progress)';
-  if (mastery >= 26) return 'var(--needs-attention)';
+  if (mastery >= 0.91) return 'var(--mastered)';
+  if (mastery >= 0.76) return 'var(--on-track)';
+  if (mastery >= 0.51) return 'var(--in-progress)';
+  if (mastery >= 0.26) return 'var(--needs-attention)';
   return 'var(--at-risk)';
 }
 
 export default function StudentsPage() {
   const navigate = useNavigate();
   const [search, setSearch] = React.useState('');
-  const [sortBy, setSortBy] = React.useState('name');
-  const [sortDir, setSortDir] = React.useState('asc');
+  const [sortBy, setSortBy] = React.useState('overall_risk_score');
+  const [sortDir, setSortDir] = React.useState('desc');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const filtered = students
-    .filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      let cmp = 0;
-      if (sortBy === 'name') cmp = a.name.localeCompare(b.name);
-      else if (sortBy === 'mastery') cmp = a.mastery - b.mastery;
-      else if (sortBy === 'engagement') cmp = a.engagement - b.engagement;
-      return sortDir === 'asc' ? cmp : -cmp;
-    });
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    getClassOverview(1)
+      .then(d => {
+        console.log('[StudentsPage] Class overview data:', d);
+        setData(d);
+        setLoading(false);
+      })
+      .catch(e => {
+        console.error('[StudentsPage] Error:', e);
+        setError(e.message);
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const students = useMemo(() => {
+    const list = (data?.students || [])
+      .filter(s => `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase()))
+      .sort((a, b) => {
+        let av = a[sortBy] ?? 0;
+        let bv = b[sortBy] ?? 0;
+        // Handle string sort for last_name
+        if (sortBy === 'last_name') {
+          av = (a.last_name || '').toLowerCase();
+          bv = (b.last_name || '').toLowerCase();
+          return sortDir === 'desc' ? bv.localeCompare(av) : av.localeCompare(bv);
+        }
+        return sortDir === 'desc' ? bv - av : av - bv;
+      });
+    return list;
+  }, [data, search, sortBy, sortDir]);
 
   function toggleSort(field) {
     if (sortBy === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortBy(field); setSortDir('asc'); }
+    else { setSortBy(field); setSortDir('desc'); }
   }
 
-  const atRisk = students.filter(s => s.risk === 'at-risk').length;
-  const needsAtt = students.filter(s => s.risk === 'needs-attention').length;
-  const onTrack = students.filter(s => s.risk === 'on-track' || s.risk === 'mastered').length;
+  if (loading) {
+    return (
+      <DashboardShell>
+        <div className="flex items-center justify-center py-16">
+          <LoadingSpinner message="Loading student roster..." />
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardShell>
+        <div className="flex items-center justify-center py-16">
+          <ErrorState message={error} onRetry={load} />
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  const atRisk = students.filter(s => s.overall_risk_score >= 0.4).length;
+  const needsAtt = students.filter(s => s.overall_risk_score >= 0.2 && s.overall_risk_score < 0.4).length;
+  const onTrack = students.filter(s => s.overall_risk_score < 0.2).length;
 
   return (
     <DashboardShell>
@@ -139,7 +167,7 @@ export default function StudentsPage() {
               Students
             </h1>
             <p style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 14, color: 'var(--text-tertiary)', margin: 0 }}>
-              Year 11 Mathematics · {students.length} students
+              {data?.class?.subject || 'Mathematics'} · {students.length} students
             </p>
           </div>
         </div>
@@ -149,7 +177,7 @@ export default function StudentsPage() {
           {[
             { label: 'At Risk', value: atRisk, color: 'var(--at-risk)', bg: 'var(--at-risk-bg)' },
             { label: 'Needs Attention', value: needsAtt, color: 'var(--needs-attention)', bg: 'var(--needs-attention-bg)' },
-            { label: 'On Track / Mastered', value: onTrack, color: 'var(--mastered)', bg: 'var(--mastered-bg)' },
+            { label: 'On Track', value: onTrack, color: 'var(--mastered)', bg: 'var(--mastered-bg)' },
           ].map(card => (
             <div
               key={card.label}
@@ -223,11 +251,11 @@ export default function StudentsPage() {
             }}
           >
             {[
-              { label: 'Student', field: 'name' },
-              { label: 'Mastery', field: 'mastery' },
-              { label: 'Engagement', field: 'engagement' },
+              { label: 'Student', field: 'last_name' },
+              { label: 'Mastery', field: 'avg_mastery' },
+              { label: 'Engagement', field: 'overall_engagement_score' },
               { label: 'Status', field: null },
-              { label: 'Last Active', field: null },
+              { label: 'Trend', field: null },
             ].map(col => (
               <button
                 key={col.label}
@@ -256,10 +284,10 @@ export default function StudentsPage() {
           </div>
 
           {/* Rows */}
-          {filtered.map(student => (
+          {students.map(student => (
             <div
-              key={student.id}
-              onClick={() => navigate(`/teacher/student/${student.id}`)}
+              key={student.student_id}
+              onClick={() => navigate(`/teacher/student/${student.student_id}`)}
               style={{
                 display: 'grid',
                 gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 40px',
@@ -289,24 +317,24 @@ export default function StudentsPage() {
                     flexShrink: 0,
                   }}
                 >
-                  {getInitials(student.name)}
+                  {getInitials(`${student.first_name} ${student.last_name}`)}
                 </div>
                 <span style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-primary)' }}>
-                  {student.name}
+                  {student.first_name} {student.last_name}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 16, color: masteryColor(student.mastery) }}>
-                  {student.mastery}%
+                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 16, color: masteryColor(student.avg_mastery) }}>
+                  {(student.avg_mastery * 100).toFixed(0)}%
                 </span>
-                {trendArrow(student.trend)}
+                {trendArrow(student.overall_mastery_trend)}
               </div>
               <span style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 14, color: 'var(--text-secondary)' }}>
-                {student.engagement}%
+                {(student.overall_engagement_score * 100).toFixed(0)}%
               </span>
-              {riskPill(student.risk)}
-              <span style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 13, color: 'var(--text-tertiary)' }}>
-                {student.lastActive}
+              {riskPill(student.overall_risk_score)}
+              <span style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 12, color: 'var(--text-tertiary)' }}>
+                {student.active_flags > 0 ? `${student.active_flags} flags` : '—'}
               </span>
               <ChevronRight size={16} style={{ color: 'var(--text-tertiary)' }} />
             </div>

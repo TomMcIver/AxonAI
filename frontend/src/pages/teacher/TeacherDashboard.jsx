@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -14,107 +14,34 @@ import {
   CheckCircle,
   Clock,
 } from 'lucide-react';
+import { getClassOverview, getConcepts } from '../../api/axonai';
 import DashboardShell from '../../components/DashboardShell';
-
-/* ─────────────────────────────────────────────
-   MOCK DATA
-   ───────────────────────────────────────────── */
-
-const students = [
-  { id: 1, name: "Aroha Ngata", mastery: 64, risk: "needs-attention", lastActive: "2h ago", engagement: 72, trend: "down" },
-  { id: 2, name: "James Tūhoe", mastery: 23, risk: "at-risk", lastActive: "3d ago", engagement: 41, trend: "down" },
-  { id: 3, name: "Priya Sharma", mastery: 88, risk: "on-track", lastActive: "1h ago", engagement: 91, trend: "up" },
-  { id: 4, name: "Liam Chen", mastery: 76, risk: "on-track", lastActive: "4h ago", engagement: 83, trend: "up" },
-  { id: 5, name: "Sofia Ramirez", mastery: 45, risk: "needs-attention", lastActive: "1d ago", engagement: 58, trend: "flat" },
-  { id: 6, name: "Noah Williams", mastery: 92, risk: "mastered", lastActive: "30m ago", engagement: 95, trend: "up" },
-  { id: 7, name: "Ella Parata", mastery: 67, risk: "in-progress", lastActive: "5h ago", engagement: 74, trend: "up" },
-  { id: 8, name: "Mason Patel", mastery: 31, risk: "needs-attention", lastActive: "2d ago", engagement: 49, trend: "down" },
-  { id: 9, name: "Isla Mackenzie", mastery: 79, risk: "on-track", lastActive: "3h ago", engagement: 86, trend: "up" },
-  { id: 10, name: "Ethan Brown", mastery: 55, risk: "in-progress", lastActive: "6h ago", engagement: 67, trend: "flat" },
-  { id: 11, name: "Chloe Davis", mastery: 84, risk: "on-track", lastActive: "2h ago", engagement: 88, trend: "up" },
-  { id: 12, name: "Oliver Thompson", mastery: 18, risk: "at-risk", lastActive: "5d ago", engagement: 32, trend: "down" },
-  { id: 13, name: "Ava Wilson", mastery: 71, risk: "in-progress", lastActive: "1h ago", engagement: 79, trend: "up" },
-  { id: 14, name: "Lucas Taylor", mastery: 60, risk: "in-progress", lastActive: "8h ago", engagement: 70, trend: "flat" },
-  { id: 15, name: "Mia Anderson", mastery: 95, risk: "mastered", lastActive: "45m ago", engagement: 97, trend: "up" },
-  { id: 16, name: "Henry Moore", mastery: 48, risk: "needs-attention", lastActive: "1d ago", engagement: 55, trend: "flat" },
-  { id: 17, name: "Zara Jackson", mastery: 82, risk: "on-track", lastActive: "3h ago", engagement: 87, trend: "up" },
-  { id: 18, name: "Jack Martin", mastery: 37, risk: "needs-attention", lastActive: "2d ago", engagement: 44, trend: "down" },
-  { id: 19, name: "Lily White", mastery: 74, risk: "on-track", lastActive: "4h ago", engagement: 80, trend: "up" },
-  { id: 20, name: "Samuel Harris", mastery: 63, risk: "in-progress", lastActive: "7h ago", engagement: 72, trend: "flat" },
-  { id: 21, name: "Grace Clark", mastery: 89, risk: "on-track", lastActive: "1h ago", engagement: 92, trend: "up" },
-  { id: 22, name: "Benjamin Lewis", mastery: 52, risk: "in-progress", lastActive: "6h ago", engagement: 61, trend: "flat" },
-  { id: 23, name: "Amelia Hall", mastery: 77, risk: "on-track", lastActive: "2h ago", engagement: 83, trend: "up" },
-  { id: 24, name: "William Young", mastery: 41, risk: "needs-attention", lastActive: "3d ago", engagement: 50, trend: "down" },
-  { id: 25, name: "Charlotte Allen", mastery: 68, risk: "in-progress", lastActive: "5h ago", engagement: 75, trend: "up" },
-  { id: 26, name: "James King", mastery: 85, risk: "on-track", lastActive: "2h ago", engagement: 89, trend: "up" },
-  { id: 27, name: "Poppy Wright", mastery: 73, risk: "in-progress", lastActive: "4h ago", engagement: 78, trend: "up" },
-  { id: 28, name: "Thomas Scott", mastery: 56, risk: "in-progress", lastActive: "9h ago", engagement: 65, trend: "flat" },
-];
-
-const knowledgeNodes = [
-  { id: "integers", label: "Integers", x: 80, y: 220, mastery: 91, size: "leaf" },
-  { id: "fractions", label: "Fractions", x: 80, y: 320, mastery: 88, size: "leaf" },
-  { id: "algebra_1", label: "Linear Equations", x: 200, y: 200, mastery: 84, size: "intermediate" },
-  { id: "algebra_2", label: "Quadratic Eq.", x: 200, y: 320, mastery: 78, size: "intermediate" },
-  { id: "coord_geom", label: "Coord. Geometry", x: 320, y: 260, mastery: 55, size: "intermediate" },
-  { id: "angles", label: "Angle Relationships", x: 440, y: 200, mastery: 38, size: "foundational" },
-  { id: "sim_tri", label: "Similar Triangles", x: 440, y: 340, mastery: 42, size: "foundational" },
-  { id: "pythagoras", label: "Pythagoras", x: 560, y: 270, mastery: 61, size: "intermediate" },
-  { id: "trig_ratios", label: "Trig Ratios", x: 680, y: 200, mastery: 35, size: "foundational" },
-  { id: "trig_graphs", label: "Trig Graphs", x: 800, y: 160, mastery: 20, size: "intermediate" },
-  { id: "trig_eq", label: "Trig Equations", x: 800, y: 280, mastery: 18, size: "leaf" },
-  { id: "unit_circle", label: "Unit Circle", x: 680, y: 340, mastery: 22, size: "intermediate" },
-];
-
-const knowledgeEdges = [
-  ["integers", "algebra_1"],
-  ["fractions", "algebra_1"],
-  ["algebra_1", "coord_geom"],
-  ["algebra_2", "coord_geom"],
-  ["coord_geom", "angles"],
-  ["coord_geom", "sim_tri"],
-  ["angles", "pythagoras"],
-  ["sim_tri", "pythagoras"],
-  ["pythagoras", "trig_ratios"],
-  ["angles", "trig_ratios"],
-  ["sim_tri", "trig_ratios"],
-  ["trig_ratios", "trig_graphs"],
-  ["trig_ratios", "unit_circle"],
-  ["trig_graphs", "trig_eq"],
-];
-
-const activityFeed = [
-  { time: "2h ago", student: "Priya Sharma", action: "Mastered", concept: "Quadratic Equations", icon: "trophy", colour: "mastered" },
-  { time: "3h ago", student: "Aroha Ngata", action: "AI Tutor session:", concept: "Angle Relationships", icon: "sparkle", colour: "primary" },
-  { time: "4h ago", student: "Mia Anderson", action: "Mastered", concept: "Trigonometric Ratios", icon: "trophy", colour: "mastered" },
-  { time: "5h ago", student: "Noah Williams", action: "Completed quiz:", concept: "Quadratic Factoring", icon: "check", colour: "in-progress" },
-  { time: "6h ago", student: "Mason Patel", action: "Needs review:", concept: "Linear Equations", icon: "alert", colour: "needs-attention" },
-  { time: "8h ago", student: "Oliver Thompson", action: "Inactive —", concept: "last seen 5 days ago", icon: "clock", colour: "inactive" },
-];
+import LoadingSpinner from '../../components/LoadingSpinner';
+import ErrorState from '../../components/ErrorState';
 
 /* ─────────────────────────────────────────────
    HELPERS
    ───────────────────────────────────────────── */
 
 function masteryColor(mastery) {
-  if (mastery >= 91) return 'var(--mastered)';
-  if (mastery >= 76) return 'var(--on-track)';
-  if (mastery >= 51) return 'var(--in-progress)';
-  if (mastery >= 26) return 'var(--needs-attention)';
+  if (mastery >= 0.91) return 'var(--mastered)';
+  if (mastery >= 0.76) return 'var(--on-track)';
+  if (mastery >= 0.51) return 'var(--in-progress)';
+  if (mastery >= 0.26) return 'var(--needs-attention)';
   return 'var(--at-risk)';
 }
 
 function nodeColor(mastery) {
-  if (mastery >= 91) return "#059669";
-  if (mastery >= 76) return "#0F766E";
-  if (mastery >= 51) return "#2563EB";
-  if (mastery >= 26) return "#D97706";
+  if (mastery >= 0.91) return "#059669";
+  if (mastery >= 0.76) return "#0F766E";
+  if (mastery >= 0.51) return "#2563EB";
+  if (mastery >= 0.26) return "#D97706";
   return "#DC2626";
 }
 
-function nodeRadius(size) {
-  if (size === 'leaf') return 20;
-  if (size === 'intermediate') return 26;
+function nodeRadius(difficulty) {
+  if (difficulty <= 1) return 20;
+  if (difficulty <= 3) return 26;
   return 32;
 }
 
@@ -142,6 +69,13 @@ function colourBgVar(colour) {
     inactive: 'var(--inactive-bg)',
   };
   return map[colour] || 'var(--surface-muted)';
+}
+
+function getTrendFromScore(score) {
+  // Map overall_mastery_trend to trend arrows for visualization
+  if (score === 'improving') return 'up';
+  if (score === 'declining') return 'down';
+  return 'flat';
 }
 
 /* ─────────────────────────────────────────────
@@ -206,18 +140,6 @@ const cssStyles = `
 .pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
 }
-
-.kg-tooltip {
-  pointer-events: none;
-  position: absolute;
-  background: var(--surface-card);
-  border: 1px solid #E2E8F0;
-  border-radius: var(--radius-sm);
-  padding: 6px 10px;
-  box-shadow: var(--shadow-2);
-  z-index: 50;
-  white-space: nowrap;
-}
 `;
 
 /* ─────────────────────────────────────────────
@@ -253,7 +175,7 @@ function SmallMasteryRing({ mastery, index }) {
         cy={size / 2}
         r={r}
         fill="none"
-        stroke={masteryColor(mastery)}
+        stroke={masteryColor(mastery / 100)}
         strokeWidth={strokeWidth}
         strokeDasharray={circumference}
         strokeDashoffset={offset}
@@ -278,12 +200,10 @@ function ClassAverageRing({ value }) {
   const [displayVal, setDisplayVal] = useState(0);
 
   useEffect(() => {
-    // Animate arc
     const timer = setTimeout(() => {
       setOffset(circumference * (1 - value / 100));
     }, 100);
 
-    // Animate number count-up
     const duration = 800;
     const startTime = Date.now() + 100;
     let raf;
@@ -364,150 +284,6 @@ function ClassAverageRing({ value }) {
 }
 
 /* ─────────────────────────────────────────────
-   SIDEBAR
-   ───────────────────────────────────────────── */
-
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', active: true, path: '/teacher' },
-  { icon: Users, label: 'Students', active: false, path: '/teacher/students' },
-  { icon: BookOpen, label: 'Subjects', active: false, path: '/teacher/subjects' },
-  { icon: Network, label: 'Knowledge Graph', active: false, path: '/teacher/knowledge-graph' },
-  { icon: Settings, label: 'Settings', active: false, path: '/teacher/settings' },
-];
-
-function Sidebar({ navigate }) {
-  return (
-    <aside
-      style={{
-        width: 260,
-        height: '100vh',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        background: 'var(--surface-sidebar)',
-        display: 'flex',
-        flexDirection: 'column',
-        zIndex: 40,
-      }}
-    >
-      {/* Wordmark */}
-      <div className="px-6 pt-6 pb-8">
-        <span
-          style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontWeight: 700,
-            fontSize: 20,
-          }}
-        >
-          <span style={{ color: 'var(--text-primary)' }}>axon</span>
-          <span style={{ color: 'var(--primary-700)' }}>AI</span>
-        </span>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 flex flex-col gap-1 px-3">
-        {navItems.map(item => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.label}
-              onClick={() => !item.active && navigate(item.path)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                height: 44,
-                paddingLeft: 16,
-                paddingRight: 12,
-                borderRadius: 'var(--radius-sm)',
-                border: 'none',
-                cursor: 'pointer',
-                width: '100%',
-                fontFamily: "'Lexend', sans-serif",
-                fontWeight: 500,
-                fontSize: 14,
-                background: item.active ? 'var(--primary-50)' : 'transparent',
-                color: item.active ? 'var(--primary-700)' : 'var(--text-secondary)',
-                borderLeft: item.active ? '3px solid var(--primary-700)' : '3px solid transparent',
-                transition: 'background 150ms, color 150ms',
-              }}
-              onMouseEnter={e => {
-                if (!item.active) e.currentTarget.style.background = 'rgba(0,0,0,0.03)';
-              }}
-              onMouseLeave={e => {
-                if (!item.active) e.currentTarget.style.background = 'transparent';
-              }}
-            >
-              <Icon size={20} />
-              {item.label}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* User area */}
-      <div
-        className="px-4 py-4 mx-3 mb-3"
-        style={{
-          borderTop: '1px solid rgba(0,0,0,0.08)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-        }}
-      >
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: '50%',
-            background: 'var(--primary-100)',
-            color: 'var(--primary-700)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontWeight: 600,
-            fontSize: 13,
-            flexShrink: 0,
-          }}
-        >
-          MW
-        </div>
-        <div className="flex-1" style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontFamily: "'Lexend', sans-serif",
-              fontWeight: 500,
-              fontSize: 14,
-              color: 'var(--text-primary)',
-            }}
-          >
-            Ms. Williams
-          </div>
-          <span
-            style={{
-              display: 'inline-block',
-              fontFamily: "'Lexend', sans-serif",
-              fontWeight: 500,
-              fontSize: 11,
-              textTransform: 'uppercase',
-              background: 'var(--primary-100)',
-              color: 'var(--primary-700)',
-              padding: '2px 8px',
-              borderRadius: 'var(--radius-full)',
-              marginTop: 2,
-            }}
-          >
-            Teacher
-          </span>
-        </div>
-        <ChevronDown size={16} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
-      </div>
-    </aside>
-  );
-}
-
-/* ─────────────────────────────────────────────
    NEEDS ATTENTION CARDS
    ───────────────────────────────────────────── */
 
@@ -522,7 +298,6 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
         padding: '20px 24px',
       }}
     >
-      {/* Header */}
       <div className="flex items-center gap-3 mb-3">
         <IconComponent size={18} style={{ color: borderColor, flexShrink: 0 }} />
         <span
@@ -551,7 +326,6 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
         </span>
       </div>
 
-      {/* Body */}
       <p
         style={{
           fontFamily: "'Lexend', sans-serif",
@@ -565,7 +339,6 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
         {body}
       </p>
 
-      {/* AI Recommendation */}
       <div className="flex items-start gap-2 mb-4" style={{ padding: '10px 12px', background: 'var(--primary-50)', borderRadius: 'var(--radius-sm)' }}>
         <Sparkles size={14} style={{ color: 'var(--primary-500)', flexShrink: 0, marginTop: 3 }} />
         <p
@@ -582,7 +355,6 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
         </p>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-3">
         {actions.map((action, i) =>
           action.primary ? (
@@ -610,7 +382,34 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
   );
 }
 
-function NeedsAttentionSection({ navigate }) {
+function NeedsAttentionSection({ students, navigate }) {
+  // Find students at risk (overall_risk_score > 0.4 or active_flags > 0)
+  const atRiskStudents = (students || [])
+    .filter(s => (s.overall_risk_score && s.overall_risk_score > 0.4) || (s.active_flags && s.active_flags > 0))
+    .slice(0, 2);
+
+  if (atRiskStudents.length === 0) {
+    return (
+      <section>
+        <h2
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: 600,
+            fontSize: 20,
+            letterSpacing: '-0.01em',
+            color: 'var(--text-primary)',
+            margin: '0 0 16px 0',
+          }}
+        >
+          Needs Attention
+        </h2>
+        <div className="axon-card-subtle p-5 sm:p-6">
+          <p className="text-sm text-slate-400">All students on track! 🎉</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section>
       <h2
@@ -626,41 +425,39 @@ function NeedsAttentionSection({ navigate }) {
         Needs Attention
       </h2>
       <div className="flex flex-col gap-4">
-        <AlertCard
-          name="Aroha Ngata"
-          severity="Needs Attention"
-          icon={AlertTriangle}
-          borderColor="var(--needs-attention)"
-          pillBg="var(--needs-attention-bg)"
-          pillColor="var(--needs-attention)"
-          body="3 prerequisite concepts for Trigonometry are below mastery threshold: Similar Triangles (42%), Angle Relationships (38%), Coordinate Geometry (55%)."
-          recommendation="Focused review of angle properties and triangle similarity before continuing the Trigonometry unit."
-          actions={[
-            { label: 'View Profile', primary: false, onClick: () => navigate('/teacher/student/1') },
-            { label: 'Start Intervention', primary: true, onClick: () => navigate('/teacher/student/1') },
-          ]}
-        />
-        <AlertCard
-          name="James Tūhoe"
-          severity="At Risk"
-          icon={AlertCircle}
-          borderColor="var(--at-risk)"
-          pillBg="var(--at-risk-bg)"
-          pillColor="var(--at-risk)"
-          body="Engagement has declined 38% over the past 14 days. Last active 5 days ago. Overall mastery has dropped from 31% to 23% this week."
-          recommendation="Recommend direct teacher check-in. Disengagement pattern may indicate external factors. Consider pastoral care referral."
-          actions={[
-            { label: 'View Profile', primary: false, onClick: () => navigate('/teacher/student/2') },
-            { label: 'Contact Student', primary: true, onClick: () => navigate('/teacher/student/2') },
-          ]}
-        />
+        {atRiskStudents.map(student => {
+          const isAtRisk = student.overall_risk_score >= 0.4;
+          const severity = isAtRisk ? 'At Risk' : 'Needs Attention';
+          const icon = isAtRisk ? AlertCircle : AlertTriangle;
+          const borderColor = isAtRisk ? 'var(--at-risk)' : 'var(--needs-attention)';
+          const pillBg = isAtRisk ? 'var(--at-risk-bg)' : 'var(--needs-attention-bg)';
+          const pillColor = isAtRisk ? 'var(--at-risk)' : 'var(--needs-attention)';
+
+          return (
+            <AlertCard
+              key={student.student_id}
+              name={`${student.first_name} ${student.last_name}`}
+              severity={severity}
+              icon={icon}
+              borderColor={borderColor}
+              pillBg={pillBg}
+              pillColor={pillColor}
+              body={`Risk score: ${(student.overall_risk_score * 100).toFixed(0)}%. ${student.active_flags || 0} active misconception flags.`}
+              recommendation="Recommend direct teacher check-in. Review prerequisite concepts and provide targeted support."
+              actions={[
+                { label: 'View Profile', primary: false, onClick: () => navigate(`/teacher/student/${student.student_id}`) },
+                { label: 'Start Intervention', primary: true, onClick: () => navigate(`/teacher/student/${student.student_id}`) },
+              ]}
+            />
+          );
+        })}
       </div>
     </section>
   );
 }
 
 /* ─────────────────────────────────────────────
-   TODAY'S ACTIVITY FEED
+   TODAY'S ACTIVITY FEED (static for now)
    ───────────────────────────────────────────── */
 
 function ActivityIcon({ type, colour }) {
@@ -676,8 +473,15 @@ function ActivityIcon({ type, colour }) {
   }
 }
 
+const activityFeed = [
+  { time: "2h ago", student: "Aroha Ngata", action: "AI Tutor session:", concept: "Trigonometry", icon: "sparkle", colour: "primary" },
+  { time: "3h ago", student: "Priya Sharma", action: "Mastered", concept: "Quadratic Equations", icon: "trophy", colour: "mastered" },
+  { time: "4h ago", student: "Mia Anderson", action: "Completed quiz:", concept: "Linear Functions", icon: "check", colour: "in-progress" },
+  { time: "5h ago", student: "Noah Williams", action: "Flagged:", concept: "Angle Relationships", icon: "alert", colour: "needs-attention" },
+  { time: "6h ago", student: "James Tūhoe", action: "Inactive —", concept: "last seen 3 days ago", icon: "clock", colour: "inactive" },
+];
+
 const studentIdByName = {};
-students.forEach(s => { studentIdByName[s.name] = s.id; });
 
 function ActivityFeedSection({ navigate }) {
   return (
@@ -722,7 +526,6 @@ function ActivityFeedSection({ navigate }) {
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--primary-50)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
-            {/* Avatar */}
             <div
               style={{
                 width: 24,
@@ -741,7 +544,6 @@ function ActivityFeedSection({ navigate }) {
             >
               {getInitials(item.student)}
             </div>
-            {/* Content */}
             <div className="flex-1" style={{ minWidth: 0 }}>
               <div className="flex items-center gap-2">
                 <span
@@ -767,7 +569,6 @@ function ActivityFeedSection({ navigate }) {
                 </span>
               </div>
             </div>
-            {/* Timestamp */}
             <span
               style={{
                 fontFamily: "'Lexend', sans-serif",
@@ -787,24 +588,42 @@ function ActivityFeedSection({ navigate }) {
 }
 
 /* ─────────────────────────────────────────────
-   KNOWLEDGE GRAPH PREVIEW
+   KNOWLEDGE GRAPH PREVIEW (from real API data)
    ───────────────────────────────────────────── */
 
-const trigNodeIds = new Set(['trig_ratios', 'trig_graphs', 'trig_eq', 'unit_circle']);
-
-function hasTrigOutgoing(nodeId) {
-  return knowledgeEdges.some(([src, tgt]) => src === nodeId && trigNodeIds.has(tgt));
-}
-
-function KnowledgeGraphPreview({ navigate }) {
+function KnowledgeGraphPreview({ nodes, edges, navigate, loading, error }) {
   const [tooltip, setTooltip] = useState(null);
   const svgRef = useRef(null);
+
+  if (loading) return <p className="text-sm text-slate-400">Loading knowledge graph...</p>;
+  if (error) return <p className="text-sm text-red-500">{error}</p>;
+  if (!nodes || nodes.length === 0) return <p className="text-sm text-slate-400">No concepts available.</p>;
+
   const nodeMap = {};
-  knowledgeNodes.forEach(n => { nodeMap[n.id] = n; });
+  nodes.forEach(n => { nodeMap[n.id] = n; });
+
+  // Simple layout: position nodes in 3 columns by difficulty
+  const grouped = { easy: [], medium: [], hard: [] };
+  nodes.forEach(n => {
+    const diff = n.difficulty_level || 3;
+    if (diff <= 2) grouped.easy.push(n);
+    else if (diff <= 4) grouped.medium.push(n);
+    else grouped.hard.push(n);
+  });
+
+  const positionedNodes = [];
+  let x = 100, y = 60;
+  [grouped.easy, grouped.medium, grouped.hard].forEach((group, colIdx) => {
+    x = 100 + colIdx * 300;
+    y = 60;
+    group.forEach(n => {
+      positionedNodes.push({ ...n, x, y });
+      y += 80;
+    });
+  });
 
   const svgWidth = 900;
   const svgHeight = 420;
-  const pad = 50;
 
   return (
     <section>
@@ -872,11 +691,11 @@ function KnowledgeGraphPreview({ navigate }) {
           </defs>
 
           {/* Edges */}
-          {knowledgeEdges.map(([srcId, tgtId], i) => {
-            const src = nodeMap[srcId];
-            const tgt = nodeMap[tgtId];
+          {(edges || []).map((edge, i) => {
+            const src = positionedNodes.find(n => n.id === edge.prerequisite_concept_id);
+            const tgt = positionedNodes.find(n => n.id === edge.concept_id);
             if (!src || !tgt) return null;
-            const tgtR = nodeRadius(tgt.size);
+            const tgtR = nodeRadius(tgt.difficulty_level);
             const dx = tgt.x - src.x;
             const dy = tgt.y - src.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
@@ -898,14 +717,8 @@ function KnowledgeGraphPreview({ navigate }) {
           })}
 
           {/* Nodes */}
-          {knowledgeNodes.map(node => {
-            const r = nodeRadius(node.size);
-            const shouldPulse = node.mastery < 50 && knowledgeEdges.some(
-              ([src]) => src === node.id && trigNodeIds.has(knowledgeEdges.find(([s]) => s === node.id)?.[1])
-            );
-            const pulseNode = node.mastery < 50 && (
-              hasTrigOutgoing(node.id) || trigNodeIds.has(node.id)
-            );
+          {positionedNodes.map(node => {
+            const r = nodeRadius(node.difficulty_level);
             return (
               <g
                 key={node.id}
@@ -914,8 +727,8 @@ function KnowledgeGraphPreview({ navigate }) {
                   const svgScaleX = svgRect.width / svgWidth;
                   const svgScaleY = svgRect.height / svgHeight;
                   setTooltip({
-                    label: node.label,
-                    mastery: node.mastery,
+                    label: node.name,
+                    mastery: (node.mastery_score * 100).toFixed(0),
                     x: svgRect.left + node.x * svgScaleX,
                     y: svgRect.top + (node.y - r - 12) * svgScaleY,
                   });
@@ -923,56 +736,32 @@ function KnowledgeGraphPreview({ navigate }) {
                 onMouseLeave={() => setTooltip(null)}
                 style={{ cursor: 'pointer' }}
               >
-                {pulseNode && (
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r={r + 6}
-                    fill="none"
-                    stroke="#D97706"
-                    strokeWidth={2}
-                    className="pulse-glow"
-                  />
-                )}
                 <circle
                   cx={node.x}
                   cy={node.y}
                   r={r}
-                  fill={nodeColor(node.mastery)}
+                  fill={nodeColor(node.mastery_score || 0.5)}
                   opacity={0.9}
                 />
                 <text
                   x={node.x}
-                  y={node.y + r + 16}
+                  y={node.y + r + 12}
                   textAnchor="middle"
                   style={{
                     fontFamily: "'Lexend', sans-serif",
                     fontWeight: 400,
-                    fontSize: 11,
+                    fontSize: 10,
                     fill: 'var(--text-secondary)',
                   }}
                 >
-                  {node.label}
-                </text>
-                <text
-                  x={node.x}
-                  y={node.y + 4}
-                  textAnchor="middle"
-                  style={{
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
-                    fontWeight: 700,
-                    fontSize: r >= 26 ? 12 : 10,
-                    fill: '#FFFFFF',
-                  }}
-                >
-                  {node.mastery}%
+                  {node.name.substring(0, 12)}
                 </text>
               </g>
             );
           })}
         </svg>
 
-        {/* Tooltip (portal-style, positioned absolutely) */}
+        {/* Tooltip */}
         {tooltip && (
           <div
             style={{
@@ -994,7 +783,7 @@ function KnowledgeGraphPreview({ navigate }) {
               {tooltip.label}
             </div>
             <div style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 12, color: 'var(--text-tertiary)' }}>
-              Class average: {tooltip.mastery}%
+              {tooltip.mastery}%
             </div>
           </div>
         )}
@@ -1004,12 +793,11 @@ function KnowledgeGraphPreview({ navigate }) {
 }
 
 /* ─────────────────────────────────────────────
-   CLASS PULSE SECTION
+   CLASS PULSE SECTION (from real API data)
    ───────────────────────────────────────────── */
 
-function ClassPulseSection({ navigate }) {
-  const sortedStudents = [...students].sort((a, b) => a.mastery - b.mastery);
-  const classAvg = Math.round(students.reduce((s, st) => s + st.mastery, 0) / students.length);
+function ClassPulseSection({ students, classAvg, navigate }) {
+  const sortedStudents = [...(students || [])].sort((a, b) => (a.avg_mastery || 0) - (b.avg_mastery || 0));
 
   return (
     <section
@@ -1021,7 +809,6 @@ function ClassPulseSection({ navigate }) {
       }}
     >
       <div className="flex items-start justify-between gap-8">
-        {/* Left — Distribution */}
         <div className="flex-1">
           <span
             style={{
@@ -1056,25 +843,23 @@ function ClassPulseSection({ navigate }) {
               margin: '0 0 24px 0',
             }}
           >
-            28 students · Term 1, Week 8
+            {sortedStudents.length} students
           </p>
 
-          {/* Mini mastery rings */}
           <div className="flex flex-wrap gap-2">
             {sortedStudents.map((st, i) => (
               <div
-                key={st.id}
-                title={`${st.name}: ${st.mastery}%`}
-                onClick={() => navigate(`/teacher/student/${st.id}`)}
+                key={st.student_id}
+                title={`${st.first_name} ${st.last_name}: ${(st.avg_mastery * 100).toFixed(0)}%`}
+                onClick={() => navigate(`/teacher/student/${st.student_id}`)}
                 style={{ cursor: 'pointer' }}
               >
-                <SmallMasteryRing mastery={st.mastery} index={i} />
+                <SmallMasteryRing mastery={(st.avg_mastery * 100).toFixed(0)} index={i} />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right — Class Average */}
         <div className="flex items-center justify-center" style={{ paddingTop: 32 }}>
           <ClassAverageRing value={classAvg} />
         </div>
@@ -1089,20 +874,82 @@ function ClassPulseSection({ navigate }) {
 
 export default function TeacherDashboard() {
   const navigate = useNavigate();
+  const [classData, setClassData] = useState(null);
+  const [conceptsData, setConceptsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      getClassOverview(1),
+      getConcepts('Mathematics'),
+    ])
+      .then(([classRes, conceptsRes]) => {
+        console.log('[TeacherDashboard] Class data:', classRes);
+        console.log('[TeacherDashboard] Concepts data:', conceptsRes);
+        setClassData(classRes);
+        setConceptsData(conceptsRes);
+        setLoading(false);
+      })
+      .catch(e => {
+        console.error('[TeacherDashboard] Error:', e);
+        setError(e.message);
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) {
+    return (
+      <DashboardShell subtitle="Year 11 Mathematics · Mastery signal">
+        <div className="flex items-center justify-center py-16">
+          <LoadingSpinner message="Loading class data..." />
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardShell subtitle="Year 11 Mathematics · Mastery signal">
+        <div className="flex items-center justify-center py-16">
+          <ErrorState message={error} onRetry={load} />
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  const students = classData?.students || [];
+  const classAvg = classData?.class_stats?.avg_engagement
+    ? Math.round((classData.class_stats.avg_engagement) * 100)
+    : students.length > 0
+    ? Math.round(students.reduce((s, st) => s + (st.avg_mastery || 0), 0) / students.length * 100)
+    : 0;
+
+  const conceptNodes = conceptsData?.concepts || [];
+  const conceptEdges = conceptsData?.prerequisites || [];
 
   return (
     <DashboardShell subtitle="Year 11 Mathematics · Mastery signal">
+      <style>{cssStyles}</style>
       <div className="grid gap-6 lg:gap-7">
-        {/* Top: class pulse + at-risk */}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)]">
-          <ClassPulseSection navigate={navigate} />
-          <NeedsAttentionSection navigate={navigate} />
+          <ClassPulseSection students={students} classAvg={classAvg} navigate={navigate} />
+          <NeedsAttentionSection students={students} navigate={navigate} />
         </div>
 
-        {/* Bottom: activity + knowledge graph */}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)]">
           <ActivityFeedSection navigate={navigate} />
-          <KnowledgeGraphPreview navigate={navigate} />
+          <KnowledgeGraphPreview
+            nodes={conceptNodes}
+            edges={conceptEdges}
+            navigate={navigate}
+            loading={false}
+            error={null}
+          />
         </div>
       </div>
     </DashboardShell>
