@@ -38,11 +38,12 @@ function pct(v) {
 }
 
 function InfoRow({ label, value }) {
-  if (!value) return null;
   return (
     <div className="flex items-start justify-between gap-3 text-sm">
       <span className="text-slate-400 shrink-0">{label}</span>
-      <span className="text-slate-100 text-right">{value}</span>
+      <span className={`text-right ${value ? 'text-slate-100' : 'text-slate-600'}`}>
+        {value || '—'}
+      </span>
     </div>
   );
 }
@@ -256,33 +257,29 @@ export default function StudentDetail() {
         </div>
 
         {/* ── Student Profile Info ── */}
-        {(student?.learning_style || student?.learning_difficulty || student?.primary_language ||
-          student?.preferred_difficulty || interestsList || student?.academic_goals ||
-          activitiesList || student?.major_life_event) && (
-          <div className="axon-card-subtle p-5 sm:p-6">
-            <p className="text-sm font-semibold text-slate-100 mb-3">Student profile</p>
-            <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
-              <InfoRow label="Learning style" value={student?.learning_style} />
-              <InfoRow label="Preferred difficulty" value={student?.preferred_difficulty} />
-              <InfoRow label="Learning difficulty" value={student?.learning_difficulty} />
-              <InfoRow label="Primary language" value={student?.primary_language} />
-              <InfoRow label="Secondary language" value={student?.secondary_language} />
-              <InfoRow label="Academic goals" value={student?.academic_goals} />
-              <InfoRow label="Interests" value={interestsList} />
-              <InfoRow label="Activities" value={activitiesList} />
-              {student?.major_life_event && (
-                <div className="sm:col-span-2 flex items-start gap-3 text-sm rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 mt-1">
-                  <span className="text-amber-400 shrink-0">⚠ Life event</span>
-                  <span className="text-slate-200">{student.major_life_event}</span>
-                </div>
-              )}
-            </div>
+        <div className="axon-card-subtle p-5 sm:p-6">
+          <p className="text-sm font-semibold text-slate-100 mb-3">Student profile</p>
+          <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+            <InfoRow label="Learning style" value={student?.learning_style} />
+            <InfoRow label="Preferred difficulty" value={student?.preferred_difficulty} />
+            <InfoRow label="Learning difficulty" value={student?.learning_difficulty} />
+            <InfoRow label="Primary language" value={student?.primary_language} />
+            <InfoRow label="Secondary language" value={student?.secondary_language} />
+            <InfoRow label="Academic goals" value={student?.academic_goals} />
+            <InfoRow label="Interests" value={interestsList} />
+            <InfoRow label="Activities" value={activitiesList} />
           </div>
-        )}
+          {student?.major_life_event && (
+            <div className="flex items-start gap-3 text-sm rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 mt-3">
+              <span className="text-amber-400 shrink-0">⚠ Life event</span>
+              <span className="text-slate-200">{student.major_life_event}</span>
+            </div>
+          )}
+        </div>
 
         {/* ── AI Summary ── */}
-        {(aiSummary || suggestedInterventions.length > 0 || successfulStrategies.length > 0 || failedStrategies.length > 0) && (
-          <div className="axon-card-subtle p-5 sm:p-6 space-y-4">
+        <div className="axon-card-subtle p-5 sm:p-6 space-y-4">
+          {(aiSummary || suggestedInterventions.length > 0 || successfulStrategies.length > 0 || failedStrategies.length > 0) ? (<>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-100">AI summary</p>
@@ -363,7 +360,13 @@ export default function StudentDetail() {
               </div>
             )}
           </div>
-        )}
+          </>) : (
+            <div className="text-center py-4">
+              <p className="text-sm font-semibold text-slate-100 mb-1">AI summary</p>
+              <p className="text-xs text-slate-500">No AI insights generated for this student yet.</p>
+            </div>
+          )}
+        </div>
 
         {/* ── Main Grid: Focus Concepts + Flags + Sessions ── */}
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
@@ -457,63 +460,69 @@ export default function StudentDetail() {
         </div>
 
         {/* ── Pedagogy Recommendations ── */}
-        {(strategies.length > 0 || pedagogyNotes) && (
-          <div className="axon-card-subtle p-5 sm:p-6">
-            <p className="text-sm font-semibold text-slate-100 mb-3">Teaching recommendations</p>
-            {pedagogyNotes && (
-              <p className="text-xs text-slate-400 mb-3">{pedagogyNotes}</p>
-            )}
-            {strategies.length > 0 && (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {strategies.map((s, i) => {
-                  const name = typeof s === 'string' ? s : (s.name || s.strategy || JSON.stringify(s));
-                  const desc = typeof s === 'object' ? (s.description || s.detail || null) : null;
-                  return (
-                    <div
-                      key={i}
-                      className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-3 py-2"
-                    >
-                      <p className="text-xs font-medium text-sky-200">{name}</p>
-                      {desc && <p className="text-[0.7rem] text-slate-400 mt-0.5">{desc}</p>}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+        <div className="axon-card-subtle p-5 sm:p-6">
+          <p className="text-sm font-semibold text-slate-100 mb-3">Teaching recommendations</p>
+          {(strategies.length > 0 || pedagogyNotes) ? (
+            <>
+              {pedagogyNotes && (
+                <p className="text-xs text-slate-400 mb-3">{pedagogyNotes}</p>
+              )}
+              {strategies.length > 0 && (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {strategies.map((s, i) => {
+                    const name = typeof s === 'string' ? s : (s.name || s.strategy || JSON.stringify(s));
+                    const desc = typeof s === 'object' ? (s.description || s.detail || null) : null;
+                    return (
+                      <div
+                        key={i}
+                        className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-3 py-2"
+                      >
+                        <p className="text-xs font-medium text-sky-200">{name}</p>
+                        {desc && <p className="text-[0.7rem] text-slate-400 mt-0.5">{desc}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-xs text-slate-500">No teaching recommendations available yet.</p>
+          )}
+        </div>
 
         {/* ── Predictions: Risk Factors & Improvement Areas ── */}
-        {(riskFactors.length > 0 || improvementAreas.length > 0) && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {riskFactors.length > 0 && (
-              <div className="axon-card-subtle p-5 sm:p-6">
-                <p className="text-sm font-semibold text-slate-100 mb-2">Risk factors</p>
-                <ul className="space-y-1">
-                  {riskFactors.map((f, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
-                      <span className="text-rose-400 mt-0.5 shrink-0">•</span>
-                      {typeof f === 'string' ? f : JSON.stringify(f)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {improvementAreas.length > 0 && (
-              <div className="axon-card-subtle p-5 sm:p-6">
-                <p className="text-sm font-semibold text-slate-100 mb-2">Improvement areas</p>
-                <ul className="space-y-1">
-                  {improvementAreas.map((a, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
-                      <span className="text-emerald-400 mt-0.5 shrink-0">•</span>
-                      {typeof a === 'string' ? a : JSON.stringify(a)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="axon-card-subtle p-5 sm:p-6">
+            <p className="text-sm font-semibold text-slate-100 mb-2">Risk factors</p>
+            {riskFactors.length > 0 ? (
+              <ul className="space-y-1">
+                {riskFactors.map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                    <span className="text-rose-400 mt-0.5 shrink-0">•</span>
+                    {typeof f === 'string' ? f : JSON.stringify(f)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500">No risk factors identified.</p>
             )}
           </div>
-        )}
+          <div className="axon-card-subtle p-5 sm:p-6">
+            <p className="text-sm font-semibold text-slate-100 mb-2">Improvement areas</p>
+            {improvementAreas.length > 0 ? (
+              <ul className="space-y-1">
+                {improvementAreas.map((a, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                    <span className="text-emerald-400 mt-0.5 shrink-0">•</span>
+                    {typeof a === 'string' ? a : JSON.stringify(a)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500">No improvement areas identified.</p>
+            )}
+          </div>
+        </div>
 
         {/* ── Conversation Thread ── */}
         {activeConversation && (
