@@ -4,6 +4,7 @@ import {
   getStudentConversations,
   getStudentDashboard,
   getStudentFlags,
+  getStudentInsights,
   getStudentMastery,
   getStudentPedagogy,
   getStudentPredictions,
@@ -55,6 +56,7 @@ export default function StudentDetail() {
   const [conversations, setConversations] = useState(null);
   const [pedagogy, setPedagogy] = useState(null);
   const [predictions, setPredictions] = useState(null);
+  const [insights, setInsights] = useState(null);
   const [activeConversation, setActiveConversation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -80,14 +82,16 @@ export default function StudentDetail() {
       getStudentConversations(id, 20, 0),
       getStudentPedagogy(id).catch(() => null),
       getStudentPredictions(id).catch(() => null),
+      getStudentInsights(id).catch(() => null),
     ])
-      .then(([d, m, f, c, p, pr]) => {
+      .then(([d, m, f, c, p, pr, ins]) => {
         setDashboard(d);
         setMastery(m);
         setFlags(f);
         setConversations(c);
         setPedagogy(p);
         setPredictions(pr);
+        setInsights(ins);
         setLoading(false);
       })
       .catch(e => {
@@ -145,6 +149,14 @@ export default function StudentDetail() {
   const predConfidence = predictions?.confidence ?? predictions?.confidence_level ?? null;
   const riskFactors = predictions?.risk_factors || [];
   const improvementAreas = predictions?.improvement_areas || [];
+
+  // AI Insights data — from TeacherAIInsight via /student/:id/insights
+  const aiSummary = insights?.summary || insights?.ai_summary || insights?.narrative || null;
+  const insightType = insights?.insight_type || null;
+  const suggestedInterventions = insights?.suggested_interventions || [];
+  const successfulStrategies = insights?.successful_strategies || [];
+  const failedStrategies = insights?.failed_strategies || [];
+  const generatedAt = insights?.generated_at || null;
 
   return (
     <DashboardShell subtitle="Student · detail">
@@ -265,6 +277,91 @@ export default function StudentDetail() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── AI Summary ── */}
+        {(aiSummary || suggestedInterventions.length > 0 || successfulStrategies.length > 0 || failedStrategies.length > 0) && (
+          <div className="axon-card-subtle p-5 sm:p-6 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-100">AI summary</p>
+                {insightType && (
+                  <span className={`axon-pill text-[0.7rem] mt-1 inline-block ${
+                    insightType === 'at_risk' ? 'axon-pill-danger'
+                    : insightType === 'improving' ? 'axon-pill-success'
+                    : 'axon-pill-soft'
+                  }`}>
+                    {insightType.replace(/_/g, ' ')}
+                  </span>
+                )}
+              </div>
+              {generatedAt && (
+                <p className="text-[0.65rem] text-slate-600 shrink-0 mt-0.5">
+                  Generated {new Date(generatedAt).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+
+            {aiSummary && (
+              <p className="text-sm text-slate-300 leading-relaxed">{aiSummary}</p>
+            )}
+
+            {suggestedInterventions.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                  Suggested interventions
+                </p>
+                <ul className="space-y-1.5">
+                  {suggestedInterventions.map((item, i) => {
+                    const text = typeof item === 'string' ? item : (item.action || item.description || JSON.stringify(item));
+                    return (
+                      <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                        <span className="text-sky-400 mt-0.5 shrink-0">→</span>
+                        {text}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {(successfulStrategies.length > 0 || failedStrategies.length > 0) && (
+              <div className="grid gap-3 sm:grid-cols-2 pt-1 border-t border-slate-800">
+                {successfulStrategies.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-500 mb-1.5">What's working</p>
+                    <ul className="space-y-1">
+                      {successfulStrategies.map((s, i) => {
+                        const text = typeof s === 'string' ? s : (s.strategy || s.name || JSON.stringify(s));
+                        return (
+                          <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                            <span className="text-emerald-400 mt-0.5 shrink-0">✓</span>
+                            {text}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+                {failedStrategies.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-rose-500 mb-1.5">What hasn't worked</p>
+                    <ul className="space-y-1">
+                      {failedStrategies.map((s, i) => {
+                        const text = typeof s === 'string' ? s : (s.strategy || s.name || JSON.stringify(s));
+                        return (
+                          <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                            <span className="text-rose-400 mt-0.5 shrink-0">✗</span>
+                            {text}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
