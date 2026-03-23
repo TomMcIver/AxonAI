@@ -356,8 +356,8 @@ export default function StudentsPage() {
                 {(student.overall_engagement_score * 100).toFixed(0)}%
               </span>
               {riskPill(student.overall_risk_score)}
-              <span style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 12, color: 'var(--text-tertiary)' }}>
-                {student.active_flags > 0 ? `${student.active_flags} flags` : '—'}
+              <span>
+                {trendArrow(student.overall_mastery_trend)}
               </span>
               <ChevronRight size={16} style={{ color: 'var(--text-tertiary)' }} />
             </div>

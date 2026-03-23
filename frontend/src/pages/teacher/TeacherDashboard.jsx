@@ -397,29 +397,48 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
   );
 }
 
+// Per-card AI recommendations — rotate so cards never look identical
+const RECOMMENDATIONS = [
+  'Focused review of prerequisite concepts before continuing the current unit. Consider a 1:1 check-in.',
+  'Engagement has been declining. Recommend pastoral care referral and a change of learning approach.',
+  'Multiple misconception flags suggest foundational gaps. Try scaffolded practice on earlier topics.',
+  'Consider pairing with a peer mentor and adjusting task difficulty to rebuild confidence.',
+];
+
 function NeedsAttentionSection({ students, navigate }) {
-  // Find students at risk (overall_risk_score > 0.4 or active_flags > 0)
+  // Sort by risk descending, deduplicate by student_id, take top 2
+  const seen = new Set();
   const atRiskStudents = (students || [])
-    .filter(s => (s.overall_risk_score && s.overall_risk_score > 0.4) || (s.active_flags && s.active_flags > 0))
+    .filter(s => s.overall_risk_score > 0.4 || (s.active_flags && s.active_flags > 0))
+    .sort((a, b) => (b.overall_risk_score || 0) - (a.overall_risk_score || 0))
+    .filter(s => {
+      if (seen.has(s.student_id)) return false;
+      seen.add(s.student_id);
+      return true;
+    })
     .slice(0, 2);
+
+  const sectionHeading = (
+    <h2
+      style={{
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontWeight: 600,
+        fontSize: 20,
+        letterSpacing: '-0.01em',
+        color: 'var(--text-primary)',
+        margin: '0 0 16px 0',
+      }}
+    >
+      Needs Attention
+    </h2>
+  );
 
   if (atRiskStudents.length === 0) {
     return (
       <section>
-        <h2
-          style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontWeight: 600,
-            fontSize: 20,
-            letterSpacing: '-0.01em',
-            color: 'var(--text-primary)',
-            margin: '0 0 16px 0',
-          }}
-        >
-          Needs Attention
-        </h2>
+        {sectionHeading}
         <div className="axon-card-subtle p-5 sm:p-6">
-          <p className="text-sm text-slate-400">All students on track! 🎉</p>
+          <p className="text-sm text-slate-400">All students on track!</p>
         </div>
       </section>
     );
@@ -427,26 +446,27 @@ function NeedsAttentionSection({ students, navigate }) {
 
   return (
     <section>
-      <h2
-        style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-          fontWeight: 600,
-          fontSize: 20,
-          letterSpacing: '-0.01em',
-          color: 'var(--text-primary)',
-          margin: '0 0 16px 0',
-        }}
-      >
-        Needs Attention
-      </h2>
+      {sectionHeading}
       <div className="flex flex-col gap-4">
-        {atRiskStudents.map(student => {
-          const isAtRisk = student.overall_risk_score >= 0.4;
+        {atRiskStudents.map((student, idx) => {
+          const risk = student.overall_risk_score || 0;
+          const mastery = student.avg_mastery || 0;
+          const flags = student.active_flags || 0;
+          const trend = student.overall_mastery_trend || 'stable';
+          const isAtRisk = risk >= 0.6;
           const severity = isAtRisk ? 'At Risk' : 'Needs Attention';
           const icon = isAtRisk ? AlertCircle : AlertTriangle;
           const borderColor = isAtRisk ? 'var(--at-risk)' : 'var(--needs-attention)';
           const pillBg = isAtRisk ? 'var(--at-risk-bg)' : 'var(--needs-attention-bg)';
           const pillColor = isAtRisk ? 'var(--at-risk)' : 'var(--needs-attention)';
+
+          // Build a unique body description per student
+          const parts = [];
+          parts.push(`Overall mastery at ${(mastery * 100).toFixed(0)}%`);
+          if (trend === 'declining') parts.push('trend declining');
+          if (flags > 0) parts.push(`${flags} active misconception flag${flags > 1 ? 's' : ''}`);
+          parts.push(`engagement ${((student.overall_engagement_score || 0) * 100).toFixed(0)}%`);
+          const body = parts.join('. ') + '.';
 
           return (
             <AlertCard
@@ -457,8 +477,8 @@ function NeedsAttentionSection({ students, navigate }) {
               borderColor={borderColor}
               pillBg={pillBg}
               pillColor={pillColor}
-              body={`Risk score: ${(student.overall_risk_score * 100).toFixed(0)}%. ${student.active_flags || 0} active misconception flags.`}
-              recommendation="Recommend direct teacher check-in. Review prerequisite concepts and provide targeted support."
+              body={body}
+              recommendation={RECOMMENDATIONS[idx % RECOMMENDATIONS.length]}
               actions={[
                 { label: 'View Profile', primary: false, onClick: () => navigate(`/teacher/student/${student.student_id}`) },
                 { label: 'Start Intervention', primary: true, onClick: () => navigate(`/teacher/student/${student.student_id}`) },
