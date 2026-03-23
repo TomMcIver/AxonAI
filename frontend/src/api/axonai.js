@@ -93,3 +93,39 @@ export function predictMastery(studentId, conceptId) {
     body: JSON.stringify({ student_id: studentId, concept_id: conceptId }),
   });
 }
+
+// Teacher AI insights — GPT-4o generated summaries
+export const getTeacherAIInsights = async (studentId) => {
+  try {
+    const res = await fetch(`${BASE_URL}/student/${studentId}/ai-insights`);
+    console.log(`[AxonAI API] /student/${studentId}/ai-insights → ${res.status}`);
+    return res.ok ? res.json() : null;
+  } catch (err) {
+    console.error(`[AxonAI API] ai-insights failed:`, err.message);
+    return null;
+  }
+};
+
+// Wellbeing context
+export const getStudentWellbeing = async (studentId) => {
+  try {
+    const res = await fetch(`${BASE_URL}/student/${studentId}/wellbeing`);
+    console.log(`[AxonAI API] /student/${studentId}/wellbeing → ${res.status}`);
+    return res.ok ? res.json() : null;
+  } catch (err) {
+    console.error(`[AxonAI API] wellbeing failed:`, err.message);
+    return null;
+  }
+};
+
+// Pedagogical memory (what approaches have worked)
+export const getPedagogicalMemory = async (studentId) => {
+  try {
+    const res = await fetch(`${BASE_URL}/student/${studentId}/pedagogical-memory`);
+    console.log(`[AxonAI API] /student/${studentId}/pedagogical-memory → ${res.status}`);
+    return res.ok ? res.json() : null;
+  } catch (err) {
+    console.error(`[AxonAI API] pedagogical-memory failed:`, err.message);
+    return null;
+  }
+};
