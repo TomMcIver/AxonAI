@@ -66,6 +66,10 @@ export function getClassOverview(classId) {
   return fetchAPI(`/class/${classId}/overview`);
 }
 
+export function getClassInterventions(classId) {
+  return fetchAPI(`/class/${classId}/interventions`);
+}
+
 // Concepts / Knowledge Graph
 export function getConcepts(subject) {
   return fetchAPI(`/concepts/${subject}`);
