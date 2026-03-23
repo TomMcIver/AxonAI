@@ -11,6 +11,36 @@ import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 
+// Must match SubjectsPage demo class size for Year 11 Mathematics
+const DEMO_CLASS_SIZE = 28;
+
+/**
+ * Pick a representative sample that gives ~20% at-risk (red),
+ * ~50% needs-attention (amber), ~30% on-track (blue/green).
+ */
+function selectRepresentativeSample(students, size = DEMO_CLASS_SIZE) {
+  if (!students || students.length === 0) return [];
+  if (students.length <= size) return students;
+
+  const sorted = [...students].sort((a, b) => (a.avg_mastery || 0) - (b.avg_mastery || 0));
+  const n = sorted.length;
+
+  const redCount    = Math.round(size * 0.20);
+  const yellowCount = Math.round(size * 0.50);
+  const greenCount  = size - redCount - yellowCount;
+
+  const bottom = sorted.slice(0, redCount);
+
+  const midStart  = Math.floor(n * 0.30);
+  const midSlice  = sorted.slice(midStart, Math.floor(n * 0.70));
+  const midOffset = Math.max(0, Math.floor((midSlice.length - yellowCount) / 2));
+  const middle    = midSlice.slice(midOffset, midOffset + yellowCount);
+
+  const top = sorted.slice(-greenCount);
+
+  return [...bottom, ...middle, ...top].slice(0, size);
+}
+
 function riskPill(riskScore) {
   let risk;
   if (riskScore >= 0.4) risk = 'at-risk';
@@ -91,7 +121,9 @@ export default function StudentsPage() {
   useEffect(() => { load(); }, [load]);
 
   const students = useMemo(() => {
-    const list = (data?.students || [])
+    // Cap to demo class size first, then filter/sort
+    const sample = selectRepresentativeSample(data?.students || [], DEMO_CLASS_SIZE);
+    const list = sample
       .filter(s => `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => {
         let av = a[sortBy] ?? 0;
@@ -167,7 +199,7 @@ export default function StudentsPage() {
               Students
             </h1>
             <p style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 14, color: 'var(--text-tertiary)', margin: 0 }}>
-              {data?.class?.subject || 'Mathematics'} · {students.length} students
+              {data?.class?.subject || 'Mathematics'} · {DEMO_CLASS_SIZE} students
             </p>
           </div>
         </div>
