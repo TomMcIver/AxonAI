@@ -8,6 +8,9 @@ import {
   getStudentMastery,
   getStudentPedagogy,
   getStudentPredictions,
+  getTeacherAIInsights,
+  getStudentWellbeing,
+  getPedagogicalMemory,
 } from '../../api/axonai';
 import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -37,6 +40,22 @@ function pct(v) {
   return `${Math.round(clamp01(v) * 100)}%`;
 }
 
+function formatApproachName(s) {
+  if (!s) return '';
+  return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function flagBorderStyle(flagType) {
+  switch (flagType) {
+    case 'at_risk': return 'border-rose-500/20 bg-rose-500/5';
+    case 'stuck': return 'border-amber-500/20 bg-amber-500/5';
+    case 'prerequisite_gap': return 'border-amber-500/20 bg-amber-500/5';
+    case 'needs_quiz': return 'border-sky-500/20 bg-sky-500/5';
+    case 'mastered': return 'border-emerald-500/20 bg-emerald-500/5';
+    default: return 'border-rose-500/20 bg-rose-500/5';
+  }
+}
+
 function InfoRow({ label, value }) {
   return (
     <div className="flex items-start justify-between gap-3 text-sm">
@@ -58,6 +77,9 @@ export default function StudentDetail() {
   const [pedagogy, setPedagogy] = useState(null);
   const [predictions, setPredictions] = useState(null);
   const [insights, setInsights] = useState(null);
+  const [aiInsights, setAiInsights] = useState(null);
+  const [wellbeingCtx, setWellbeingCtx] = useState(null);
+  const [pedagogicalMemory, setPedagogicalMemory] = useState(null);
   const [activeConversation, setActiveConversation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -73,6 +95,37 @@ export default function StudentDetail() {
     return (conversations?.conversations || []).slice(0, 6);
   }, [conversations]);
 
+  // Predicted concept mastery map from model_predictions (prediction_type = 'concept_mastery')
+  const conceptMasteryPredMap = useMemo(() => {
+    if (!predictions) return {};
+    const extract = (val) => {
+      if (!val) return {};
+      if (typeof val === 'string') { try { return JSON.parse(val); } catch { return {}; } }
+      return typeof val === 'object' && !Array.isArray(val) ? val : {};
+    };
+    // Array of prediction objects
+    if (Array.isArray(predictions)) {
+      const cm = predictions.find(p => p.prediction_type === 'concept_mastery');
+      return extract(cm?.prediction_value);
+    }
+    // predictions.predictions array
+    if (Array.isArray(predictions.predictions)) {
+      const cm = predictions.predictions.find(p => p.prediction_type === 'concept_mastery');
+      return extract(cm?.prediction_value);
+    }
+    // Flat object with concept_mastery key
+    if (predictions.concept_mastery) return extract(predictions.concept_mastery);
+    return {};
+  }, [predictions]);
+
+  // Sorted pedagogical memory approaches
+  const sortedApproaches = useMemo(() => {
+    const list = Array.isArray(pedagogicalMemory)
+      ? pedagogicalMemory
+      : (pedagogicalMemory?.approaches || pedagogicalMemory?.records || []);
+    return [...list].sort((a, b) => (b.success_rate ?? 0) - (a.success_rate ?? 0));
+  }, [pedagogicalMemory]);
+
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
@@ -84,8 +137,11 @@ export default function StudentDetail() {
       getStudentPedagogy(id).catch(() => null),
       getStudentPredictions(id).catch(() => null),
       getStudentInsights(id).catch(() => null),
+      getTeacherAIInsights(id).catch(() => null),
+      getStudentWellbeing(id).catch(() => null),
+      getPedagogicalMemory(id).catch(() => null),
     ])
-      .then(([d, m, f, c, p, pr, ins]) => {
+      .then(([d, m, f, c, p, pr, ins, ai, wb, pm]) => {
         setDashboard(d);
         setMastery(m);
         setFlags(f);
@@ -93,6 +149,9 @@ export default function StudentDetail() {
         setPedagogy(p);
         setPredictions(pr);
         setInsights(ins);
+        setAiInsights(ai);
+        setWellbeingCtx(wb);
+        setPedagogicalMemory(pm);
         setLoading(false);
       })
       .catch(e => {
@@ -159,6 +218,12 @@ export default function StudentDetail() {
   const failedStrategies = insights?.failed_strategies || [];
   const generatedAt = insights?.generated_at || null;
 
+  // Wellbeing context pills — prefer new endpoint, fall back to dashboard wellbeing
+  const wbData = wellbeingCtx || wellbeing;
+  const showIEP = !!(wbData?.has_learning_support_plan);
+  const showPastoral = !!(wbData?.home_situation_flag);
+  const showESOL = !!(wbData?.is_esol);
+
   return (
     <DashboardShell subtitle="Student · detail">
       <div className="space-y-5">
@@ -205,6 +270,15 @@ export default function StudentDetail() {
                 )}
                 {student?.learning_difficulty && (
                   <span className="axon-pill axon-pill-soft">{student.learning_difficulty}</span>
+                )}
+                {showIEP && (
+                  <span className="axon-pill axon-pill-soft">IEP</span>
+                )}
+                {showPastoral && (
+                  <span className="axon-pill axon-pill-soft">Pastoral</span>
+                )}
+                {showESOL && (
+                  <span className="axon-pill" style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}>ESOL</span>
                 )}
               </div>
             </div>
@@ -379,24 +453,34 @@ export default function StudentDetail() {
               </div>
             </div>
             <div className="space-y-2">
-              {focusConcepts.map(c => (
-                <div
-                  key={c.concept_id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-100 truncate">
-                      {c.concept_name}
-                    </p>
-                    <p className="text-[0.7rem] text-slate-500 truncate">
-                      {c.subject}
-                    </p>
+              {focusConcepts.map(c => {
+                const predicted = conceptMasteryPredMap[c.concept_id] ?? conceptMasteryPredMap[String(c.concept_id)] ?? null;
+                return (
+                  <div
+                    key={c.concept_id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-slate-100 truncate">
+                        {c.concept_name}
+                      </p>
+                      <p className="text-[0.7rem] text-slate-500 truncate">
+                        {c.subject}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-xs font-semibold text-sky-200">
+                        {pct(c.mastery_score)}
+                      </span>
+                      {predicted !== null && (
+                        <span className="text-[0.7rem] text-slate-500" title="Predicted mastery">
+                          → {pct(predicted)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-xs font-semibold text-sky-200">
-                    {pct(c.mastery_score)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
               {focusConcepts.length === 0 && (
                 <p className="text-xs text-slate-500">No mastery data yet.</p>
               )}
@@ -410,13 +494,13 @@ export default function StudentDetail() {
                 {(flags?.flags || []).slice(0, 6).map(f => (
                   <div
                     key={f.id}
-                    className="rounded-lg border border-rose-500/20 bg-rose-500/5 px-3 py-2"
+                    className={`rounded-lg border px-3 py-2 ${flagBorderStyle(f.flag_type)}`}
                   >
                     <p className="text-xs font-medium text-slate-100">
                       {f.concept_name}
                     </p>
                     <p className="text-[0.7rem] text-slate-500">
-                      {f.flag_detail}
+                      {f.flag_type ? f.flag_type.replace(/_/g, ' ') : ''}{f.flag_detail ? ` · ${f.flag_detail}` : ''}
                     </p>
                   </div>
                 ))}
@@ -522,6 +606,114 @@ export default function StudentDetail() {
             )}
           </div>
         </div>
+
+        {/* ── AI Insight (teacher_ai_insights) ── */}
+        {aiInsights && (
+          <div className="axon-card-subtle p-5 sm:p-6 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span style={{ color: '#14B8A6' }}>✦</span>
+                <p
+                  className="font-semibold tracking-widest uppercase"
+                  style={{ color: '#14B8A6', fontSize: '11px' }}
+                >
+                  Axon Intelligence
+                </p>
+              </div>
+              {(aiInsights.generated_at || aiInsights.model_used) && (
+                <p className="text-[0.65rem] text-slate-600 shrink-0 mt-0.5">
+                  {aiInsights.model_used ? `Generated by ${aiInsights.model_used}` : 'Generated'}
+                  {aiInsights.generated_at ? ` · ${new Date(aiInsights.generated_at).toLocaleDateString()}` : ''}
+                </p>
+              )}
+            </div>
+
+            {aiInsights.student_summary && (
+              <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.student_summary}</p>
+            )}
+
+            {aiInsights.risk_narrative && (
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                  Risk assessment
+                </p>
+                <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.risk_narrative}</p>
+              </div>
+            )}
+
+            {aiInsights.recommended_interventions && (
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                  Recommended actions
+                </p>
+                {Array.isArray(aiInsights.recommended_interventions) ? (
+                  <ul className="space-y-1.5">
+                    {aiInsights.recommended_interventions.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                        <span style={{ color: '#14B8A6' }} className="mt-0.5 shrink-0">→</span>
+                        {typeof item === 'string' ? item : JSON.stringify(item)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.recommended_interventions}</p>
+                )}
+              </div>
+            )}
+
+            {aiInsights.teaching_approach_advice && (
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                  How to teach this student
+                </p>
+                <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.teaching_approach_advice}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Teach This Student (pedagogical_memory) ── */}
+        {sortedApproaches.length > 0 && (
+          <div className="axon-card-subtle p-5 sm:p-6">
+            <p className="text-sm font-semibold text-slate-100 mb-4">Teach this student</p>
+            <div className="space-y-3">
+              {sortedApproaches.slice(0, 4).map((approach, i) => {
+                const rate = clamp01(approach.success_rate ?? 0);
+                const barColor =
+                  rate > 0.6
+                    ? 'bg-emerald-500'
+                    : rate >= 0.3
+                    ? 'bg-amber-500'
+                    : 'bg-rose-500';
+                const name = formatApproachName(approach.teaching_approach);
+                return (
+                  <div key={i}>
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <span className="text-xs text-slate-200">{name}</span>
+                      <span className="text-xs text-slate-400 shrink-0">
+                        {pct(rate)} ({approach.attempt_count ?? 0} sessions)
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-slate-800">
+                      <div
+                        className={`h-1.5 rounded-full ${barColor}`}
+                        style={{ width: pct(rate) }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {sortedApproaches[0] && (
+              <p className="text-[0.7rem] text-slate-500 mt-4">
+                Best approach: {formatApproachName(sortedApproaches[0].teaching_approach)}
+                {sortedApproaches[0].avg_messages_to_lightbulb != null && (
+                  ` · Avg ${Math.round(sortedApproaches[0].avg_messages_to_lightbulb)} messages to breakthrough`
+                )}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* ── Conversation Thread ── */}
         {activeConversation && (
