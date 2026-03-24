@@ -7,7 +7,12 @@ import ErrorState from '../../components/ErrorState';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import DashboardShell from '../../components/DashboardShell';
 
-const ROSTER_LIMIT = 25;
+// The 26 specific students in class_id=1 with full ML data
+const DEMO_CLASS_STUDENT_IDS = [
+  1, 547, 548, 549, 550, 551, 552, 553, 554, 555,
+  556, 557, 558, 559, 560, 561, 562, 563, 564, 565,
+  566, 567, 568, 569, 570, 571,
+];
 
 export default function ClassOverview() {
   const { id } = useParams();
@@ -45,7 +50,9 @@ export default function ClassOverview() {
   }
   if (!data) return null;
 
-  const roster = (data.students || []).slice(0, ROSTER_LIMIT);
+  const roster = (data.students || []).filter(
+    s => DEMO_CLASS_STUDENT_IDS.includes(s.student_id || s.id)
+  );
 
   const counts = roster.reduce(
     (acc, s) => {
@@ -86,7 +93,7 @@ export default function ClassOverview() {
             {data.class?.subject} · Year {data.class?.year_level} · {data.class?.academic_year}
           </p>
           <p className="text-[0.72rem] text-slate-500 mt-3">
-            Roster is capped to {ROSTER_LIMIT} students for this demo.
+            Showing {roster.length} students in this class.
           </p>
         </div>
 
@@ -149,7 +156,7 @@ export default function ClassOverview() {
             <div>
               <p className="text-sm font-semibold text-slate-100">Students</p>
               <p className="text-xs text-slate-500">
-                Showing {roster.length} of {data.student_count} (demo cap).
+                Showing {roster.length} students.
               </p>
             </div>
           </div>

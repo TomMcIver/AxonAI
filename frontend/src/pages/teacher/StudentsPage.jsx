@@ -11,26 +11,12 @@ import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 
-// Must match SubjectsPage demo class size for Year 11 Mathematics
-const DEMO_CLASS_SIZE = 28;
-
-/**
- * Pick `size` evenly-spaced students across the full mastery range so every
- * student has a different mastery score.
- */
-function selectRepresentativeSample(students, size = DEMO_CLASS_SIZE) {
-  if (!students || students.length === 0) return [];
-  if (students.length <= size) return students;
-
-  const sorted = [...students].sort((a, b) => (a.avg_mastery || 0) - (b.avg_mastery || 0));
-  const n = sorted.length;
-  const step = n / size;
-  const picked = [];
-  for (let i = 0; i < size; i++) {
-    picked.push(sorted[Math.floor(i * step)]);
-  }
-  return picked;
-}
+// The 26 specific students in class_id=1 with full ML data
+const DEMO_CLASS_STUDENT_IDS = [
+  1, 547, 548, 549, 550, 551, 552, 553, 554, 555,
+  556, 557, 558, 559, 560, 561, 562, 563, 564, 565,
+  566, 567, 568, 569, 570, 571,
+];
 
 function riskPill(riskScore) {
   let risk;
@@ -112,8 +98,10 @@ export default function StudentsPage() {
   useEffect(() => { load(); }, [load]);
 
   const students = useMemo(() => {
-    // Cap to demo class size first, then filter/sort
-    const sample = selectRepresentativeSample(data?.students || [], DEMO_CLASS_SIZE);
+    // Filter to only the 26 specific demo class students by ID
+    const sample = (data?.students || []).filter(
+      s => DEMO_CLASS_STUDENT_IDS.includes(s.student_id || s.id)
+    );
     const list = sample
       .filter(s => `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => {
@@ -190,7 +178,7 @@ export default function StudentsPage() {
               Students
             </h1>
             <p style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 14, color: '#64748B', margin: 0 }}>
-              {data?.class?.subject || 'Mathematics'} · {DEMO_CLASS_SIZE} students
+              {data?.class?.subject || 'Mathematics'} · {DEMO_CLASS_STUDENT_IDS.length} students
             </p>
           </div>
         </div>

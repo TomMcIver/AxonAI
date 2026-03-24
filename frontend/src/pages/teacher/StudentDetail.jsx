@@ -191,7 +191,14 @@ export default function StudentDetail() {
   const tone = riskTone(risk);
   const trend = trendTone(profile?.overall_mastery_trend);
 
-  // Flatten arrays from student profile
+  // Profile-mapped fields — new schema stores these in profile/wellbeing, not student
+  const learningStyle = profile?.dominant_learning_style || student?.learning_style || null;
+  const learningDifficulty = wellbeing?.has_learning_support_plan
+    ? (wellbeing?.learning_support_details || 'Learning support plan active')
+    : (student?.learning_difficulty || null);
+  const primaryLanguage = student?.primary_language || 'English';
+  const academicGoals = student?.academic_goals || 'NCEA Level 2';
+  // Interests/activities not present in new schema — use legacy field if available
   const interestsList = Array.isArray(student?.interests)
     ? student.interests.join(', ')
     : student?.interests || null;
@@ -265,11 +272,11 @@ export default function StudentDetail() {
                 <span className="axon-pill">
                   {summary?.active_flags ?? 0} flags
                 </span>
-                {student?.learning_style && (
-                  <span className="axon-pill">{student.learning_style} learner</span>
+                {learningStyle && (
+                  <span className="axon-pill">{learningStyle} learner</span>
                 )}
-                {student?.learning_difficulty && (
-                  <span className="axon-pill axon-pill-soft">{student.learning_difficulty}</span>
+                {learningDifficulty && (
+                  <span className="axon-pill axon-pill-soft">{learningDifficulty}</span>
                 )}
                 {showIEP && (
                   <span className="axon-pill axon-pill-soft">IEP</span>
@@ -334,14 +341,12 @@ export default function StudentDetail() {
         <div className="axon-card-subtle p-5 sm:p-6">
           <p className="text-sm font-semibold text-slate-100 mb-3">Student profile</p>
           <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
-            <InfoRow label="Learning style" value={student?.learning_style} />
-            <InfoRow label="Preferred difficulty" value={student?.preferred_difficulty} />
-            <InfoRow label="Learning difficulty" value={student?.learning_difficulty} />
-            <InfoRow label="Primary language" value={student?.primary_language} />
-            <InfoRow label="Secondary language" value={student?.secondary_language} />
-            <InfoRow label="Academic goals" value={student?.academic_goals} />
-            <InfoRow label="Interests" value={interestsList} />
-            <InfoRow label="Activities" value={activitiesList} />
+            <InfoRow label="Learning style" value={learningStyle} />
+            <InfoRow label="Primary language" value={primaryLanguage} />
+            <InfoRow label="Learning difficulty" value={learningDifficulty} />
+            <InfoRow label="Academic goals" value={academicGoals} />
+            {interestsList && <InfoRow label="Interests" value={interestsList} />}
+            {activitiesList && <InfoRow label="Activities" value={activitiesList} />}
           </div>
           {student?.major_life_event && (
             <div className="flex items-start gap-3 text-sm rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 mt-3">
