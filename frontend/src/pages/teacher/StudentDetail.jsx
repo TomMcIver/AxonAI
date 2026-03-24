@@ -75,7 +75,6 @@ export default function StudentDetail() {
   const [conversations, setConversations] = useState(null);
   const [pedagogy, setPedagogy] = useState(null);
   const [predictions, setPredictions] = useState(null);
-  const [insights, setInsights] = useState(null);
   const [aiInsights, setAiInsights] = useState(null);
   const [wellbeingCtx, setWellbeingCtx] = useState(null);
   const [pedagogicalMemory, setPedagogicalMemory] = useState(null);
@@ -136,19 +135,18 @@ export default function StudentDetail() {
       getStudentPedagogy(id).catch(() => null),
       getStudentPredictions(id).catch(() => null),
       getTeacherAIInsights(id).catch(() => null),
-      getTeacherAIInsights(id).catch(() => null),
       getStudentWellbeing(id).catch(() => null),
       getPedagogicalMemory(id).catch(() => null),
     ])
-      .then(([d, m, f, c, p, pr, ins, ai, wb, pm]) => {
+      .then(([d, m, f, c, p, pr, ai, wb, pm]) => {
         setDashboard(d);
         setMastery(m);
         setFlags(f);
         setConversations(c);
         setPedagogy(p);
         setPredictions(pr);
-        setInsights(ins);
         setAiInsights(ai);
+        console.log('AI INSIGHTS RAW:', ai);
         setWellbeingCtx(wb);
         setPedagogicalMemory(pm);
         setLoading(false);
@@ -216,13 +214,13 @@ export default function StudentDetail() {
   const riskFactors = predictions?.risk_factors || [];
   const improvementAreas = predictions?.improvement_areas || [];
 
-  // AI Insights data — from TeacherAIInsight via /student/:id/insights
-  const aiSummary = insights?.summary || insights?.ai_summary || insights?.narrative || null;
-  const insightType = insights?.insight_type || null;
-  const suggestedInterventions = insights?.suggested_interventions || [];
-  const successfulStrategies = insights?.successful_strategies || [];
-  const failedStrategies = insights?.failed_strategies || [];
-  const generatedAt = insights?.generated_at || null;
+  // AI Insights data — from TeacherAIInsight via /student/:id/ai-insights
+  const aiSummary = aiInsights?.insights?.student_summary || null;
+  const insightType = null;
+  const suggestedInterventions = [];
+  const successfulStrategies = [];
+  const failedStrategies = [];
+  const generatedAt = aiInsights?.insights?.generated_at || null;
 
   // Wellbeing context pills — prefer new endpoint, fall back to dashboard wellbeing
   const wbData = wellbeingCtx || wellbeing;
@@ -549,29 +547,8 @@ export default function StudentDetail() {
         {/* ── Pedagogy Recommendations ── */}
         <div className="axon-card-subtle p-5 sm:p-6">
           <p className="text-sm font-semibold text-slate-100 mb-3">Teaching recommendations</p>
-          {(strategies.length > 0 || pedagogyNotes) ? (
-            <>
-              {pedagogyNotes && (
-                <p className="text-xs text-slate-400 mb-3">{pedagogyNotes}</p>
-              )}
-              {strategies.length > 0 && (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {strategies.map((s, i) => {
-                    const name = typeof s === 'string' ? s : (s.name || s.strategy || JSON.stringify(s));
-                    const desc = typeof s === 'object' ? (s.description || s.detail || null) : null;
-                    return (
-                      <div
-                        key={i}
-                        className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-3 py-2"
-                      >
-                        <p className="text-xs font-medium text-sky-200">{name}</p>
-                        {desc && <p className="text-[0.7rem] text-slate-400 mt-0.5">{desc}</p>}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
+          {aiInsights?.insights?.teaching_approach_advice ? (
+            <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.teaching_approach_advice}</p>
           ) : (
             <p className="text-xs text-slate-500">No teaching recommendations available yet.</p>
           )}
@@ -581,30 +558,27 @@ export default function StudentDetail() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="axon-card-subtle p-5 sm:p-6">
             <p className="text-sm font-semibold text-slate-100 mb-2">Risk factors</p>
-            {riskFactors.length > 0 ? (
-              <ul className="space-y-1">
-                {riskFactors.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
-                    <span className="text-rose-400 mt-0.5 shrink-0">•</span>
-                    {typeof f === 'string' ? f : JSON.stringify(f)}
-                  </li>
-                ))}
-              </ul>
+            {aiInsights?.insights?.risk_narrative ? (
+              <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.risk_narrative}</p>
             ) : (
               <p className="text-xs text-slate-500">No risk factors identified.</p>
             )}
           </div>
           <div className="axon-card-subtle p-5 sm:p-6">
             <p className="text-sm font-semibold text-slate-100 mb-2">Improvement areas</p>
-            {improvementAreas.length > 0 ? (
-              <ul className="space-y-1">
-                {improvementAreas.map((a, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
-                    <span className="text-emerald-400 mt-0.5 shrink-0">•</span>
-                    {typeof a === 'string' ? a : JSON.stringify(a)}
-                  </li>
-                ))}
-              </ul>
+            {aiInsights?.insights?.recommended_interventions ? (
+              Array.isArray(aiInsights.insights.recommended_interventions) ? (
+                <ul className="space-y-1">
+                  {aiInsights.insights.recommended_interventions.map((a, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                      <span className="text-emerald-400 mt-0.5 shrink-0">•</span>
+                      {typeof a === 'string' ? a : JSON.stringify(a)}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.recommended_interventions}</p>
+              )
             ) : (
               <p className="text-xs text-slate-500">No improvement areas identified.</p>
             )}
@@ -612,7 +586,7 @@ export default function StudentDetail() {
         </div>
 
         {/* ── AI Insight (teacher_ai_insights) ── */}
-        {aiInsights && (
+        {aiInsights?.insights && (
           <div className="axon-card-subtle p-5 sm:p-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -624,35 +598,35 @@ export default function StudentDetail() {
                   Axon Intelligence
                 </p>
               </div>
-              {(aiInsights.generated_at || aiInsights.model_used) && (
+              {(aiInsights.insights.generated_at || aiInsights.insights.model_used) && (
                 <p className="text-[0.65rem] text-slate-600 shrink-0 mt-0.5">
-                  {aiInsights.model_used ? `Generated by ${aiInsights.model_used}` : 'Generated'}
-                  {aiInsights.generated_at ? ` · ${new Date(aiInsights.generated_at).toLocaleDateString()}` : ''}
+                  {aiInsights.insights.model_used ? `Generated by ${aiInsights.insights.model_used}` : 'Generated'}
+                  {aiInsights.insights.generated_at ? ` · ${new Date(aiInsights.insights.generated_at).toLocaleDateString()}` : ''}
                 </p>
               )}
             </div>
 
-            {aiInsights.student_summary && (
-              <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.student_summary}</p>
+            {aiInsights.insights.student_summary && (
+              <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.student_summary}</p>
             )}
 
-            {aiInsights.risk_narrative && (
+            {aiInsights.insights.risk_narrative && (
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                   Risk assessment
                 </p>
-                <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.risk_narrative}</p>
+                <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.risk_narrative}</p>
               </div>
             )}
 
-            {aiInsights.recommended_interventions && (
+            {aiInsights.insights.recommended_interventions && (
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                   Recommended actions
                 </p>
-                {Array.isArray(aiInsights.recommended_interventions) ? (
+                {Array.isArray(aiInsights.insights.recommended_interventions) ? (
                   <ul className="space-y-1.5">
-                    {aiInsights.recommended_interventions.map((item, i) => (
+                    {aiInsights.insights.recommended_interventions.map((item, i) => (
                       <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
                         <span style={{ color: '#14B8A6' }} className="mt-0.5 shrink-0">→</span>
                         {typeof item === 'string' ? item : JSON.stringify(item)}
@@ -660,17 +634,17 @@ export default function StudentDetail() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.recommended_interventions}</p>
+                  <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.recommended_interventions}</p>
                 )}
               </div>
             )}
 
-            {aiInsights.teaching_approach_advice && (
+            {aiInsights.insights.teaching_approach_advice && (
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                   How to teach this student
                 </p>
-                <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.teaching_approach_advice}</p>
+                <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.teaching_approach_advice}</p>
               </div>
             )}
           </div>
