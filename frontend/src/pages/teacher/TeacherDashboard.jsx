@@ -83,14 +83,19 @@ function selectRepresentativeSample(students, size = DEMO_CLASS_SIZE) {
   if (!students || students.length === 0) return [];
   if (students.length <= size) return students;
 
-  const sorted = [...students].sort((a, b) => (a.avg_mastery || 0) - (b.avg_mastery || 0));
+  // Always include Sione Tuhoe (id 559) if present
+  const pinned = students.find(s => s.student_id === 559);
+  const rest = students.filter(s => s.student_id !== 559);
+
+  const sorted = [...rest].sort((a, b) => (a.avg_mastery || 0) - (b.avg_mastery || 0));
   const n = sorted.length;
-  const step = n / size;
+  const targetSize = pinned ? size - 1 : size;
+  const step = n / targetSize;
   const picked = [];
-  for (let i = 0; i < size; i++) {
+  for (let i = 0; i < targetSize; i++) {
     picked.push(sorted[Math.floor(i * step)]);
   }
-  return picked;
+  return pinned ? [pinned, ...picked] : picked;
 }
 
 /* ─────────────────────────────────────────────
@@ -406,17 +411,25 @@ const RECOMMENDATIONS = [
 ];
 
 function NeedsAttentionSection({ students, navigate }) {
-  // Sort by risk descending, deduplicate by student_id, take top 2
+  // Always surface Sione Tuhoe (id 559) first if present; otherwise highest-risk student
   const seen = new Set();
-  const atRiskStudents = (students || [])
-    .filter(s => s.overall_risk_score > 0.4 || (s.active_flags && s.active_flags > 0))
-    .sort((a, b) => (b.overall_risk_score || 0) - (a.overall_risk_score || 0))
+  const eligible = (students || [])
+    .filter(s => s.overall_risk_score > 0.2 || (s.active_flags && s.active_flags > 0))
+    .sort((a, b) => {
+      if (a.student_id === 559) return -1;
+      if (b.student_id === 559) return 1;
+      return (b.overall_risk_score || 0) - (a.overall_risk_score || 0);
+    })
     .filter(s => {
       if (seen.has(s.student_id)) return false;
       seen.add(s.student_id);
       return true;
-    })
-    .slice(0, 1);
+    });
+  // If Sione isn't in eligible, pull him directly from the students list
+  const sione = (students || []).find(s => s.student_id === 559);
+  const atRiskStudents = (eligible.some(s => s.student_id === 559) || !sione)
+    ? eligible.slice(0, 1)
+    : [sione];
 
   const sectionHeading = (
     <h2
@@ -509,14 +522,14 @@ function ActivityIcon({ type, colour }) {
 }
 
 const activityFeed = [
+  { time: "1h ago", student: "Sione Tuhoe", action: "AI Tutor session:", concept: "Algebra Foundations", icon: "sparkle", colour: "primary" },
   { time: "2h ago", student: "Aroha Ngata", action: "AI Tutor session:", concept: "Trigonometry", icon: "sparkle", colour: "primary" },
   { time: "3h ago", student: "Priya Sharma", action: "Mastered", concept: "Quadratic Equations", icon: "trophy", colour: "mastered" },
   { time: "4h ago", student: "Mia Anderson", action: "Completed quiz:", concept: "Linear Functions", icon: "check", colour: "in-progress" },
   { time: "5h ago", student: "Noah Williams", action: "Flagged:", concept: "Angle Relationships", icon: "alert", colour: "needs-attention" },
-  { time: "6h ago", student: "James Tūhoe", action: "Inactive —", concept: "last seen 3 days ago", icon: "clock", colour: "inactive" },
 ];
 
-const studentIdByName = {};
+const studentIdByName = { "Sione Tuhoe": 559 };
 
 function ActivityFeedSection({ navigate }) {
   return (
