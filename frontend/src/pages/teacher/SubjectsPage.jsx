@@ -96,20 +96,24 @@ export default function SubjectsPage() {
               key={subject.id}
               onClick={() => navigate('/teacher/class/1')}
               style={{
-                background: 'rgba(15,23,42,0.9)',
-                border: '1px solid rgba(148,163,184,0.08)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--shadow-1)',
+                background: 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(16px) saturate(140%)',
+                WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: 20,
+                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.3)',
                 padding: '24px 28px',
                 cursor: 'pointer',
-                transition: 'box-shadow 150ms, transform 150ms',
+                transition: 'all 300ms cubic-bezier(0.16, 1, 0.3, 1)',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.boxShadow = 'var(--shadow-2)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 12px 40px rgba(0, 0, 0, 0.4)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.boxShadow = 'var(--shadow-1)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.3)';
                 e.currentTarget.style.transform = 'none';
               }}
             >
@@ -150,7 +154,7 @@ export default function SubjectsPage() {
               </div>
 
               {/* Stats row */}
-              <div className="flex items-center gap-8 mt-5 pt-4" style={{ borderTop: '1px solid rgba(148,163,184,0.06)' }}>
+              <div className="flex items-center gap-8 mt-5 pt-4" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.04)' }}>
                 <div className="flex items-center gap-2">
                   <Users size={15} style={{ color: 'var(--text-tertiary)' }} />
                   <span style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 14, color: 'var(--text-secondary)' }}>
@@ -182,7 +186,7 @@ export default function SubjectsPage() {
                       fontFamily: "'Lexend', sans-serif",
                       fontWeight: 400,
                       fontSize: 12,
-                      background: 'rgba(148,163,184,0.06)',
+                      background: 'rgba(255, 255, 255, 0.04)',
                       color: 'var(--text-secondary)',
                       padding: '3px 10px',
                       borderRadius: 'var(--radius-full)',
