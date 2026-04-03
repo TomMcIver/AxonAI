@@ -104,19 +104,19 @@ export default function ClassOverview() {
               {roster.length}
             </p>
           </div>
-          <div className="axon-card-ghost p-4">
+          <div className="axon-card-ghost p-4" style={{ borderLeft: '3px solid #ef4444' }}>
             <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">At risk</p>
             <p className="text-2xl font-semibold text-rose-300">
               {counts.atRisk}
             </p>
           </div>
-          <div className="axon-card-ghost p-4">
+          <div className="axon-card-ghost p-4" style={{ borderLeft: '3px solid #3b82f6' }}>
             <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">Avg engagement</p>
             <p className="text-2xl font-semibold text-sky-300">
               {(data.class_stats?.avg_engagement * 100).toFixed(0)}%
             </p>
           </div>
-          <div className="axon-card-ghost p-4">
+          <div className="axon-card-ghost p-4" style={{ borderLeft: '3px solid #10b981' }}>
             <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">Resolve rate</p>
             <p className="text-2xl font-semibold text-emerald-300">
               {(data.class_stats?.resolve_rate * 100).toFixed(0)}%
@@ -129,11 +129,38 @@ export default function ClassOverview() {
             <p className="text-sm font-semibold text-slate-100 mb-3">Trends</p>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={trendData} cx="50%" cy="50%" outerRadius={70} dataKey="value">
+                <Pie
+                  data={trendData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={72}
+                  paddingAngle={3}
+                  dataKey="value"
+                  stroke="none"
+                >
                   {trendData.map((d, i) => <Cell key={i} fill={d.color} />)}
                 </Pie>
-                <Tooltip />
-                <Legend />
+                <Tooltip
+                  contentStyle={{
+                    background: 'rgba(15,23,42,0.95)',
+                    border: '1px solid rgba(148,163,184,0.15)',
+                    borderRadius: 8,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                    fontFamily: "'Lexend', sans-serif",
+                    fontSize: 13,
+                    color: '#e2e8f0',
+                  }}
+                  itemStyle={{ color: '#94a3b8' }}
+                />
+                <Legend
+                  wrapperStyle={{
+                    fontFamily: "'Lexend', sans-serif",
+                    fontSize: 12,
+                    color: '#64748b',
+                  }}
+                  formatter={(value) => <span style={{ color: '#94a3b8', fontSize: 12 }}>{value}</span>}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -141,11 +168,38 @@ export default function ClassOverview() {
             <p className="text-sm font-semibold text-slate-100 mb-3">Risk</p>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={riskData} cx="50%" cy="50%" outerRadius={70} dataKey="value">
+                <Pie
+                  data={riskData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={72}
+                  paddingAngle={3}
+                  dataKey="value"
+                  stroke="none"
+                >
                   {riskData.map((d, i) => <Cell key={i} fill={d.color} />)}
                 </Pie>
-                <Tooltip />
-                <Legend />
+                <Tooltip
+                  contentStyle={{
+                    background: 'rgba(15,23,42,0.95)',
+                    border: '1px solid rgba(148,163,184,0.15)',
+                    borderRadius: 8,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                    fontFamily: "'Lexend', sans-serif",
+                    fontSize: 13,
+                    color: '#e2e8f0',
+                  }}
+                  itemStyle={{ color: '#94a3b8' }}
+                />
+                <Legend
+                  wrapperStyle={{
+                    fontFamily: "'Lexend', sans-serif",
+                    fontSize: 12,
+                    color: '#64748b',
+                  }}
+                  formatter={(value) => <span style={{ color: '#94a3b8', fontSize: 12 }}>{value}</span>}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
