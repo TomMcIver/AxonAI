@@ -58,8 +58,8 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
     <div className="app-shell min-h-screen text-slate-100">
       <div className="flex min-h-screen">
         {/* Sidebar */}
-        <aside className="app-shell-blur hidden lg:flex lg:flex-col w-64 xl:w-72 border-r border-slate-800/80 bg-slate-900/60">
-          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-800/70">
+        <aside className="hidden lg:flex lg:flex-col w-64 xl:w-72" style={{ background: 'rgba(2, 6, 23, 0.6)', backdropFilter: 'blur(24px) saturate(150%)', WebkitBackdropFilter: 'blur(24px) saturate(150%)', borderRight: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.04]">
             <button
               onClick={() => navigate('/')}
               className="group flex items-center gap-2"
@@ -100,8 +100,8 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                   onClick={() => navigate(item.path)}
                   className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                     isActive
-                      ? 'bg-slate-900/80 text-slate-50 shadow-[0_0_0_1px_rgba(148,163,184,0.5),0_14px_35px_rgba(15,23,42,0.9)]'
-                      : 'text-slate-400 hover:bg-slate-900/40 hover:text-slate-100'
+                      ? 'bg-white/[0.04] text-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                      : 'text-slate-400 hover:bg-white/[0.03] hover:text-slate-100'
                   }`}
                 >
                   <span
@@ -119,7 +119,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
             })}
           </nav>
 
-          <div className="border-t border-slate-800/70 px-4 py-4">
+          <div className="border-t border-white/[0.04] px-4 py-4">
             <button className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 hover:bg-slate-900/50 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -145,7 +145,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
         {/* Main region */}
         <div className="flex-1 flex flex-col">
           {/* Top bar */}
-          <header className="app-shell-blur sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/60">
+          <header className="sticky top-0 z-30" style={{ background: 'rgba(2, 6, 23, 0.5)', backdropFilter: 'blur(24px) saturate(150%)', WebkitBackdropFilter: 'blur(24px) saturate(150%)', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
             <div className="mx-auto w-full max-w-7xl flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
               <div className="flex items-center gap-3">
                 <button
@@ -244,7 +244,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
               className="flex-1 bg-black/50 backdrop-blur-sm"
               onClick={() => setMobileNavOpen(false)}
             />
-            <div className="relative w-72 max-w-full app-shell-blur bg-slate-950/90 border-l border-slate-800/80">
+            <div className="relative w-72 max-w-full" style={{ background: 'rgba(2, 6, 23, 0.6)', backdropFilter: 'blur(24px) saturate(150%)', WebkitBackdropFilter: 'blur(24px) saturate(150%)', borderLeft: '1px solid rgba(255, 255, 255, 0.06)' }}>
               <button
                 className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-700/70 bg-slate-900/80 text-slate-200 hover:bg-slate-900"
                 onClick={() => setMobileNavOpen(false)}
@@ -252,7 +252,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
               >
                 <X size={16} />
               </button>
-              <div className="px-4 pt-6 pb-4 border-b border-slate-800/70">
+              <div className="px-4 pt-6 pb-4 border-b border-white/[0.04]">
                 <button
                   onClick={() => {
                     navigate('/');

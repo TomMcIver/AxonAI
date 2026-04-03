@@ -218,7 +218,7 @@ export default function StudentsPage() {
               gap: 8,
               background: 'rgba(30,41,59,0.7)',
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid rgba(100,116,139,0.3)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
               padding: '8px 12px',
             }}
           >
@@ -245,9 +245,12 @@ export default function StudentsPage() {
         {/* Table */}
         <div
           style={{
-            background: 'rgba(30,41,59,0.7)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-1)',
+            background: 'rgba(255, 255, 255, 0.02)',
+            backdropFilter: 'blur(16px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: 20,
+            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.3)',
             overflow: 'hidden',
           }}
         >
@@ -257,8 +260,8 @@ export default function StudentsPage() {
               display: 'grid',
               gridTemplateColumns: '2fr 1fr 1fr 1fr 0.7fr 0.7fr 40px',
               padding: '12px 20px',
-              borderBottom: '1px solid rgba(148,163,184,0.06)',
-              background: 'rgba(30,41,59,0.4)',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+              background: 'rgba(255, 255, 255, 0.02)',
             }}
           >
             {[
@@ -304,7 +307,7 @@ export default function StudentsPage() {
                 display: 'grid',
                 gridTemplateColumns: '2fr 1fr 1fr 1fr 0.7fr 0.7fr 40px',
                 padding: '14px 20px',
-                borderBottom: '1px solid rgba(148,163,184,0.06)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
                 cursor: 'pointer',
                 transition: 'background 150ms',
                 alignItems: 'center',

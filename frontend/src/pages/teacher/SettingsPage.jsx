@@ -142,10 +142,12 @@ export default function SettingsPage() {
         {/* Profile card */}
         <div
           style={{
-            background: 'rgba(15,23,42,0.9)',
-            border: '1px solid rgba(148,163,184,0.08)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-1)',
+            background: 'rgba(255, 255, 255, 0.02)',
+            backdropFilter: 'blur(12px) saturate(130%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(130%)',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            borderRadius: 16,
+            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
             padding: '20px 24px',
             marginTop: 24,
             marginBottom: 24,
@@ -202,10 +204,12 @@ export default function SettingsPage() {
               <div
                 key={section.id}
                 style={{
-                  background: 'rgba(15,23,42,0.9)',
-                  border: '1px solid rgba(148,163,184,0.08)',
-                  borderRadius: 'var(--radius-lg)',
-                  boxShadow: 'var(--shadow-1)',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  backdropFilter: 'blur(12px) saturate(130%)',
+                  WebkitBackdropFilter: 'blur(12px) saturate(130%)',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  borderRadius: 16,
+                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
                   overflow: 'hidden',
                 }}
               >
@@ -228,7 +232,7 @@ export default function SettingsPage() {
                     key={setting.id}
                     className="flex items-center justify-between px-6 py-4"
                     style={{
-                      borderTop: '1px solid rgba(148,163,184,0.06)',
+                      borderTop: '1px solid rgba(255, 255, 255, 0.04)',
                     }}
                   >
                     <div>
@@ -253,7 +257,7 @@ export default function SettingsPage() {
             marginTop: 24,
             padding: '16px 20px',
             borderRadius: 'var(--radius-md)',
-            background: 'rgba(30,41,59,0.4)',
+            background: 'rgba(255, 255, 255, 0.02)',
             textAlign: 'center',
           }}
         >

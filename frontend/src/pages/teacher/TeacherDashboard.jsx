@@ -247,12 +247,13 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
   return (
     <div
       style={{
-        background: 'rgba(15,23,42,0.9)',
-        borderRadius: 'var(--radius-lg)',
+        background: 'rgba(255, 255, 255, 0.03)',
+        backdropFilter: 'blur(16px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: 20,
         borderLeft: `4px solid ${borderColor}`,
-        boxShadow: 'var(--shadow-1)',
-        backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(148,163,184,0.08)',
+        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.3)',
         padding: '20px 24px',
       }}
     >
@@ -297,7 +298,7 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
         {body}
       </p>
 
-      <div className="flex items-start gap-2 mb-4" style={{ padding: '10px 12px', background: 'var(--primary-50)', borderRadius: 'var(--radius-sm)' }}>
+      <div className="flex items-start gap-2 mb-4" style={{ padding: '10px 12px', background: 'rgba(20, 184, 166, 0.06)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(20, 184, 166, 0.1)', borderRadius: 10 }}>
         <Sparkles size={14} style={{ color: 'var(--primary-500)', flexShrink: 0, marginTop: 3 }} />
         <p
           style={{
@@ -486,11 +487,12 @@ function ActivityFeedSection({ navigate }) {
       </h2>
       <div
         style={{
-          background: 'rgba(15,23,42,0.9)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-1)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(148,163,184,0.08)',
+          background: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(16px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: 20,
+          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.3)',
           overflow: 'hidden',
         }}
       >
@@ -507,7 +509,7 @@ function ActivityFeedSection({ navigate }) {
               gap: 12,
               padding: '12px 20px',
               borderLeft: `2px solid ${colourVar(item.colour)}`,
-              borderBottom: i < activityFeed.length - 1 ? '1px solid rgba(148,163,184,0.08)' : 'none',
+              borderBottom: i < activityFeed.length - 1 ? '1px solid rgba(255, 255, 255, 0.04)' : 'none',
               cursor: 'pointer',
               transition: 'background 150ms',
             }}
@@ -697,11 +699,12 @@ function KnowledgeGraphPreview({ nodes: allNodes, edges: allEdges, navigate }) {
       </div>
       <div
         style={{
-          background: 'rgba(15,23,42,0.9)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-1)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(148,163,184,0.08)',
+          background: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(16px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: 20,
+          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.3)',
           padding: 16,
           position: 'relative',
           overflow: 'hidden',
@@ -838,11 +841,13 @@ function KnowledgeGraphPreview({ nodes: allNodes, edges: allEdges, navigate }) {
               left: tooltip.x,
               top: tooltip.y - 8,
               transform: 'translateX(-50%)',
-              background: 'rgba(15,23,42,0.9)',
-              border: '1px solid rgba(148,163,184,0.15)',
-              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(255, 255, 255, 0.015)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255, 255, 255, 0.03)',
+              borderRadius: 10,
               padding: '6px 10px',
-              boxShadow: 'var(--shadow-2)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
               zIndex: 50,
               whiteSpace: 'nowrap',
               pointerEvents: 'none',
@@ -858,7 +863,7 @@ function KnowledgeGraphPreview({ nodes: allNodes, edges: allEdges, navigate }) {
         )}
 
         {/* Legend */}
-        <div className="flex items-center justify-center gap-6 mt-3 pt-3" style={{ borderTop: '1px solid rgba(148,163,184,0.08)' }}>
+        <div className="flex items-center justify-center gap-6 mt-3 pt-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.04)' }}>
           {[
             { label: 'Foundational', color: '#10B981' },
             { label: 'Basic', color: '#0891B2' },
@@ -887,11 +892,12 @@ function ClassPulseSection({ students, classAvg, navigate }) {
   return (
     <section
       style={{
-        background: 'rgba(15,23,42,0.9)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-2)',
-        backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(148,163,184,0.08)',
+        background: 'rgba(255, 255, 255, 0.03)',
+        backdropFilter: 'blur(16px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: 20,
+        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.3)',
         padding: '32px 36px',
       }}
     >

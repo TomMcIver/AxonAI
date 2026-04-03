@@ -228,14 +228,17 @@ export default function StudentTable({ students = [] }) {
       </div>
 
       <div style={{
-        borderRadius: 12,
-        border: '1px solid rgba(148,163,184,0.08)',
+        borderRadius: 20,
+        border: '1px solid rgba(255, 255, 255, 0.08)',
         overflow: 'hidden',
-        background: 'rgba(15,23,42,0.5)',
+        background: 'rgba(255, 255, 255, 0.02)',
+        backdropFilter: 'blur(16px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.3)',
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(148,163,184,0.1)', background: 'rgba(30,41,59,0.5)' }}>
+            <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)', background: 'rgba(255, 255, 255, 0.02)' }}>
               <SortHeader label="Name" field="last_name" />
               <SortHeader label="Mastery" field="avg_mastery" />
               <SortHeader label="Risk" field="overall_risk_score" />
