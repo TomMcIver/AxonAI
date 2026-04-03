@@ -257,8 +257,8 @@ export default function StudentsPage() {
               display: 'grid',
               gridTemplateColumns: '2fr 1fr 1fr 1fr 0.7fr 0.7fr 40px',
               padding: '12px 20px',
-              borderBottom: '1px solid rgba(100,116,139,0.2)',
-              background: 'rgba(51,65,85,0.5)',
+              borderBottom: '1px solid rgba(148,163,184,0.06)',
+              background: 'rgba(30,41,59,0.4)',
             }}
           >
             {[
@@ -304,15 +304,23 @@ export default function StudentsPage() {
                 display: 'grid',
                 gridTemplateColumns: '2fr 1fr 1fr 1fr 0.7fr 0.7fr 40px',
                 padding: '14px 20px',
-                borderBottom: '1px solid rgba(100,116,139,0.2)',
+                borderBottom: '1px solid rgba(148,163,184,0.06)',
                 cursor: 'pointer',
                 transition: 'background 150ms',
                 alignItems: 'center',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(51,65,85,0.5)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(148,163,184,0.04)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               <div className="flex items-center gap-3">
+                <div style={{
+                  width: 3,
+                  height: 32,
+                  borderRadius: 2,
+                  background: student.overall_risk_score >= 0.4 ? '#ef4444' :
+                              student.overall_risk_score >= 0.2 ? '#f59e0b' : '#10b981',
+                  flexShrink: 0,
+                }} />
                 <div
                   style={{
                     width: 32,

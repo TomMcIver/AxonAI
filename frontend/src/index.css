@@ -47,6 +47,40 @@
   --transition-fast: 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
   --transition-med: 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
   --transition-slow: 320ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* TeacherDashboard semantic tokens — dark mode */
+  --primary-900: #134E48;
+  --primary-700: #0F766E;
+  --primary-500: #14B8A6;
+  --primary-300: #5EEAD4;
+  --primary-100: rgba(20,184,166,0.12);
+  --primary-50: rgba(20,184,166,0.06);
+
+  --surface-base: transparent;
+  --surface-sidebar: rgba(15,23,42,0.6);
+  --surface-muted: rgba(30,41,59,0.6);
+
+  --mastered: #059669;
+  --mastered-bg: rgba(5,150,105,0.1);
+  --on-track: #0d9488;
+  --on-track-bg: rgba(13,148,136,0.1);
+  --in-progress: #3b82f6;
+  --in-progress-bg: rgba(59,130,246,0.1);
+  --needs-attention: #f59e0b;
+  --needs-attention-bg: rgba(245,158,11,0.1);
+  --at-risk: #ef4444;
+  --at-risk-bg: rgba(239,68,68,0.1);
+  --inactive: #64748b;
+  --inactive-bg: rgba(100,116,139,0.1);
+
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.3), 0 0 0 1px rgba(148,163,184,0.08);
+  --shadow-2: 0 4px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(148,163,184,0.1);
+  --shadow-3: 0 12px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(148,163,184,0.1);
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
 }
 
 *,
@@ -73,15 +107,13 @@ body {
 /* App chrome */
 .app-shell {
   min-height: 100vh;
-  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.07), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(37, 99, 235, 0.12), transparent 55%),
-    var(--surface-app);
-  color: var(--text-primary);
+  background: radial-gradient(ellipse at top left, rgba(15,23,42,1) 0%, rgba(2,6,23,1) 50%);
+  color: #e5e7eb;
 }
 
 .app-shell-blur {
-  backdrop-filter: blur(22px) saturate(135%);
-  -webkit-backdrop-filter: blur(22px) saturate(135%);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
 }
 
 /* Core cards */
@@ -287,4 +319,13 @@ body {
   opacity: 0;
   transform: translateY(4px);
   transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+/* Pulse glow animation */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1.0; }
+}
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }

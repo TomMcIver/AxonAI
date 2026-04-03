@@ -2,9 +2,9 @@ import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 function getRiskLevel(score) {
-  if (score >= 0.4) return { label: 'High', color: '#EF4444', bg: 'bg-red-100' };
-  if (score >= 0.2) return { label: 'Medium', color: '#F59E0B', bg: 'bg-amber-100' };
-  return { label: 'Low', color: '#10B981', bg: 'bg-green-100' };
+  if (score >= 0.4) return { label: 'High', color: '#ef4444', bg: 'bg-rose-500/10 text-rose-400' };
+  if (score >= 0.2) return { label: 'Medium', color: '#f59e0b', bg: 'bg-amber-500/10 text-amber-400' };
+  return { label: 'Low', color: '#10b981', bg: 'bg-emerald-500/10 text-emerald-400' };
 }
 
 export default function RiskGauge({ score, size = 120, showLabel = true }) {
@@ -32,7 +32,7 @@ export default function RiskGauge({ score, size = 120, showLabel = true }) {
               dataKey="value"
             >
               <Cell fill={risk.color} />
-              <Cell fill="#E2E8F0" />
+              <Cell fill="rgba(51,65,85,0.5)" />
             </Pie>
           </PieChart>
         </ResponsiveContainer>

@@ -96,7 +96,8 @@ export default function SubjectsPage() {
               key={subject.id}
               onClick={() => navigate('/teacher/class/1')}
               style={{
-                background: 'var(--surface-card)',
+                background: 'rgba(15,23,42,0.9)',
+                border: '1px solid rgba(148,163,184,0.08)',
                 borderRadius: 'var(--radius-lg)',
                 boxShadow: 'var(--shadow-1)',
                 padding: '24px 28px',
@@ -149,7 +150,7 @@ export default function SubjectsPage() {
               </div>
 
               {/* Stats row */}
-              <div className="flex items-center gap-8 mt-5 pt-4" style={{ borderTop: '1px solid var(--surface-muted)' }}>
+              <div className="flex items-center gap-8 mt-5 pt-4" style={{ borderTop: '1px solid rgba(148,163,184,0.06)' }}>
                 <div className="flex items-center gap-2">
                   <Users size={15} style={{ color: 'var(--text-tertiary)' }} />
                   <span style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 14, color: 'var(--text-secondary)' }}>
@@ -181,7 +182,7 @@ export default function SubjectsPage() {
                       fontFamily: "'Lexend', sans-serif",
                       fontWeight: 400,
                       fontSize: 12,
-                      background: 'var(--surface-muted)',
+                      background: 'rgba(148,163,184,0.06)',
                       color: 'var(--text-secondary)',
                       padding: '3px 10px',
                       borderRadius: 'var(--radius-full)',

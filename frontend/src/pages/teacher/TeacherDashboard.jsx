@@ -99,70 +99,6 @@ function selectRepresentativeSample(students, size = DEMO_CLASS_SIZE) {
 }
 
 /* ─────────────────────────────────────────────
-   CSS STYLES (injected via <style>)
-   ───────────────────────────────────────────── */
-
-const cssStyles = `
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Lexend:wght@400;500&display=swap');
-
-:root {
-  /* Brand */
-  --primary-900: #134E48;
-  --primary-700: #0F766E;
-  --primary-500: #14B8A6;
-  --primary-300: #5EEAD4;
-  --primary-100: #CCFBF1;
-  --primary-50:  #F0FDFA;
-
-  /* Surfaces */
-  --surface-base:    #F8FAFB;
-  --surface-card:    #FFFFFF;
-  --surface-sidebar: #F1F5F4;
-  --surface-muted:   #F1F5F9;
-
-  /* Text */
-  --text-primary:   #0F172A;
-  --text-secondary: #475569;
-  --text-tertiary:  #94A3B8;
-  --text-inverse:   #FFFFFF;
-
-  /* Semantic */
-  --mastered:         #059669;
-  --mastered-bg:      #ECFDF5;
-  --on-track:         #0F766E;
-  --on-track-bg:      #F0FDFA;
-  --in-progress:      #2563EB;
-  --in-progress-bg:   #EFF6FF;
-  --needs-attention:  #D97706;
-  --needs-attention-bg: #FFFBEB;
-  --at-risk:          #DC2626;
-  --at-risk-bg:       #FEF2F2;
-  --inactive:         #94A3B8;
-  --inactive-bg:      #F1F5F9;
-
-  /* Shadows */
-  --shadow-1: 0 1px 3px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.06);
-  --shadow-2: 0 4px 6px rgba(15,23,42,0.04), 0 2px 4px rgba(15,23,42,0.06);
-  --shadow-3: 0 12px 24px rgba(15,23,42,0.08), 0 4px 8px rgba(15,23,42,0.04);
-
-  /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-full: 9999px;
-}
-
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1.0; }
-}
-
-.pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-`;
-
-/* ─────────────────────────────────────────────
    SMALL MASTERY RING (24px)
    ───────────────────────────────────────────── */
 
@@ -311,10 +247,12 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
   return (
     <div
       style={{
-        background: 'var(--surface-card)',
+        background: 'rgba(15,23,42,0.9)',
         borderRadius: 'var(--radius-lg)',
         borderLeft: `4px solid ${borderColor}`,
         boxShadow: 'var(--shadow-1)',
+        backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(148,163,184,0.08)',
         padding: '20px 24px',
       }}
     >
@@ -548,9 +486,11 @@ function ActivityFeedSection({ navigate }) {
       </h2>
       <div
         style={{
-          background: 'var(--surface-card)',
+          background: 'rgba(15,23,42,0.9)',
           borderRadius: 'var(--radius-lg)',
           boxShadow: 'var(--shadow-1)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(148,163,184,0.08)',
           overflow: 'hidden',
         }}
       >
@@ -567,7 +507,7 @@ function ActivityFeedSection({ navigate }) {
               gap: 12,
               padding: '12px 20px',
               borderLeft: `2px solid ${colourVar(item.colour)}`,
-              borderBottom: i < activityFeed.length - 1 ? '1px solid var(--surface-muted)' : 'none',
+              borderBottom: i < activityFeed.length - 1 ? '1px solid rgba(148,163,184,0.08)' : 'none',
               cursor: 'pointer',
               transition: 'background 150ms',
             }}
@@ -743,12 +683,13 @@ function KnowledgeGraphPreview({ nodes: allNodes, edges: allEdges, navigate }) {
             fontFamily: "'Lexend', sans-serif",
             fontWeight: 500,
             fontSize: 12,
+            color: '#14b8a6',
             textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: 'var(--primary-700)',
+            letterSpacing: '0.06em',
+            cursor: 'pointer',
+            transition: 'color 150ms',
             background: 'none',
             border: 'none',
-            cursor: 'pointer',
           }}
         >
           View Full Graph →
@@ -756,9 +697,11 @@ function KnowledgeGraphPreview({ nodes: allNodes, edges: allEdges, navigate }) {
       </div>
       <div
         style={{
-          background: 'var(--surface-card)',
+          background: 'rgba(15,23,42,0.9)',
           borderRadius: 'var(--radius-lg)',
           boxShadow: 'var(--shadow-1)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(148,163,184,0.08)',
           padding: 16,
           position: 'relative',
           overflow: 'hidden',
@@ -895,8 +838,8 @@ function KnowledgeGraphPreview({ nodes: allNodes, edges: allEdges, navigate }) {
               left: tooltip.x,
               top: tooltip.y - 8,
               transform: 'translateX(-50%)',
-              background: 'var(--surface-card)',
-              border: '1px solid #E2E8F0',
+              background: 'rgba(15,23,42,0.9)',
+              border: '1px solid rgba(148,163,184,0.15)',
               borderRadius: 'var(--radius-sm)',
               padding: '6px 10px',
               boxShadow: 'var(--shadow-2)',
@@ -915,7 +858,7 @@ function KnowledgeGraphPreview({ nodes: allNodes, edges: allEdges, navigate }) {
         )}
 
         {/* Legend */}
-        <div className="flex items-center justify-center gap-6 mt-3 pt-3" style={{ borderTop: '1px solid var(--surface-muted)' }}>
+        <div className="flex items-center justify-center gap-6 mt-3 pt-3" style={{ borderTop: '1px solid rgba(148,163,184,0.08)' }}>
           {[
             { label: 'Foundational', color: '#10B981' },
             { label: 'Basic', color: '#0891B2' },
@@ -944,9 +887,11 @@ function ClassPulseSection({ students, classAvg, navigate }) {
   return (
     <section
       style={{
-        background: 'var(--surface-card)',
+        background: 'rgba(15,23,42,0.9)',
         borderRadius: 'var(--radius-lg)',
         boxShadow: 'var(--shadow-2)',
+        backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(148,163,184,0.08)',
         padding: '32px 36px',
       }}
     >
@@ -1075,7 +1020,6 @@ export default function TeacherDashboard() {
 
   return (
     <DashboardShell subtitle="Year 11 Mathematics · Mastery signal">
-      <style>{cssStyles}</style>
       <div className="grid gap-6 lg:gap-7">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)]">
           <ClassPulseSection students={students} classAvg={classAvg} navigate={navigate} />

@@ -53,16 +53,23 @@ function Toggle({ enabled, onToggle }) {
   return (
     <button
       onClick={onToggle}
+      role="switch"
+      aria-checked={enabled}
       style={{
         width: 44,
         height: 24,
-        borderRadius: 'var(--radius-full)',
-        background: enabled ? 'var(--primary-700)' : 'var(--surface-muted)',
-        border: 'none',
+        borderRadius: 9999,
+        background: enabled
+          ? 'linear-gradient(135deg, #0f766e, #14b8a6)'
+          : 'rgba(51,65,85,0.6)',
+        border: '1px solid ' + (enabled ? 'rgba(20,184,166,0.3)' : 'rgba(148,163,184,0.15)'),
         cursor: 'pointer',
         position: 'relative',
-        transition: 'background 200ms',
+        transition: 'all 250ms cubic-bezier(0.16, 1, 0.3, 1)',
         flexShrink: 0,
+        boxShadow: enabled
+          ? '0 0 12px rgba(20,184,166,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+          : 'inset 0 1px 2px rgba(0,0,0,0.2)',
       }}
     >
       <div
@@ -70,12 +77,12 @@ function Toggle({ enabled, onToggle }) {
           width: 18,
           height: 18,
           borderRadius: '50%',
-          background: 'white',
+          background: enabled ? '#f0fdfa' : '#94a3b8',
           position: 'absolute',
-          top: 3,
-          left: enabled ? 23 : 3,
-          transition: 'left 200ms',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+          top: 2,
+          left: enabled ? 23 : 2,
+          transition: 'all 250ms cubic-bezier(0.16, 1, 0.3, 1)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
         }}
       />
     </button>
@@ -135,7 +142,8 @@ export default function SettingsPage() {
         {/* Profile card */}
         <div
           style={{
-            background: 'var(--surface-card)',
+            background: 'rgba(15,23,42,0.9)',
+            border: '1px solid rgba(148,163,184,0.08)',
             borderRadius: 'var(--radius-lg)',
             boxShadow: 'var(--shadow-1)',
             padding: '20px 24px',
@@ -194,7 +202,8 @@ export default function SettingsPage() {
               <div
                 key={section.id}
                 style={{
-                  background: 'var(--surface-card)',
+                  background: 'rgba(15,23,42,0.9)',
+                  border: '1px solid rgba(148,163,184,0.08)',
                   borderRadius: 'var(--radius-lg)',
                   boxShadow: 'var(--shadow-1)',
                   overflow: 'hidden',
@@ -219,7 +228,7 @@ export default function SettingsPage() {
                     key={setting.id}
                     className="flex items-center justify-between px-6 py-4"
                     style={{
-                      borderTop: '1px solid var(--surface-muted)',
+                      borderTop: '1px solid rgba(148,163,184,0.06)',
                     }}
                   >
                     <div>
@@ -244,7 +253,7 @@ export default function SettingsPage() {
             marginTop: 24,
             padding: '16px 20px',
             borderRadius: 'var(--radius-md)',
-            background: 'var(--surface-muted)',
+            background: 'rgba(30,41,59,0.4)',
             textAlign: 'center',
           }}
         >
