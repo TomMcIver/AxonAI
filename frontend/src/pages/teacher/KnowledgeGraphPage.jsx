@@ -13,10 +13,10 @@ export default function KnowledgeGraphPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="axon-label mb-1">Explore</p>
-            <h1 className="axon-h2 text-lg sm:text-xl text-slate-50">
+            <h1 className="axon-h2 text-lg sm:text-xl text-slate-800">
               Knowledge Graph
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Click a concept to jump to prerequisites and dependents.
             </p>
           </div>

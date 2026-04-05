@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Settings, Bell, Shield, Palette, Globe, ChevronRight } from 'lucide-react';
+import { Settings, Bell, Shield, Palette } from 'lucide-react';
 import DashboardShell from '../../components/DashboardShell';
 
 const settingsSections = [
@@ -56,41 +55,32 @@ function Toggle({ enabled, onToggle }) {
       role="switch"
       aria-checked={enabled}
       style={{
-        width: 44,
-        height: 24,
-        borderRadius: 9999,
+        width: 44, height: 24, borderRadius: 9999,
         background: enabled
           ? 'linear-gradient(135deg, #0f766e, #14b8a6)'
-          : 'rgba(51,65,85,0.6)',
-        border: '1px solid ' + (enabled ? 'rgba(20,184,166,0.3)' : 'rgba(148,163,184,0.15)'),
-        cursor: 'pointer',
-        position: 'relative',
+          : 'rgba(203, 213, 225, 0.6)',
+        border: '1px solid ' + (enabled ? 'rgba(20,184,166,0.3)' : 'rgba(148,163,184,0.2)'),
+        cursor: 'pointer', position: 'relative',
         transition: 'all 250ms cubic-bezier(0.16, 1, 0.3, 1)',
         flexShrink: 0,
         boxShadow: enabled
-          ? '0 0 12px rgba(20,184,166,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-          : 'inset 0 1px 2px rgba(0,0,0,0.2)',
+          ? '0 2px 8px rgba(20,184,166,0.2), inset 0 1px 0 rgba(255,255,255,0.2)'
+          : 'inset 0 1px 2px rgba(0,0,0,0.06)',
       }}
     >
-      <div
-        style={{
-          width: 18,
-          height: 18,
-          borderRadius: '50%',
-          background: enabled ? '#f0fdfa' : '#94a3b8',
-          position: 'absolute',
-          top: 2,
-          left: enabled ? 23 : 2,
-          transition: 'all 250ms cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-        }}
-      />
+      <div style={{
+        width: 18, height: 18, borderRadius: '50%',
+        background: '#fff',
+        position: 'absolute', top: 2,
+        left: enabled ? 23 : 2,
+        transition: 'all 250ms cubic-bezier(0.16, 1, 0.3, 1)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+      }} />
     </button>
   );
 }
 
 export default function SettingsPage() {
-  const navigate = useNavigate();
   const [settings, setSettings] = useState(() => {
     const map = {};
     settingsSections.forEach(section => {
@@ -106,91 +96,52 @@ export default function SettingsPage() {
   return (
     <DashboardShell>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 40px' }}>
-        {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div>
-            <span
-              style={{
-                fontFamily: "'Lexend', sans-serif",
-                fontWeight: 500,
-                fontSize: 12,
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                color: 'var(--text-tertiary)',
-              }}
-            >
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)' }}>
               PREFERENCES
             </span>
-            <h1
-              style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: 700,
-                fontSize: 28,
-                letterSpacing: '-0.02em',
-                color: 'var(--text-primary)',
-                margin: '4px 0 4px 0',
-              }}
-            >
+            <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 28, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '4px 0 4px 0' }}>
               Settings
             </h1>
-            <p style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 14, color: 'var(--text-tertiary)', margin: 0 }}>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 14, color: 'var(--text-tertiary)', margin: 0 }}>
               Manage your dashboard and notification preferences
             </p>
           </div>
         </div>
 
         {/* Profile card */}
-        <div
-          style={{
-            background: 'rgba(255, 255, 255, 0.02)',
-            backdropFilter: 'blur(12px) saturate(130%)',
-            WebkitBackdropFilter: 'blur(12px) saturate(130%)',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            borderRadius: 16,
-            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-            padding: '20px 24px',
-            marginTop: 24,
-            marginBottom: 24,
-          }}
-        >
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.45)',
+          backdropFilter: 'blur(16px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+          border: '1px solid rgba(255, 255, 255, 0.6)',
+          borderRadius: 16,
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+          padding: '20px 24px', marginTop: 24, marginBottom: 24,
+        }}>
           <div className="flex items-center gap-4">
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                background: 'var(--primary-100)',
-                color: 'var(--primary-700)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: 600,
-                fontSize: 16,
-              }}
-            >
+            <div style={{
+              width: 48, height: 48, borderRadius: '50%',
+              background: 'var(--primary-100)', color: 'var(--primary-700)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 16,
+            }}>
               MW
             </div>
             <div className="flex-1">
               <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 16, color: 'var(--text-primary)', margin: 0 }}>
                 Ms. Williams
               </h3>
-              <p style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 14, color: 'var(--text-tertiary)', margin: '2px 0 0 0' }}>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 14, color: 'var(--text-tertiary)', margin: '2px 0 0 0' }}>
                 Year 11 Mathematics · Greenfield Secondary School
               </p>
             </div>
-            <span
-              style={{
-                fontFamily: "'Lexend', sans-serif",
-                fontWeight: 500,
-                fontSize: 11,
-                textTransform: 'uppercase',
-                background: 'var(--primary-100)',
-                color: 'var(--primary-700)',
-                padding: '3px 10px',
-                borderRadius: 'var(--radius-full)',
-              }}
-            >
+            <span style={{
+              fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 11, textTransform: 'uppercase',
+              background: 'var(--primary-100)', color: 'var(--primary-700)',
+              padding: '3px 10px', borderRadius: 'var(--radius-full)',
+            }}>
               Teacher
             </span>
           </div>
@@ -201,45 +152,35 @@ export default function SettingsPage() {
           {settingsSections.map(section => {
             const Icon = section.icon;
             return (
-              <div
-                key={section.id}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  backdropFilter: 'blur(12px) saturate(130%)',
-                  WebkitBackdropFilter: 'blur(12px) saturate(130%)',
-                  border: '1px solid rgba(255, 255, 255, 0.05)',
-                  borderRadius: 16,
-                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Section header */}
+              <div key={section.id} style={{
+                background: 'rgba(255, 255, 255, 0.45)',
+                backdropFilter: 'blur(16px) saturate(140%)',
+                WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+                border: '1px solid rgba(255, 255, 255, 0.6)',
+                borderRadius: 16,
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+                overflow: 'hidden',
+              }}>
                 <div className="flex items-center gap-3 px-6 pt-5 pb-3">
                   <Icon size={18} style={{ color: 'var(--primary-700)' }} />
                   <div>
                     <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 16, color: 'var(--text-primary)', margin: 0 }}>
                       {section.title}
                     </h3>
-                    <p style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 13, color: 'var(--text-tertiary)', margin: '2px 0 0 0' }}>
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 13, color: 'var(--text-tertiary)', margin: '2px 0 0 0' }}>
                       {section.description}
                     </p>
                   </div>
                 </div>
 
-                {/* Setting rows */}
-                {section.settings.map((setting, i) => (
-                  <div
-                    key={setting.id}
-                    className="flex items-center justify-between px-6 py-4"
-                    style={{
-                      borderTop: '1px solid rgba(255, 255, 255, 0.04)',
-                    }}
-                  >
+                {section.settings.map((setting) => (
+                  <div key={setting.id} className="flex items-center justify-between px-6 py-4"
+                    style={{ borderTop: '1px solid rgba(148, 163, 184, 0.1)' }}>
                     <div>
-                      <div style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-primary)' }}>
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-primary)' }}>
                         {setting.label}
                       </div>
-                      <div style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 13, color: 'var(--text-tertiary)', marginTop: 1 }}>
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 13, color: 'var(--text-tertiary)', marginTop: 1 }}>
                         {setting.description}
                       </div>
                     </div>
@@ -251,18 +192,12 @@ export default function SettingsPage() {
           })}
         </div>
 
-        {/* School info */}
-        <div
-          style={{
-            marginTop: 24,
-            padding: '16px 20px',
-            borderRadius: 'var(--radius-md)',
-            background: 'rgba(255, 255, 255, 0.02)',
-            textAlign: 'center',
-          }}
-        >
-          <p style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400, fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
-            AxonAI · Greenfield Secondary School · Term 1, 2025
+        <div style={{
+          marginTop: 24, padding: '16px 20px', borderRadius: 'var(--radius-md)',
+          background: 'rgba(255, 255, 255, 0.3)', textAlign: 'center',
+        }}>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
+            AxonAI · Greenfield Secondary School
           </p>
         </div>
       </div>
