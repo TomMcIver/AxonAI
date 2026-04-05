@@ -16,7 +16,7 @@ const roles = [
   },
   {
     id: 'parent',
-    label: 'Parent / Whānau',
+    label: 'Parent / Whanau',
     description: 'View calm summaries of progress.',
     path: '/parent',
   },
@@ -29,13 +29,13 @@ export default function Login() {
     <div className="app-shell min-h-screen flex items-center justify-center px-4">
       <div className="axon-card w-full max-w-md px-6 py-6 sm:px-7 sm:py-7">
         <div className="mb-6 text-center">
-          <div className="inline-flex items-center justify-center h-10 w-10 rounded-2xl bg-sky-400/90 text-slate-950 font-semibold text-lg mb-3">
+          <div className="inline-flex items-center justify-center h-10 w-10 rounded-2xl bg-teal-500 text-white font-semibold text-lg mb-3">
             A
           </div>
-          <h1 className="axon-h2 text-lg sm:text-xl text-slate-50 mb-1">
+          <h1 className="axon-h2 text-lg sm:text-xl text-slate-800 mb-1">
             Choose how you&apos;re signing in
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             This demo skips passwords — pick the view that matches you.
           </p>
         </div>
@@ -45,27 +45,27 @@ export default function Login() {
             <button
               key={role.id}
               onClick={() => navigate(role.path)}
-              className="group w-full rounded-lg border border-slate-800/80 bg-slate-950/40 hover:border-sky-400/60 hover:bg-slate-950/90 transition-colors px-3.5 py-3 text-left"
+              className="group w-full rounded-lg border border-slate-200/80 bg-white/40 hover:border-teal-400/60 hover:bg-white/70 transition-colors px-3.5 py-3 text-left"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-100 group-hover:text-sky-100">
+                  <p className="text-sm font-medium text-slate-700 group-hover:text-teal-700">
                     {role.label}
                   </p>
-                  <p className="text-[0.72rem] text-slate-400 truncate">
+                  <p className="text-[0.72rem] text-slate-500 truncate">
                     {role.description}
                   </p>
                 </div>
-                <span className="text-xs text-slate-600 group-hover:text-sky-200">
-                  ↳
+                <span className="text-xs text-slate-400 group-hover:text-teal-600">
+                  &#8594;
                 </span>
               </div>
             </button>
           ))}
         </div>
 
-        <div className="mt-5 border-t border-slate-800/80 pt-3">
-          <p className="text-[0.7rem] text-slate-500 text-center">
+        <div className="mt-5 border-t border-slate-200/60 pt-3">
+          <p className="text-[0.7rem] text-slate-400 text-center">
             AxonAI demo — no real student data is used here.
           </p>
         </div>
@@ -73,4 +73,3 @@ export default function Login() {
     </div>
   );
 }
-

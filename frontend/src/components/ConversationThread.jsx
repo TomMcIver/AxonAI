@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { getConversationMessages } from '../api/axonai';
 import LoadingSpinner from './LoadingSpinner';
 
-// Tutor roles — anything NOT matching these is treated as student
 const TUTOR_ROLES = ['tutor', 'assistant', 'ai', 'system', 'bot', 'ai_tutor', 'axonai'];
 
 function isTutorRole(role) {
@@ -23,27 +22,33 @@ export default function ConversationThread({ conversationId, onClose }) {
   }, [conversationId]);
 
   if (loading) return <LoadingSpinner message="Loading conversation..." />;
-  if (error) return <p className="text-[#EF4444] text-sm p-4">{error}</p>;
+  if (error) return <p className="text-rose-600 text-sm p-4">{error}</p>;
 
-  // Determine which side each message goes on
-  // Strategy: check role field, fallback to alternating if all roles are the same
   const msgs = messages || [];
   const uniqueRoles = [...new Set(msgs.map(m => (m.role || '').toLowerCase()))];
   const allSameRole = uniqueRoles.length <= 1;
 
   return (
-    <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm">
-      <div className="flex items-center justify-between p-4 border-b border-[#E2E8F0]">
-        <h3 className="font-semibold text-[#1F2937]">Conversation #{conversationId}</h3>
+    <div
+      style={{
+        background: 'rgba(255, 255, 255, 0.6)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255, 255, 255, 0.7)',
+        borderRadius: 16,
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+      }}
+    >
+      <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.15)' }}>
+        <h3 className="font-semibold text-slate-700">Conversation #{conversationId}</h3>
         {onClose && (
-          <button onClick={onClose} className="text-[#6B7280] hover:text-[#1F2937] text-sm">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 text-sm">
             Close
           </button>
         )}
       </div>
-      <div className="p-4 space-y-3 max-h-96 overflow-y-auto bg-[#F8FAFC]">
+      <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
         {msgs.map((msg, i) => {
-          // If all messages have the same role (or no role), alternate: even=student, odd=tutor
           const fromTutor = allSameRole ? (i % 2 === 1) : isTutorRole(msg.role);
           const fromStudent = !fromTutor;
           return (
@@ -51,18 +56,18 @@ export default function ConversationThread({ conversationId, onClose }) {
               <div
                 className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
                   fromStudent
-                    ? 'bg-[#0891B2] text-white rounded-br-md'
-                    : 'bg-white text-[#1F2937] border border-[#E2E8F0] rounded-bl-md'
+                    ? 'bg-teal-500 text-white rounded-br-md'
+                    : 'bg-white/70 text-slate-700 border border-slate-200/60 rounded-bl-md'
                 }`}
               >
                 <p className={`text-[10px] font-semibold mb-1 uppercase tracking-wide ${
-                  fromStudent ? 'text-white/70' : 'text-[#6B7280]'
+                  fromStudent ? 'text-white/70' : 'text-slate-400'
                 }`}>
                   {fromStudent ? 'Student' : 'AI Tutor'}
                 </p>
                 <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                 {msg.lightbulb_moment && (
-                  <span className="inline-block mt-1.5 text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
+                  <span className="inline-block mt-1.5 text-xs bg-amber-50 text-amber-700 border border-amber-200/50 px-2 py-0.5 rounded-full">
                     Lightbulb moment
                   </span>
                 )}
