@@ -9,6 +9,7 @@ import { getClassOverview, getConcepts } from '../../api/axonai';
 import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
+import { filterDemoStudents, sortWithArohaFirst } from '../../constants/demoStudents';
 
 /* ── HELPERS ── */
 
@@ -32,93 +33,62 @@ function getInitials(name) {
   return name.split(' ').map(w => w[0]).join('').toUpperCase();
 }
 
-/* ── SMALL MASTERY RING (24px) ── */
+/* ── MASTERY RING (configurable size) ── */
 
-function SmallMasteryRing({ mastery, index }) {
-  const size = 24;
-  const strokeWidth = 3;
-  const r = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * r;
-  const [offset, setOffset] = useState(circumference);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setOffset(circumference * (1 - mastery / 100));
-    }, index * 30);
-    return () => clearTimeout(timer);
-  }, [mastery, index, circumference]);
-
-  return (
-    <svg width={size} height={size} style={{ display: 'block' }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface-muted)" strokeWidth={strokeWidth} />
-      <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke={masteryColor(mastery / 100)}
-        strokeWidth={strokeWidth}
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        strokeLinecap="round"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        style={{ transition: 'stroke-dashoffset 800ms ease-out' }}
-      />
-    </svg>
-  );
-}
-
-/* ── LARGE MASTERY RING (80px) ── */
-
-function ClassAverageRing({ value }) {
-  const size = 80;
-  const strokeWidth = 8;
+function MasteryRing({ value, label, size = 72, strokeWidth = 7 }) {
   const r = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * r;
   const [offset, setOffset] = useState(circumference);
   const [displayVal, setDisplayVal] = useState(0);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setOffset(circumference * (1 - value / 100));
-    }, 100);
-    const duration = 800;
-    const startTime = Date.now() + 100;
+    const t = setTimeout(() => setOffset(circumference * (1 - value / 100)), 120);
+    const duration = 700;
+    const start = Date.now() + 120;
     let raf;
     function tick() {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 0) { raf = requestAnimationFrame(tick); return; }
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayVal(Math.round(eased * value));
-      if (progress < 1) raf = requestAnimationFrame(tick);
+      const el = Date.now() - start;
+      if (el < 0) { raf = requestAnimationFrame(tick); return; }
+      const p = Math.min(el / duration, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      setDisplayVal(Math.round(e * value));
+      if (p < 1) raf = requestAnimationFrame(tick);
     }
     raf = requestAnimationFrame(tick);
-    return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
+    return () => { clearTimeout(t); cancelAnimationFrame(raf); };
   }, [value, circumference]);
 
+  const stroke = masteryColor(value / 100);
+
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
       <div style={{ position: 'relative', width: size, height: size }}>
         <svg width={size} height={size}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface-muted)" strokeWidth={strokeWidth} />
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--surface-muted)" strokeWidth={strokeWidth} />
           <circle
-            cx={size / 2} cy={size / 2} r={r} fill="none"
-            stroke="var(--on-track)"
-            strokeWidth={strokeWidth}
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
+            cx={size/2} cy={size/2} r={r} fill="none"
+            stroke={stroke} strokeWidth={strokeWidth}
+            strokeDasharray={circumference} strokeDashoffset={offset}
             strokeLinecap="round"
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-            style={{ transition: 'stroke-dashoffset 800ms ease-out' }}
+            transform={`rotate(-90 ${size/2} ${size/2})`}
+            style={{ transition: 'stroke-dashoffset 700ms ease-out' }}
           />
         </svg>
         <div style={{
-          position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 22, color: 'var(--text-primary)',
+          position: 'absolute', inset: 0, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontWeight: 700, fontSize: size > 60 ? 18 : 13,
+          color: 'var(--text-primary)',
         }}>
           {displayVal}%
         </div>
       </div>
-      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 14, color: 'var(--text-tertiary)' }}>
-        Class Average
+      <span style={{
+        fontFamily: "'Lexend', sans-serif", fontWeight: 400,
+        fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center',
+      }}>
+        {label}
       </span>
     </div>
   );
@@ -441,54 +411,129 @@ function KnowledgeGraphPreview({ nodes: allNodes, edges: allEdges, navigate }) {
 
 /* ── CLASS PULSE SECTION ── */
 
-function ClassPulseSection({ students, classAvg, navigate }) {
-  const sortedStudents = [...(students || [])].sort((a, b) => (a.avg_mastery || 0) - (b.avg_mastery || 0));
+function ClassPulseSection({ students, navigate }) {
+  // Compute groups from live demo data — nothing hardcoded
+  const low  = students.filter(s => (s.avg_mastery || 0) < 0.50);
+  const mid  = students.filter(s => (s.avg_mastery || 0) >= 0.50 && (s.avg_mastery || 0) <= 0.75);
+  const high = students.filter(s => (s.avg_mastery || 0) > 0.75);
+  const total = students.length;
+
+  const avg = arr => arr.length
+    ? Math.round(arr.reduce((s, st) => s + (st.avg_mastery || 0), 0) / arr.length * 100)
+    : 0;
+
+  const lowAvg     = avg(low);
+  const midAvg     = avg(mid);
+  const highAvg    = avg(high);
+  const overallAvg = avg(students);
+
+  const lowPct  = total ? Math.round((low.length  / total) * 100) : 0;
+  const midPct  = total ? Math.round((mid.length  / total) * 100) : 0;
+  const highPct = total ? 100 - lowPct - midPct : 0; // avoids rounding gap
+
+  const segments = [
+    { pct: lowPct,  color: '#DC2626', label: 'At Risk',   count: low.length },
+    { pct: midPct,  color: '#D97706', label: 'On Track',  count: mid.length },
+    { pct: highPct, color: '#059669', label: 'Excelling', count: high.length },
+  ].filter(s => s.pct > 0);
 
   return (
     <section style={{
-      background: 'rgba(255, 255, 255, 0.5)',
-      backdropFilter: 'blur(16px) saturate(140%)',
-      WebkitBackdropFilter: 'blur(16px) saturate(140%)',
-      border: '1px solid rgba(255, 255, 255, 0.6)',
-      borderRadius: 20,
-      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+      background: 'var(--surface-card)',
+      borderRadius: 'var(--radius-lg)',
+      boxShadow: 'var(--shadow-2)',
       padding: '32px 36px',
     }}>
-      <div className="flex items-start justify-between gap-8">
-        <div className="flex-1">
-          <span style={{
-            fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 12,
-            textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)',
+      {/* Header */}
+      <span style={{
+        fontFamily: "'Lexend', sans-serif", fontWeight: 500,
+        fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em',
+        color: 'var(--text-tertiary)',
+      }}>
+        CLASS PULSE
+      </span>
+      <h1 style={{
+        fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
+        fontSize: 28, letterSpacing: '-0.02em', color: 'var(--text-primary)',
+        margin: '4px 0 2px 0',
+      }}>
+        Year 11 Mathematics
+      </h1>
+      <p style={{
+        fontFamily: "'Lexend', sans-serif", fontSize: 14,
+        color: 'var(--text-tertiary)', margin: '0 0 28px 0',
+      }}>
+        {total} students
+      </p>
+
+      {/* Main layout: bar left, rings right */}
+      <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+
+        {/* Segmented bar */}
+        <div style={{ flex: '1 1 260px', minWidth: 200 }}>
+          {/* Bar */}
+          <div style={{
+            display: 'flex', width: '100%', height: 28,
+            borderRadius: 'var(--radius-full)', overflow: 'hidden', gap: 2,
           }}>
-            CLASS PULSE
-          </span>
-          <h1 style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 28,
-            letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '4px 0',
-          }}>
-            Year 11 Mathematics
-          </h1>
-          <p style={{
-            fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 14,
-            color: 'var(--text-tertiary)', margin: '0 0 24px 0',
-          }}>
-            {sortedStudents.length} students
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {sortedStudents.map((st, i) => (
+            {segments.map((seg, i) => (
               <div
-                key={st.student_id}
-                title={`${st.first_name} ${st.last_name}: ${(st.avg_mastery * 100).toFixed(0)}%`}
-                onClick={() => navigate(`/teacher/student/${st.student_id}`)}
-                style={{ cursor: 'pointer' }}
+                key={seg.label}
+                style={{
+                  width: `${seg.pct}%`, background: seg.color,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'width 700ms ease-out',
+                  borderRadius: i === 0 ? '999px 0 0 999px' : i === segments.length - 1 ? '0 999px 999px 0' : 0,
+                }}
               >
-                <SmallMasteryRing mastery={(st.avg_mastery * 100).toFixed(0)} index={i} />
+                {seg.pct > 10 && (
+                  <span style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontWeight: 700, fontSize: 11, color: '#fff',
+                  }}>
+                    {seg.pct}%
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Labels below bar */}
+          <div style={{ display: 'flex', gap: 2, marginTop: 10 }}>
+            {segments.map(seg => (
+              <div
+                key={seg.label}
+                style={{
+                  width: `${seg.pct}%`,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                }}
+              >
+                <span style={{
+                  fontFamily: "'Lexend', sans-serif", fontWeight: 500,
+                  fontSize: 12, color: seg.color, whiteSpace: 'nowrap',
+                }}>
+                  {seg.label}
+                </span>
+                <span style={{
+                  fontFamily: "'Lexend', sans-serif", fontWeight: 400,
+                  fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap',
+                }}>
+                  {seg.count} student{seg.count !== 1 ? 's' : ''}
+                </span>
               </div>
             ))}
           </div>
         </div>
-        <div className="flex items-center justify-center" style={{ paddingTop: 32 }}>
-          <ClassAverageRing value={classAvg} />
+
+        {/* 4 mastery rings */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(4, auto)',
+          gap: '16px 20px', flexShrink: 0,
+        }}>
+          <MasteryRing value={lowAvg}     label="Low"     size={72} strokeWidth={7} />
+          <MasteryRing value={midAvg}     label="Mid"     size={72} strokeWidth={7} />
+          <MasteryRing value={highAvg}    label="High"    size={72} strokeWidth={7} />
+          <MasteryRing value={overallAvg} label="Overall" size={72} strokeWidth={7} />
         </div>
       </div>
     </section>
@@ -544,10 +589,7 @@ export default function TeacherDashboard() {
     );
   }
 
-  const students = classData?.students || [];
-  const classAvg = students.length > 0
-    ? Math.round(students.reduce((s, st) => s + (st.avg_mastery || 0), 0) / students.length * 100)
-    : 0;
+  const students = sortWithArohaFirst(filterDemoStudents(classData?.students));
 
   const conceptNodes = conceptsData?.concepts || [];
   const conceptEdges = conceptsData?.prerequisites || [];
@@ -556,7 +598,7 @@ export default function TeacherDashboard() {
     <DashboardShell subtitle="Year 11 Mathematics · Mastery signal">
       <div className="grid gap-6 lg:gap-7">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)]">
-          <ClassPulseSection students={students} classAvg={classAvg} navigate={navigate} />
+          <ClassPulseSection students={students} navigate={navigate} />
           <NeedsAttentionSection students={students} navigate={navigate} />
         </div>
         <KnowledgeGraphPreview nodes={conceptNodes} edges={conceptEdges} navigate={navigate} />
