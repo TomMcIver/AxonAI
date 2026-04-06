@@ -5,6 +5,7 @@ import { getClassOverview } from '../../api/axonai';
 import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
+import { filterDemoStudents, sortWithArohaFirst } from '../../constants/demoStudents';
 
 function riskPill(riskScore) {
   let risk;
@@ -67,19 +68,22 @@ export default function StudentsPage() {
   useEffect(() => { load(); }, [load]);
 
   const students = useMemo(() => {
-    const all = data?.students || [];
-    return all
-      .filter(s => `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase()))
-      .sort((a, b) => {
-        let av = a[sortBy] ?? 0;
-        let bv = b[sortBy] ?? 0;
-        if (sortBy === 'last_name') {
-          av = (a.last_name || '').toLowerCase();
-          bv = (b.last_name || '').toLowerCase();
-          return sortDir === 'desc' ? bv.localeCompare(av) : av.localeCompare(bv);
-        }
-        return sortDir === 'desc' ? bv - av : av - bv;
-      });
+    const demo = filterDemoStudents(data?.students);
+    const searched = demo.filter(s =>
+      `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase())
+    );
+    // Secondary sort respects current sortBy/sortDir state
+    const secondarySort = (a, b) => {
+      let av = a[sortBy] ?? 0;
+      let bv = b[sortBy] ?? 0;
+      if (sortBy === 'last_name') {
+        av = (a.last_name || '').toLowerCase();
+        bv = (b.last_name || '').toLowerCase();
+        return sortDir === 'desc' ? bv.localeCompare(av) : av.localeCompare(bv);
+      }
+      return sortDir === 'desc' ? bv - av : av - bv;
+    };
+    return sortWithArohaFirst(searched, secondarySort);
   }, [data, search, sortBy, sortDir]);
 
   function toggleSort(field) {

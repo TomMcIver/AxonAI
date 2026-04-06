@@ -6,6 +6,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import DashboardShell from '../../components/DashboardShell';
+import { filterDemoStudents } from '../../constants/demoStudents';
 
 export default function ClassOverview() {
   const { id } = useParams();
@@ -43,7 +44,7 @@ export default function ClassOverview() {
   }
   if (!data) return null;
 
-  const roster = data.students || [];
+  const roster = filterDemoStudents(data.students);
 
   const counts = roster.reduce(
     (acc, s) => {
