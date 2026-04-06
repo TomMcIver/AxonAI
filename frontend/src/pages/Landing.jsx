@@ -10,7 +10,7 @@ const roles = [
     badge: 'Most used',
     icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
     path: '/teacher',
-    color: '#38BDF8',
+    color: '#0d9488',
   },
   {
     id: 'student',
@@ -19,16 +19,16 @@ const roles = [
     badge: 'Learner',
     icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
     path: '/student',
-    color: '#22C55E',
+    color: '#16a34a',
   },
   {
     id: 'parent',
     label: 'Parent / Whanau',
     description: 'Calm, narrative view of progress across each subject.',
-    badge: 'Whānau',
+    badge: 'Whanau',
     icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1',
     path: '/parent',
-    color: '#F97316',
+    color: '#ea580c',
   },
 ];
 
@@ -49,18 +49,18 @@ export default function Landing() {
   const statusNode = (() => {
     if (loading) {
       return (
-        <div className="inline-flex items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/70 px-3 py-1.5">
-          <span className="h-2 w-2 rounded-full border border-sky-400 border-t-transparent animate-spin" />
-          <span className="text-xs text-slate-300">Connecting to AxonAI…</span>
+        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-1.5">
+          <span className="h-2 w-2 rounded-full border border-teal-500 border-t-transparent animate-spin" />
+          <span className="text-xs text-slate-600">Connecting to AxonAI...</span>
         </div>
       );
     }
     if (health) {
       return (
-        <div className="inline-flex items-center gap-3 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)]" />
-          <span className="text-xs text-slate-200">
-            <span className="font-medium text-emerald-200">Live</span>{' '}
+        <div className="inline-flex items-center gap-3 rounded-full border border-emerald-300/50 bg-emerald-50/60 px-3 py-1.5">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+          <span className="text-xs text-slate-700">
+            <span className="font-medium text-emerald-700">Live</span>{' '}
             <span className="text-slate-400">·</span>{' '}
             {health.stats.students} students · {health.stats.conversations} conversations ·{' '}
             {health.stats.concepts} concepts
@@ -69,11 +69,11 @@ export default function Landing() {
       );
     }
     return (
-      <div className="inline-flex items-center gap-3 rounded-full border border-rose-400/40 bg-rose-500/10 px-3 py-1.5">
-        <span className="h-2 w-2 rounded-full bg-rose-400 shadow-[0_0_12px_rgba(248,113,113,0.9)]" />
-        <span className="text-xs text-slate-200">
-          <span className="font-medium text-rose-200">Offline demo</span>{' '}
-          <span className="text-slate-400">·</span> API unavailable, showing mock data
+      <div className="inline-flex items-center gap-3 rounded-full border border-rose-300/50 bg-rose-50/60 px-3 py-1.5">
+        <span className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(220,38,38,0.6)]" />
+        <span className="text-xs text-slate-700">
+          <span className="font-medium text-rose-700">Offline demo</span>{' '}
+          <span className="text-slate-400">·</span> API unavailable
         </span>
       </div>
     );
@@ -81,33 +81,36 @@ export default function Landing() {
 
   return (
     <div className="app-shell min-h-screen flex flex-col">
-      <header className="app-shell-blur border-b border-slate-800/80 bg-slate-950/50">
+      <header
+        className="app-shell-blur border-b border-slate-200/60"
+        style={{ background: 'rgba(255, 255, 255, 0.6)' }}
+      >
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-3">
           <button
             onClick={() => navigate('/')}
             className="group flex items-center gap-2"
           >
             <div className="relative">
-              <div className="h-9 w-9 rounded-2xl bg-sky-400/90 group-hover:bg-sky-300 text-slate-950 font-semibold flex items-center justify-center text-lg transition-colors">
+              <div className="h-9 w-9 rounded-2xl bg-teal-500 group-hover:bg-teal-400 text-white font-semibold flex items-center justify-center text-lg transition-colors">
                 A
               </div>
-              <div className="absolute -right-1 -bottom-1 h-4 w-4 rounded-full bg-slate-900 ring-2 ring-slate-950 flex items-center justify-center">
-                <div className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)]" />
+              <div className="absolute -right-1 -bottom-1 h-4 w-4 rounded-full bg-white ring-2 ring-white flex items-center justify-center">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
               </div>
             </div>
             <div className="flex flex-col">
-              <span className="axon-h2 text-base leading-tight text-slate-100">
+              <span className="axon-h2 text-base leading-tight text-slate-800">
                 AxonAI
               </span>
-              <span className="text-[0.62rem] tracking-[0.19em] uppercase text-slate-500">
+              <span className="text-[0.62rem] tracking-[0.19em] uppercase text-slate-400">
                 School Intelligence · NCEA
               </span>
             </div>
           </button>
 
-          <div className="hidden sm:flex items-center gap-2 text-[0.7rem] text-slate-400">
-            <span className="axon-mono text-slate-500">Demo</span>
-            <span className="text-slate-600">·</span>
+          <div className="hidden sm:flex items-center gap-2 text-[0.7rem] text-slate-500">
+            <span className="axon-mono text-slate-400">Demo</span>
+            <span className="text-slate-300">·</span>
             <span>Aotearoa secondary schools</span>
           </div>
         </div>
@@ -117,21 +120,21 @@ export default function Landing() {
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10 xl:px-12 py-10 lg:py-16 grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.1fr)] xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)] items-stretch lg:items-center">
           {/* Left: hero copy */}
           <section className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-sky-500/10 px-3 py-1.5">
-              <span className="h-1.5 w-4 rounded-full bg-gradient-to-r from-sky-400 via-emerald-400 to-violet-400" />
-              <span className="text-[0.7rem] font-medium tracking-[0.16em] uppercase text-sky-100">
+            <div className="inline-flex items-center gap-2 rounded-full border border-teal-300/40 bg-teal-50/60 px-3 py-1.5">
+              <span className="h-1.5 w-4 rounded-full bg-gradient-to-r from-teal-500 via-emerald-400 to-sky-500" />
+              <span className="text-[0.7rem] font-medium tracking-[0.16em] uppercase text-teal-800">
                 AI-Native School Intelligence
               </span>
             </div>
 
             <div className="space-y-3">
-              <h1 className="axon-h1 text-3xl sm:text-4xl lg:text-[2.6rem] text-slate-50">
+              <h1 className="axon-h1 text-3xl sm:text-4xl lg:text-[2.6rem] text-slate-800">
                 Every learner&apos;s mastery,{' '}
-                <span className="bg-gradient-to-r from-sky-300 via-emerald-300 to-sky-300 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-teal-600 via-emerald-500 to-sky-500 bg-clip-text text-transparent">
                   in one live view.
                 </span>
               </h1>
-              <p className="max-w-xl text-sm sm:text-base text-slate-300">
+              <p className="max-w-xl text-sm sm:text-base text-slate-600">
                 AxonAI reads the noise of assessments, engagement and tutor chats —
                 then surfaces a calm, structured signal of who&apos;s thriving, who&apos;s
                 drifting, and exactly what to do next.
@@ -140,7 +143,7 @@ export default function Landing() {
 
             <div className="space-y-4">
               {statusNode}
-              <p className="text-[0.78rem] text-slate-500">
+              <p className="text-[0.78rem] text-slate-400">
                 Fully simulated demo — no sign-in required. Choose the view that matches
                 how you arrive at school.
               </p>
@@ -167,13 +170,13 @@ export default function Landing() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <p className="axon-label mb-1">Choose a lens</p>
-                <p className="axon-h2 text-sm sm:text-base text-slate-50">
+                <p className="axon-h2 text-sm sm:text-base text-slate-800">
                   How are you looking at school today?
                 </p>
               </div>
-              <div className="hidden sm:flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-900/70 px-2 py-1">
-                <span className="h-5 w-5 rounded-full bg-gradient-to-tr from-sky-400 to-emerald-400 opacity-80" />
-                <span className="text-[0.7rem] text-slate-400">Multi‑agent demo</span>
+              <div className="hidden sm:flex items-center gap-1 rounded-full border border-slate-200 bg-white/60 px-2 py-1">
+                <span className="h-5 w-5 rounded-full bg-gradient-to-tr from-teal-500 to-emerald-400 opacity-80" />
+                <span className="text-[0.7rem] text-slate-500">Multi-agent demo</span>
               </div>
             </div>
 
@@ -182,13 +185,11 @@ export default function Landing() {
                 <button
                   key={role.id}
                   onClick={() => navigate(role.path)}
-                  className="group w-full text-left rounded-xl border border-slate-800/80 bg-slate-950/50 hover:border-sky-400/60 hover:bg-slate-950/90 transition-colors px-3.5 py-3.5 flex items-center gap-3"
+                  className="group w-full text-left rounded-xl border border-slate-200/80 bg-white/40 hover:border-teal-400/60 hover:bg-white/70 transition-colors px-3.5 py-3.5 flex items-center gap-3"
                 >
                   <div
                     className="h-9 w-9 rounded-xl flex items-center justify-center"
-                    style={{
-                      background: `${role.color}20`,
-                    }}
+                    style={{ background: `${role.color}15` }}
                   >
                     <svg
                       className="h-5 w-5"
@@ -203,7 +204,7 @@ export default function Landing() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-sm font-medium text-slate-100 group-hover:text-sky-100">
+                      <span className="text-sm font-medium text-slate-700 group-hover:text-teal-700">
                         {role.label}
                       </span>
                       {role.badge && (
@@ -212,12 +213,12 @@ export default function Landing() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500">
                       {role.description}
                     </p>
                   </div>
-                  <span className="text-slate-600 text-xs group-hover:text-sky-200">
-                    ↳
+                  <span className="text-slate-400 text-xs group-hover:text-teal-600">
+                    &#8594;
                   </span>
                 </button>
               ))}
@@ -226,15 +227,18 @@ export default function Landing() {
         </div>
       </main>
 
-      <footer className="border-t border-slate-800/80 bg-slate-950/40">
+      <footer
+        className="border-t border-slate-200/60"
+        style={{ background: 'rgba(255, 255, 255, 0.4)' }}
+      >
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[0.7rem] text-slate-500">
+          <p className="text-[0.7rem] text-slate-400">
             Built as an AI-first demo for{' '}
-            <span className="text-slate-300">Aotearoa New Zealand secondary schools</span>.
+            <span className="text-slate-600">Aotearoa New Zealand secondary schools</span>.
           </p>
-          <p className="text-[0.7rem] text-slate-600">
+          <p className="text-[0.7rem] text-slate-400">
             Mastery, risk and interventions shown here are{' '}
-            <span className="text-slate-300">simulated for illustration only</span>.
+            <span className="text-slate-600">simulated for illustration only</span>.
           </p>
         </div>
       </footer>

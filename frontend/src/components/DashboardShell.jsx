@@ -55,28 +55,36 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
   }, [location.pathname]);
 
   return (
-    <div className="app-shell min-h-screen text-slate-100">
+    <div className="app-shell min-h-screen">
       <div className="flex min-h-screen">
-        {/* Sidebar */}
-        <aside className="app-shell-blur hidden lg:flex lg:flex-col w-64 xl:w-72 border-r border-slate-800/80 bg-slate-900/60">
-          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-800/70">
+        {/* Sidebar — frosted white glass */}
+        <aside
+          className="hidden lg:flex lg:flex-col w-64 xl:w-72"
+          style={{
+            background: 'rgba(255, 255, 255, 0.65)',
+            backdropFilter: 'blur(24px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(150%)',
+            borderRight: '1px solid rgba(148, 163, 184, 0.2)',
+          }}
+        >
+          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-200/60">
             <button
               onClick={() => navigate('/')}
               className="group flex items-center gap-2"
             >
               <div className="relative">
-                <div className="h-8 w-8 rounded-2xl bg-sky-400/90 group-hover:bg-sky-300 text-slate-950 font-semibold flex items-center justify-center text-lg transition-colors">
+                <div className="h-8 w-8 rounded-2xl bg-teal-500 group-hover:bg-teal-400 text-white font-semibold flex items-center justify-center text-lg transition-colors">
                   A
                 </div>
-                <div className="absolute -right-1 -bottom-1 h-4 w-4 rounded-full bg-slate-900 ring-2 ring-slate-950 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)]" />
+                <div className="absolute -right-1 -bottom-1 h-4 w-4 rounded-full bg-white ring-2 ring-white flex items-center justify-center">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="axon-h2 text-base leading-tight text-slate-100">
+                <span className="axon-h2 text-base leading-tight text-slate-800">
                   AxonAI
                 </span>
-                <span className="text-[0.62rem] tracking-[0.19em] uppercase text-slate-500">
+                <span className="text-[0.62rem] tracking-[0.19em] uppercase text-slate-400">
                   School Intelligence
                 </span>
               </div>
@@ -100,15 +108,15 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                   onClick={() => navigate(item.path)}
                   className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                     isActive
-                      ? 'bg-slate-900/80 text-slate-50 shadow-[0_0_0_1px_rgba(148,163,184,0.5),0_14px_35px_rgba(15,23,42,0.9)]'
-                      : 'text-slate-400 hover:bg-slate-900/40 hover:text-slate-100'
+                      ? 'bg-teal-500/10 text-teal-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]'
+                      : 'text-slate-500 hover:bg-white/50 hover:text-slate-700'
                   }`}
                 >
                   <span
                     className={`inline-flex h-7 w-7 items-center justify-center rounded-full border ${
                       isActive
-                        ? 'border-sky-400/80 bg-sky-400/10 text-sky-300'
-                        : 'border-slate-700/80 bg-slate-900/40 text-slate-400 group-hover:border-slate-500/80 group-hover:text-slate-100'
+                        ? 'border-teal-400/60 bg-teal-500/10 text-teal-600'
+                        : 'border-slate-200 bg-white/60 text-slate-400 group-hover:border-slate-300 group-hover:text-slate-600'
                     }`}
                   >
                     <Icon size={16} />
@@ -119,37 +127,45 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
             })}
           </nav>
 
-          <div className="border-t border-slate-800/70 px-4 py-4">
-            <button className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 hover:bg-slate-900/50 transition-colors">
+          <div className="border-t border-slate-200/60 px-4 py-4">
+            <button className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 hover:bg-white/50 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="h-8 w-8 rounded-full bg-sky-500/20 text-sky-300 flex items-center justify-center text-xs font-semibold">
+                  <div className="h-8 w-8 rounded-full bg-teal-500/15 text-teal-700 flex items-center justify-center text-xs font-semibold">
                     MW
                   </div>
-                  <span className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950" />
+                  <span className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-medium text-slate-100">
-                    {mode === 'teacher' ? 'Ms. Williams' : mode === 'student' ? 'Aroha Ngata' : 'Whānau view'}
+                  <p className="text-sm font-medium text-slate-700">
+                    {mode === 'teacher' ? 'Ms. Williams' : mode === 'student' ? 'Aroha Ngata' : 'Whanau view'}
                   </p>
-                  <p className="text-[0.7rem] tracking-[0.18em] uppercase text-slate-500">
+                  <p className="text-[0.7rem] tracking-[0.18em] uppercase text-slate-400">
                     {mode === 'teacher' ? 'Year 11 Mathematics' : mode === 'student' ? 'Year 12' : 'Caregiver'}
                   </p>
                 </div>
               </div>
-              <ChevronDown size={16} className="text-slate-500" />
+              <ChevronDown size={16} className="text-slate-400" />
             </button>
           </div>
         </aside>
 
         {/* Main region */}
         <div className="flex-1 flex flex-col">
-          {/* Top bar */}
-          <header className="app-shell-blur sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/60">
+          {/* Top bar — frosted glass */}
+          <header
+            className="sticky top-0 z-30"
+            style={{
+              background: 'rgba(255, 255, 255, 0.6)',
+              backdropFilter: 'blur(24px) saturate(150%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(150%)',
+              borderBottom: '1px solid rgba(148, 163, 184, 0.2)',
+            }}
+          >
             <div className="mx-auto w-full max-w-7xl flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
               <div className="flex items-center gap-3">
                 <button
-                  className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900/80 text-slate-200 hover:bg-slate-900"
+                  className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/60 text-slate-600 hover:bg-white"
                   onClick={() => setMobileNavOpen(true)}
                   aria-label="Open navigation"
                 >
@@ -159,17 +175,17 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                   <p className="axon-label mb-0.5">
                     {mode === 'teacher' ? 'Teacher' : mode === 'student' ? 'Student' : 'Parent'} · AxonAI
                   </p>
-                  <p className="axon-h2 text-base sm:text-lg text-slate-50">
+                  <p className="axon-h2 text-base sm:text-lg text-slate-800">
                     {subtitle || 'Class mastery overview'}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="hidden sm:flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/80 px-3 py-1.5">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]" />
-                  <p className="text-xs text-slate-400">
-                    <span className="font-medium text-slate-200">Live</span>{' '}
+                <div className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  <p className="text-xs text-slate-500">
+                    <span className="font-medium text-slate-700">Live</span>{' '}
                     NCEA feed
                   </p>
                 </div>
@@ -180,17 +196,25 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                     aria-haspopup="menu"
                     aria-expanded={qaOpen}
                   >
-                    <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
                     Quick actions
                   </button>
                   {qaOpen && (
                     <div
                       role="menu"
-                      className="absolute right-0 mt-2 w-56 axon-card-ghost overflow-hidden shadow-[0_0_0_1px_rgba(148,163,184,0.18),0_18px_45px_rgba(15,23,42,0.85)]"
+                      className="absolute right-0 mt-2 w-56 overflow-hidden"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.85)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        border: '1px solid rgba(148, 163, 184, 0.2)',
+                        borderRadius: 12,
+                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                      }}
                     >
                       <button
                         role="menuitem"
-                        className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-900/70 transition-colors"
+                        className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100/60 transition-colors"
                         onClick={() => navigate('/login')}
                       >
                         Switch role
@@ -199,14 +223,14 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                         <>
                           <button
                             role="menuitem"
-                            className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-900/70 transition-colors"
+                            className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100/60 transition-colors"
                             onClick={() => navigate('/teacher/students')}
                           >
                             Open student roster
                           </button>
                           <button
                             role="menuitem"
-                            className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-900/70 transition-colors"
+                            className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100/60 transition-colors"
                             onClick={() => navigate('/teacher/subjects')}
                           >
                             Upload class content
@@ -216,7 +240,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                       {mode !== 'teacher' && (
                         <button
                           role="menuitem"
-                          className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-900/70 transition-colors"
+                          className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100/60 transition-colors"
                           onClick={() => navigate(`/${mode}`)}
                         >
                           Go to overview
@@ -237,22 +261,30 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
           </main>
         </div>
 
-        {/* Mobile drawer */}
+        {/* Mobile drawer — frosted glass */}
         {mobileNavOpen && (
           <div className="fixed inset-0 z-40 flex lg:hidden">
             <div
-              className="flex-1 bg-black/50 backdrop-blur-sm"
+              className="flex-1 bg-black/20 backdrop-blur-sm"
               onClick={() => setMobileNavOpen(false)}
             />
-            <div className="relative w-72 max-w-full app-shell-blur bg-slate-950/90 border-l border-slate-800/80">
+            <div
+              className="relative w-72 max-w-full"
+              style={{
+                background: 'rgba(255, 255, 255, 0.85)',
+                backdropFilter: 'blur(24px) saturate(150%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(150%)',
+                borderLeft: '1px solid rgba(148, 163, 184, 0.2)',
+              }}
+            >
               <button
-                className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-700/70 bg-slate-900/80 text-slate-200 hover:bg-slate-900"
+                className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/60 text-slate-600 hover:bg-white"
                 onClick={() => setMobileNavOpen(false)}
                 aria-label="Close navigation"
               >
                 <X size={16} />
               </button>
-              <div className="px-4 pt-6 pb-4 border-b border-slate-800/70">
+              <div className="px-4 pt-6 pb-4 border-b border-slate-200/60">
                 <button
                   onClick={() => {
                     navigate('/');
@@ -260,14 +292,14 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                   }}
                   className="group flex items-center gap-2"
                 >
-                  <div className="h-8 w-8 rounded-2xl bg-sky-400/90 text-slate-950 font-semibold flex items-center justify-center text-lg">
+                  <div className="h-8 w-8 rounded-2xl bg-teal-500 text-white font-semibold flex items-center justify-center text-lg">
                     A
                   </div>
                   <div className="flex flex-col">
-                    <span className="axon-h2 text-base leading-tight text-slate-100">
+                    <span className="axon-h2 text-base leading-tight text-slate-800">
                       AxonAI
                     </span>
-                    <span className="text-[0.62rem] tracking-[0.19em] uppercase text-slate-500">
+                    <span className="text-[0.62rem] tracking-[0.19em] uppercase text-slate-400">
                       School Intelligence
                     </span>
                   </div>
@@ -292,15 +324,15 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                       }}
                       className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                         isActive
-                          ? 'bg-slate-900 text-slate-50'
-                          : 'text-slate-400 hover:bg-slate-900/60 hover:text-slate-100'
+                          ? 'bg-teal-500/10 text-teal-700'
+                          : 'text-slate-500 hover:bg-white/50 hover:text-slate-700'
                       }`}
                     >
                       <span
                         className={`inline-flex h-7 w-7 items-center justify-center rounded-full border ${
                           isActive
-                            ? 'border-sky-400/80 bg-sky-400/10 text-sky-300'
-                            : 'border-slate-700/80 bg-slate-900/60 text-slate-400 group-hover:border-slate-500/80 group-hover:text-slate-100'
+                            ? 'border-teal-400/60 bg-teal-500/10 text-teal-600'
+                            : 'border-slate-200 bg-white/60 text-slate-400 group-hover:border-slate-300 group-hover:text-slate-600'
                         }`}
                       >
                         <Icon size={16} />
@@ -317,4 +349,3 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
     </div>
   );
 }
-

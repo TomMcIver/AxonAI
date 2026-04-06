@@ -46,12 +46,12 @@ function formatApproachName(s) {
 
 function flagBorderStyle(flagType) {
   switch (flagType) {
-    case 'at_risk': return 'border-rose-500/20 bg-rose-500/5';
-    case 'stuck': return 'border-amber-500/20 bg-amber-500/5';
-    case 'prerequisite_gap': return 'border-amber-500/20 bg-amber-500/5';
-    case 'needs_quiz': return 'border-sky-500/20 bg-sky-500/5';
-    case 'mastered': return 'border-emerald-500/20 bg-emerald-500/5';
-    default: return 'border-rose-500/20 bg-rose-500/5';
+    case 'at_risk': return 'border-rose-300/40 bg-rose-50/60';
+    case 'stuck': return 'border-amber-300/40 bg-amber-50/60';
+    case 'prerequisite_gap': return 'border-amber-300/40 bg-amber-50/60';
+    case 'needs_quiz': return 'border-sky-300/40 bg-sky-50/60';
+    case 'mastered': return 'border-emerald-300/40 bg-emerald-50/60';
+    default: return 'border-rose-300/40 bg-rose-50/60';
   }
 }
 
@@ -59,7 +59,7 @@ function InfoRow({ label, value }) {
   return (
     <div className="flex items-start justify-between gap-3 text-sm">
       <span className="text-slate-400 shrink-0">{label}</span>
-      <span className={`text-right ${value ? 'text-slate-100' : 'text-slate-600'}`}>
+      <span className={`text-right ${value ? 'text-slate-700' : 'text-slate-600'}`}>
         {value || '—'}
       </span>
     </div>
@@ -146,7 +146,6 @@ export default function StudentDetail() {
         setPedagogy(p);
         setPredictions(pr);
         setAiInsights(ai);
-        console.log('AI INSIGHTS RAW:', ai);
         setWellbeingCtx(wb);
         setPedagogicalMemory(pm);
         setLoading(false);
@@ -252,7 +251,7 @@ export default function StudentDetail() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="axon-label mb-1">Student</p>
-              <h1 className="axon-h2 text-lg sm:text-xl text-slate-50">
+              <h1 className="axon-h2 text-lg sm:text-xl text-slate-800">
                 {student.first_name} {student.last_name}
               </h1>
               <p className="text-xs text-slate-400 mt-1">
@@ -282,7 +281,7 @@ export default function StudentDetail() {
                   <span className="axon-pill axon-pill-soft">Pastoral</span>
                 )}
                 {showESOL && (
-                  <span className="axon-pill" style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}>ESOL</span>
+                  <span className="axon-pill" style={{ color: '#0369a1', borderColor: 'rgba(14,165,233,0.3)' }}>ESOL</span>
                 )}
               </div>
             </div>
@@ -292,29 +291,29 @@ export default function StudentDetail() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-400">Avg mastery</span>
-                  <span className="text-slate-100 font-medium">
+                  <span className="text-slate-700 font-medium">
                     {pct(summary?.mastery?.avg_mastery)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-400">Engagement</span>
-                  <span className="text-slate-100 font-medium">
+                  <span className="text-slate-700 font-medium">
                     {pct(profile?.overall_engagement_score)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-400">Conversations</span>
-                  <span className="text-slate-100 font-medium">
+                  <span className="text-slate-700 font-medium">
                     {summary?.conversations?.total_conversations ?? 0}
                   </span>
                 </div>
                 {predGrade != null && (
-                  <div className="flex items-center justify-between text-sm border-t border-slate-700 pt-2 mt-2">
+                  <div className="flex items-center justify-between text-sm border-t border-slate-200 pt-2 mt-2">
                     <span className="text-slate-400">Predicted grade</span>
-                    <span className="text-sky-300 font-medium">
+                    <span className="text-sky-600 font-medium">
                       {typeof predGrade === 'number' ? `${Math.round(predGrade)}%` : predGrade}
                       {predConfidence != null && (
-                        <span className="text-slate-500 text-xs ml-1">
+                        <span className="text-slate-8000 text-xs ml-1">
                           ({Math.round(clamp01(predConfidence) * 100)}% conf.)
                         </span>
                       )}
@@ -324,7 +323,7 @@ export default function StudentDetail() {
                 {predRisk != null && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400">Predicted risk</span>
-                    <span className={`font-medium text-sm ${clamp01(predRisk) >= 0.4 ? 'text-rose-400' : clamp01(predRisk) >= 0.2 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                    <span className={`font-medium text-sm ${clamp01(predRisk) >= 0.4 ? 'text-rose-600' : clamp01(predRisk) >= 0.2 ? 'text-amber-600' : 'text-emerald-600'}`}>
                       {pct(predRisk)}
                     </span>
                   </div>
@@ -336,7 +335,7 @@ export default function StudentDetail() {
 
         {/* ── Student Profile Info ── */}
         <div className="axon-card-subtle p-5 sm:p-6">
-          <p className="text-sm font-semibold text-slate-100 mb-3">Student profile</p>
+          <p className="text-sm font-semibold text-slate-700 mb-3">Student profile</p>
           <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
             <InfoRow label="Learning style" value={learningStyle} />
             <InfoRow label="Primary language" value={primaryLanguage} />
@@ -347,8 +346,8 @@ export default function StudentDetail() {
           </div>
           {student?.major_life_event && (
             <div className="flex items-start gap-3 text-sm rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 mt-3">
-              <span className="text-amber-400 shrink-0">⚠ Life event</span>
-              <span className="text-slate-200">{student.major_life_event}</span>
+              <span className="text-amber-600 shrink-0">⚠ Life event</span>
+              <span className="text-slate-700">{student.major_life_event}</span>
             </div>
           )}
         </div>
@@ -358,7 +357,7 @@ export default function StudentDetail() {
           {(aiSummary || suggestedInterventions.length > 0 || successfulStrategies.length > 0 || failedStrategies.length > 0) ? (<>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-slate-100">AI summary</p>
+                <p className="text-sm font-semibold text-slate-700">AI summary</p>
                 {insightType && (
                   <span className={`axon-pill text-[0.7rem] mt-1 inline-block ${
                     insightType === 'at_risk' ? 'axon-pill-danger'
@@ -377,7 +376,7 @@ export default function StudentDetail() {
             </div>
 
             {aiSummary && (
-              <p className="text-sm text-slate-300 leading-relaxed">{aiSummary}</p>
+              <p className="text-sm text-slate-600 leading-relaxed">{aiSummary}</p>
             )}
 
             {suggestedInterventions.length > 0 && (
@@ -389,8 +388,8 @@ export default function StudentDetail() {
                   {suggestedInterventions.map((item, i) => {
                     const text = typeof item === 'string' ? item : (item.action || item.description || JSON.stringify(item));
                     return (
-                      <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
-                        <span className="text-sky-400 mt-0.5 shrink-0">→</span>
+                      <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
+                        <span className="text-teal-600 mt-0.5 shrink-0">→</span>
                         {text}
                       </li>
                     );
@@ -400,16 +399,16 @@ export default function StudentDetail() {
             )}
 
             {(successfulStrategies.length > 0 || failedStrategies.length > 0) && (
-              <div className="grid gap-3 sm:grid-cols-2 pt-1 border-t border-slate-800">
+              <div className="grid gap-3 sm:grid-cols-2 pt-1 border-t border-slate-200">
                 {successfulStrategies.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-emerald-500 mb-1.5">What's working</p>
+                    <p className="text-xs font-semibold text-emerald-600 mb-1.5">What's working</p>
                     <ul className="space-y-1">
                       {successfulStrategies.map((s, i) => {
                         const text = typeof s === 'string' ? s : (s.strategy || s.name || JSON.stringify(s));
                         return (
-                          <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
-                            <span className="text-emerald-400 mt-0.5 shrink-0">✓</span>
+                          <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
+                            <span className="text-emerald-600 mt-0.5 shrink-0">✓</span>
                             {text}
                           </li>
                         );
@@ -419,13 +418,13 @@ export default function StudentDetail() {
                 )}
                 {failedStrategies.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-rose-500 mb-1.5">What hasn't worked</p>
+                    <p className="text-xs font-semibold text-rose-600 mb-1.5">What hasn't worked</p>
                     <ul className="space-y-1">
                       {failedStrategies.map((s, i) => {
                         const text = typeof s === 'string' ? s : (s.strategy || s.name || JSON.stringify(s));
                         return (
-                          <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
-                            <span className="text-rose-400 mt-0.5 shrink-0">✗</span>
+                          <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
+                            <span className="text-rose-600 mt-0.5 shrink-0">✗</span>
                             {text}
                           </li>
                         );
@@ -437,8 +436,8 @@ export default function StudentDetail() {
             )}
           </>) : (
             <div className="text-center py-4">
-              <p className="text-sm font-semibold text-slate-100 mb-1">AI summary</p>
-              <p className="text-xs text-slate-500">No AI insights generated for this student yet.</p>
+              <p className="text-sm font-semibold text-slate-700 mb-1">AI summary</p>
+              <p className="text-xs text-slate-8000">No AI insights generated for this student yet.</p>
             </div>
           )}
         </div>
@@ -448,8 +447,8 @@ export default function StudentDetail() {
           <div className="axon-card-subtle p-5 sm:p-6">
             <div className="flex items-end justify-between gap-3 mb-3">
               <div>
-                <p className="text-sm font-semibold text-slate-100">Focus concepts</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm font-semibold text-slate-700">Focus concepts</p>
+                <p className="text-xs text-slate-8000">
                   Lowest mastery first — keep the list short and actionable.
                 </p>
               </div>
@@ -460,22 +459,22 @@ export default function StudentDetail() {
                 return (
                   <div
                     key={c.concept_id}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white/40 px-3 py-2"
                   >
                     <div className="min-w-0">
-                      <p className="text-xs font-medium text-slate-100 truncate">
+                      <p className="text-xs font-medium text-slate-700 truncate">
                         {c.concept_name}
                       </p>
-                      <p className="text-[0.7rem] text-slate-500 truncate">
+                      <p className="text-[0.7rem] text-slate-8000 truncate">
                         {c.subject}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-xs font-semibold text-sky-200">
+                      <span className="text-xs font-semibold text-sky-600">
                         {pct(c.mastery_score)}
                       </span>
                       {predicted !== null && (
-                        <span className="text-[0.7rem] text-slate-500" title="Predicted mastery">
+                        <span className="text-[0.7rem] text-slate-8000" title="Predicted mastery">
                           → {pct(predicted)}
                         </span>
                       )}
@@ -484,60 +483,60 @@ export default function StudentDetail() {
                 );
               })}
               {focusConcepts.length === 0 && (
-                <p className="text-xs text-slate-500">No mastery data yet.</p>
+                <p className="text-xs text-slate-8000">No mastery data yet.</p>
               )}
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="axon-card-subtle p-5 sm:p-6">
-              <p className="text-sm font-semibold text-slate-100 mb-2">Active flags</p>
+              <p className="text-sm font-semibold text-slate-700 mb-2">Active flags</p>
               <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                 {(flags?.flags || []).slice(0, 6).map(f => (
                   <div
                     key={f.id}
                     className={`rounded-lg border px-3 py-2 ${flagBorderStyle(f.flag_type)}`}
                   >
-                    <p className="text-xs font-medium text-slate-100">
+                    <p className="text-xs font-medium text-slate-700">
                       {f.concept_name}
                     </p>
-                    <p className="text-[0.7rem] text-slate-500">
+                    <p className="text-[0.7rem] text-slate-8000">
                       {f.flag_type ? f.flag_type.replace(/_/g, ' ') : ''}{f.flag_detail ? ` · ${f.flag_detail}` : ''}
                     </p>
                   </div>
                 ))}
                 {(flags?.flags || []).length === 0 && (
-                  <p className="text-xs text-slate-500">No active flags.</p>
+                  <p className="text-xs text-slate-8000">No active flags.</p>
                 )}
               </div>
             </div>
 
             <div className="axon-card-subtle p-5 sm:p-6">
-              <p className="text-sm font-semibold text-slate-100 mb-2">Recent sessions</p>
+              <p className="text-sm font-semibold text-slate-700 mb-2">Recent sessions</p>
               <div className="space-y-2">
                 {recentConvos.map(c => (
                   <button
                     key={c.id}
-                    className="w-full text-left rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-950/70 transition-colors px-3 py-2"
+                    className="w-full text-left rounded-lg border border-slate-200 bg-white/40 hover:bg-white/60 transition-colors px-3 py-2"
                     onClick={() =>
                       setActiveConversation(activeConversation === c.id ? null : c.id)
                     }
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-medium text-slate-100 truncate">
+                      <p className="text-xs font-medium text-slate-700 truncate">
                         {c.concept_name}
                       </p>
-                      <span className="text-[0.7rem] text-slate-500">
+                      <span className="text-[0.7rem] text-slate-8000">
                         {pct(c.session_engagement_score)}
                       </span>
                     </div>
-                    <p className="text-[0.7rem] text-slate-500 mt-0.5 truncate">
+                    <p className="text-[0.7rem] text-slate-8000 mt-0.5 truncate">
                       {c.subject} · {new Date(c.started_at).toLocaleDateString()}
                     </p>
                   </button>
                 ))}
                 {recentConvos.length === 0 && (
-                  <p className="text-xs text-slate-500">No sessions yet.</p>
+                  <p className="text-xs text-slate-8000">No sessions yet.</p>
                 )}
               </div>
             </div>
@@ -546,41 +545,41 @@ export default function StudentDetail() {
 
         {/* ── Pedagogy Recommendations ── */}
         <div className="axon-card-subtle p-5 sm:p-6">
-          <p className="text-sm font-semibold text-slate-100 mb-3">Teaching recommendations</p>
+          <p className="text-sm font-semibold text-slate-700 mb-3">Teaching recommendations</p>
           {aiInsights?.insights?.teaching_approach_advice ? (
-            <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.teaching_approach_advice}</p>
+            <p className="text-sm text-slate-600 leading-relaxed">{aiInsights.insights.teaching_approach_advice}</p>
           ) : (
-            <p className="text-xs text-slate-500">No teaching recommendations available yet.</p>
+            <p className="text-xs text-slate-8000">No teaching recommendations available yet.</p>
           )}
         </div>
 
         {/* ── Predictions: Risk Factors & Improvement Areas ── */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="axon-card-subtle p-5 sm:p-6">
-            <p className="text-sm font-semibold text-slate-100 mb-2">Risk factors</p>
+            <p className="text-sm font-semibold text-slate-700 mb-2">Risk factors</p>
             {aiInsights?.insights?.risk_narrative ? (
-              <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.risk_narrative}</p>
+              <p className="text-sm text-slate-600 leading-relaxed">{aiInsights.insights.risk_narrative}</p>
             ) : (
-              <p className="text-xs text-slate-500">No risk factors identified.</p>
+              <p className="text-xs text-slate-8000">No risk factors identified.</p>
             )}
           </div>
           <div className="axon-card-subtle p-5 sm:p-6">
-            <p className="text-sm font-semibold text-slate-100 mb-2">Improvement areas</p>
+            <p className="text-sm font-semibold text-slate-700 mb-2">Improvement areas</p>
             {aiInsights?.insights?.recommended_interventions ? (
               Array.isArray(aiInsights.insights.recommended_interventions) ? (
                 <ul className="space-y-1">
                   {aiInsights.insights.recommended_interventions.map((a, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
-                      <span className="text-emerald-400 mt-0.5 shrink-0">•</span>
+                    <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
+                      <span className="text-emerald-600 mt-0.5 shrink-0">•</span>
                       {typeof a === 'string' ? a : JSON.stringify(a)}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.recommended_interventions}</p>
+                <p className="text-sm text-slate-600 leading-relaxed">{aiInsights.insights.recommended_interventions}</p>
               )
             ) : (
-              <p className="text-xs text-slate-500">No improvement areas identified.</p>
+              <p className="text-xs text-slate-8000">No improvement areas identified.</p>
             )}
           </div>
         </div>
@@ -590,10 +589,10 @@ export default function StudentDetail() {
           <div className="axon-card-subtle p-5 sm:p-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span style={{ color: '#14B8A6' }}>✦</span>
+                <span style={{ color: '#0f766e' }}>✦</span>
                 <p
                   className="font-semibold tracking-widest uppercase"
-                  style={{ color: '#14B8A6', fontSize: '11px' }}
+                  style={{ color: '#0f766e', fontSize: '11px' }}
                 >
                   Axon Intelligence
                 </p>
@@ -607,7 +606,7 @@ export default function StudentDetail() {
             </div>
 
             {aiInsights.insights.student_summary && (
-              <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.student_summary}</p>
+              <p className="text-sm text-slate-600 leading-relaxed">{aiInsights.insights.student_summary}</p>
             )}
 
             {aiInsights.insights.risk_narrative && (
@@ -615,7 +614,7 @@ export default function StudentDetail() {
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                   Risk assessment
                 </p>
-                <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.risk_narrative}</p>
+                <p className="text-sm text-slate-600 leading-relaxed">{aiInsights.insights.risk_narrative}</p>
               </div>
             )}
 
@@ -627,14 +626,14 @@ export default function StudentDetail() {
                 {Array.isArray(aiInsights.insights.recommended_interventions) ? (
                   <ul className="space-y-1.5">
                     {aiInsights.insights.recommended_interventions.map((item, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
-                        <span style={{ color: '#14B8A6' }} className="mt-0.5 shrink-0">→</span>
+                      <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
+                        <span style={{ color: '#0f766e' }} className="mt-0.5 shrink-0">→</span>
                         {typeof item === 'string' ? item : JSON.stringify(item)}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.recommended_interventions}</p>
+                  <p className="text-sm text-slate-600 leading-relaxed">{aiInsights.insights.recommended_interventions}</p>
                 )}
               </div>
             )}
@@ -644,7 +643,7 @@ export default function StudentDetail() {
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                   How to teach this student
                 </p>
-                <p className="text-sm text-slate-300 leading-relaxed">{aiInsights.insights.teaching_approach_advice}</p>
+                <p className="text-sm text-slate-600 leading-relaxed">{aiInsights.insights.teaching_approach_advice}</p>
               </div>
             )}
           </div>
@@ -653,7 +652,7 @@ export default function StudentDetail() {
         {/* ── Teach This Student (pedagogical_memory) ── */}
         {sortedApproaches.length > 0 && (
           <div className="axon-card-subtle p-5 sm:p-6">
-            <p className="text-sm font-semibold text-slate-100 mb-4">Teach this student</p>
+            <p className="text-sm font-semibold text-slate-700 mb-4">Teach this student</p>
             <div className="space-y-3">
               {sortedApproaches.slice(0, 4).map((approach, i) => {
                 const rate = clamp01(approach.success_rate ?? 0);
@@ -667,12 +666,12 @@ export default function StudentDetail() {
                 return (
                   <div key={i}>
                     <div className="flex items-center justify-between gap-3 mb-1">
-                      <span className="text-xs text-slate-200">{name}</span>
+                      <span className="text-xs text-slate-700">{name}</span>
                       <span className="text-xs text-slate-400 shrink-0">
                         {pct(rate)} ({approach.attempt_count ?? 0} sessions)
                       </span>
                     </div>
-                    <div className="h-1.5 w-full rounded-full bg-slate-800">
+                    <div className="h-1.5 w-full rounded-full bg-slate-200">
                       <div
                         className={`h-1.5 rounded-full ${barColor}`}
                         style={{ width: pct(rate) }}
@@ -683,7 +682,7 @@ export default function StudentDetail() {
               })}
             </div>
             {sortedApproaches[0] && (
-              <p className="text-[0.7rem] text-slate-500 mt-4">
+              <p className="text-[0.7rem] text-slate-8000 mt-4">
                 Best approach: {formatApproachName(sortedApproaches[0].teaching_approach)}
                 {sortedApproaches[0].avg_messages_to_lightbulb != null && (
                   ` · Avg ${Math.round(sortedApproaches[0].avg_messages_to_lightbulb)} messages to breakthrough`

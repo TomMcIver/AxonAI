@@ -6,13 +6,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import DashboardShell from '../../components/DashboardShell';
-
-// The 26 specific students in class_id=1 with full ML data
-const DEMO_CLASS_STUDENT_IDS = [
-  1, 547, 548, 549, 550, 551, 552, 553, 554, 555,
-  556, 557, 558, 559, 560, 561, 562, 563, 564, 565,
-  566, 567, 568, 569, 570, 571,
-];
+import { filterDemoStudents } from '../../constants/demoStudents';
 
 export default function ClassOverview() {
   const { id } = useParams();
@@ -50,9 +44,7 @@ export default function ClassOverview() {
   }
   if (!data) return null;
 
-  const roster = (data.students || []).filter(
-    s => DEMO_CLASS_STUDENT_IDS.includes(s.student_id || s.id)
-  );
+  const roster = filterDemoStudents(data.students);
 
   const counts = roster.reduce(
     (acc, s) => {
@@ -71,54 +63,60 @@ export default function ClassOverview() {
   );
 
   const trendData = [
-    { name: 'Improving', value: counts.improving, color: '#10B981' },
-    { name: 'Declining', value: counts.declining, color: '#EF4444' },
-    { name: 'Stable', value: counts.stable, color: '#6B7280' },
+    { name: 'Improving', value: counts.improving, color: '#16a34a' },
+    { name: 'Declining', value: counts.declining, color: '#dc2626' },
+    { name: 'Stable', value: counts.stable, color: '#94a3b8' },
   ].filter(d => d.value > 0);
 
   const riskData = [
-    { name: 'At Risk', value: counts.atRisk, color: '#EF4444' },
-    { name: 'On Track', value: counts.onTrack, color: '#10B981' },
+    { name: 'At Risk', value: counts.atRisk, color: '#dc2626' },
+    { name: 'On Track', value: counts.onTrack, color: '#16a34a' },
   ].filter(d => d.value > 0);
+
+  const tooltipStyle = {
+    background: 'rgba(255, 255, 255, 0.9)',
+    border: '1px solid rgba(148, 163, 184, 0.2)',
+    borderRadius: 8,
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+    fontFamily: "'Inter', sans-serif",
+    fontSize: 13,
+    color: '#1e293b',
+  };
 
   return (
     <DashboardShell subtitle={`${data.class?.name || 'Class'} · overview`}>
       <div className="space-y-5">
         <div className="axon-card-subtle p-5 sm:p-6">
           <p className="axon-label mb-1">Class</p>
-          <h1 className="axon-h2 text-lg sm:text-xl text-slate-50">
+          <h1 className="axon-h2 text-lg sm:text-xl text-slate-800">
             {data.class?.name}
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             {data.class?.subject} · Year {data.class?.year_level} · {data.class?.academic_year}
           </p>
-          <p className="text-[0.72rem] text-slate-500 mt-3">
+          <p className="text-[0.72rem] text-slate-400 mt-3">
             Showing {roster.length} students in this class.
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="axon-card-ghost p-4">
-            <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">Students</p>
-            <p className="text-2xl font-semibold text-slate-50">
-              {roster.length}
-            </p>
+            <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-400">Students</p>
+            <p className="text-2xl font-semibold text-slate-800">{roster.length}</p>
           </div>
-          <div className="axon-card-ghost p-4">
-            <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">At risk</p>
-            <p className="text-2xl font-semibold text-rose-300">
-              {counts.atRisk}
-            </p>
+          <div className="axon-card-ghost p-4" style={{ borderLeft: '3px solid #dc2626' }}>
+            <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-400">At risk</p>
+            <p className="text-2xl font-semibold text-rose-600">{counts.atRisk}</p>
           </div>
-          <div className="axon-card-ghost p-4">
-            <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">Avg engagement</p>
-            <p className="text-2xl font-semibold text-sky-300">
+          <div className="axon-card-ghost p-4" style={{ borderLeft: '3px solid #2563eb' }}>
+            <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-400">Avg engagement</p>
+            <p className="text-2xl font-semibold text-blue-600">
               {(data.class_stats?.avg_engagement * 100).toFixed(0)}%
             </p>
           </div>
-          <div className="axon-card-ghost p-4">
-            <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-500">Resolve rate</p>
-            <p className="text-2xl font-semibold text-emerald-300">
+          <div className="axon-card-ghost p-4" style={{ borderLeft: '3px solid #16a34a' }}>
+            <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-400">Resolve rate</p>
+            <p className="text-2xl font-semibold text-emerald-600">
               {(data.class_stats?.resolve_rate * 100).toFixed(0)}%
             </p>
           </div>
@@ -126,26 +124,28 @@ export default function ClassOverview() {
 
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="axon-card-subtle p-5">
-            <p className="text-sm font-semibold text-slate-100 mb-3">Trends</p>
+            <p className="text-sm font-semibold text-slate-700 mb-3">Trends</p>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={trendData} cx="50%" cy="50%" outerRadius={70} dataKey="value">
+                <Pie data={trendData} cx="50%" cy="50%" innerRadius={50} outerRadius={72} paddingAngle={3} dataKey="value" stroke="none">
                   {trendData.map((d, i) => <Cell key={i} fill={d.color} />)}
                 </Pie>
-                <Tooltip />
-                <Legend />
+                <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: '#475569' }} />
+                <Legend wrapperStyle={{ fontFamily: "'Inter', sans-serif", fontSize: 12 }}
+                  formatter={(value) => <span style={{ color: '#475569', fontSize: 12 }}>{value}</span>} />
               </PieChart>
             </ResponsiveContainer>
           </div>
           <div className="axon-card-subtle p-5">
-            <p className="text-sm font-semibold text-slate-100 mb-3">Risk</p>
+            <p className="text-sm font-semibold text-slate-700 mb-3">Risk</p>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={riskData} cx="50%" cy="50%" outerRadius={70} dataKey="value">
+                <Pie data={riskData} cx="50%" cy="50%" innerRadius={50} outerRadius={72} paddingAngle={3} dataKey="value" stroke="none">
                   {riskData.map((d, i) => <Cell key={i} fill={d.color} />)}
                 </Pie>
-                <Tooltip />
-                <Legend />
+                <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: '#475569' }} />
+                <Legend wrapperStyle={{ fontFamily: "'Inter', sans-serif", fontSize: 12 }}
+                  formatter={(value) => <span style={{ color: '#475569', fontSize: 12 }}>{value}</span>} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -154,10 +154,8 @@ export default function ClassOverview() {
         <div className="axon-card-subtle p-5">
           <div className="flex items-end justify-between gap-3 mb-3">
             <div>
-              <p className="text-sm font-semibold text-slate-100">Students</p>
-              <p className="text-xs text-slate-500">
-                Showing {roster.length} students.
-              </p>
+              <p className="text-sm font-semibold text-slate-700">Students</p>
+              <p className="text-xs text-slate-400">Showing {roster.length} students.</p>
             </div>
           </div>
           <StudentTable students={roster} />
