@@ -266,110 +266,127 @@ export default function StudentSummary() {
           </div>
         </div>
 
-        {/* ── Concept Mastery by Class ── */}
-        {summaryData?.classes && summaryData.classes.length > 0 && (
-          <div>
-            <p className="text-sm font-semibold text-slate-700 mb-4">Concept mastery by class</p>
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-              {summaryData.classes.map((classData) => {
-                // Filter and sort mastered concepts (≥85%)
-                const mastered = (classData.concepts || [])
-                  .filter(c => (c.score || 0) >= 85)
-                  .sort((a, b) => (b.score || 0) - (a.score || 0))
-                  .slice(0, 3);
+        {/* ── Concept Mastery by Subject ── */}
+        {mastery?.concepts && mastery.concepts.length > 0 && (() => {
+          // Group concepts by subject
+          const conceptsBySubject = {};
+          (mastery.concepts || []).forEach(c => {
+            const subject = c.subject || 'Other';
+            if (!conceptsBySubject[subject]) {
+              conceptsBySubject[subject] = [];
+            }
+            conceptsBySubject[subject].push({
+              name: c.name || c.concept_name || 'Unknown',
+              score: c.mastery_score || c.score || 0,
+            });
+          });
 
-                // Filter and sort struggling concepts (<50%)
-                const struggling = (classData.concepts || [])
-                  .filter(c => (c.score || 0) < 50)
-                  .sort((a, b) => (a.score || 0) - (b.score || 0))
-                  .slice(0, 3);
+          return (
+            <div>
+              <p className="text-sm font-semibold text-slate-700 mb-4">Concept mastery by subject</p>
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                {Object.entries(conceptsBySubject).map(([subject, concepts]) => {
+                  // Filter and sort mastered concepts (≥85%)
+                  const mastered = concepts
+                    .filter(c => c.score >= 85)
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 3);
 
-                // Calculate overall score
-                const overallScore = classData.overallScore || 0;
+                  // Filter and sort struggling concepts (<50%)
+                  const struggling = concepts
+                    .filter(c => c.score < 50)
+                    .sort((a, b) => a.score - b.score)
+                    .slice(0, 3);
 
-                return (
-                  <div
-                    key={classData.classId}
-                    className="axon-card-subtle p-5 sm:p-6 rounded-2xl"
-                  >
-                    {/* Class header */}
-                    <div className="mb-4">
-                      <h3 className="text-sm font-semibold text-slate-700 mb-3">
-                        {classData.className}
-                      </h3>
+                  // Calculate overall score for subject
+                  const overallScore = concepts.length > 0
+                    ? concepts.reduce((sum, c) => sum + c.score, 0) / concepts.length
+                    : 0;
 
-                      {/* Overall score bar */}
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-slate-500 font-medium">Overall score</span>
-                          <span className="text-sm font-bold text-teal-600">
-                            {Math.round(clamp01(overallScore / 100) * 100)}%
-                          </span>
-                        </div>
-                        <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
-                          <div
-                            className="h-full bg-teal-500 transition-all duration-500 ease-out"
-                            style={{ width: `${clamp01(overallScore / 100) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Mastered concepts */}
-                    {mastered.length > 0 && (
+                  return (
+                    <div
+                      key={subject}
+                      className="axon-card-subtle p-5 sm:p-6 rounded-2xl"
+                    >
+                      {/* Subject header */}
                       <div className="mb-4">
-                        <p className="text-xs font-semibold text-slate-600 mb-2">Mastered</p>
-                        <div className="space-y-2">
-                          {mastered.map((concept) => (
-                            <div
-                              key={concept.name}
-                              className="flex items-center gap-2 p-2 rounded-lg border border-green-500/40 bg-white/40"
-                            >
-                              <CheckCircle2 size={16} className="text-green-600 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-green-700 truncate">
-                                  {concept.name}
-                                </p>
-                              </div>
-                              <span className="text-xs font-bold text-green-600 flex-shrink-0">
-                                {Math.round(concept.score || 0)}%
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                        <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                          {subject}
+                        </h3>
 
-                    {/* Struggling concepts */}
-                    {struggling.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold text-slate-600 mb-2">Struggling</p>
+                        {/* Overall score bar */}
                         <div className="space-y-2">
-                          {struggling.map((concept) => (
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-slate-500 font-medium">Overall score</span>
+                            <span className="text-sm font-bold text-teal-600">
+                              {Math.round(clamp01(overallScore / 100) * 100)}%
+                            </span>
+                          </div>
+                          <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
                             <div
-                              key={concept.name}
-                              className="flex items-center gap-2 p-2 rounded-lg border border-red-500/40 bg-white/40"
-                            >
-                              <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-red-700 truncate">
-                                  {concept.name}
-                                </p>
-                              </div>
-                              <span className="text-xs font-bold text-red-600 flex-shrink-0">
-                                {Math.round(concept.score || 0)}%
-                              </span>
-                            </div>
-                          ))}
+                              className="h-full bg-teal-500 transition-all duration-500 ease-out"
+                              style={{ width: `${clamp01(overallScore / 100) * 100}%` }}
+                            />
+                          </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+
+                      {/* Mastered concepts */}
+                      {mastered.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-xs font-semibold text-slate-600 mb-2">Mastered</p>
+                          <div className="space-y-2">
+                            {mastered.map((concept) => (
+                              <div
+                                key={concept.name}
+                                className="flex items-center gap-2 p-2 rounded-lg border border-green-500/40 bg-white/40"
+                              >
+                                <CheckCircle2 size={16} className="text-green-600 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-green-700 truncate">
+                                    {concept.name}
+                                  </p>
+                                </div>
+                                <span className="text-xs font-bold text-green-600 flex-shrink-0">
+                                  {Math.round(concept.score)}%
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Struggling concepts */}
+                      {struggling.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-slate-600 mb-2">Struggling</p>
+                          <div className="space-y-2">
+                            {struggling.map((concept) => (
+                              <div
+                                key={concept.name}
+                                className="flex items-center gap-2 p-2 rounded-lg border border-red-500/40 bg-white/40"
+                              >
+                                <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-red-700 truncate">
+                                    {concept.name}
+                                  </p>
+                                </div>
+                                <span className="text-xs font-bold text-red-600 flex-shrink-0">
+                                  {Math.round(concept.score)}%
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── Action Buttons ── */}
         <div className="flex gap-3">
