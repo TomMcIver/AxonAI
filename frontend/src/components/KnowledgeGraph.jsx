@@ -20,11 +20,12 @@ function DifficultyBadge({ level }) {
   );
 }
 
-function ConceptNode({ concept, isSelected, isHovered, onSelect, onHover, onLeave }) {
+function ConceptNode({ concept, isSelected, isHovered, onSelect, onHover, onLeave, nodeRef }) {
   const diff = concept.difficulty_level || 3;
   const cfg = DIFFICULTY_CONFIG[diff] || DIFFICULTY_CONFIG[3];
   return (
     <div
+      ref={nodeRef}
       className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all border-2 ${
         isSelected
           ? `${cfg.bg} ${cfg.text} border-current shadow-md scale-105`
@@ -42,6 +43,111 @@ function ConceptNode({ concept, isSelected, isHovered, onSelect, onHover, onLeav
   );
 }
 
+// SVG visualization of prerequisite connections
+function PrerequisiteVisualization({ concepts, edges, hovered, onConceptHover, onConceptLeave }) {
+  const [nodePositions, setNodePositions] = React.useState({});
+  const containerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    // Collect positions of concept nodes
+    const positions = {};
+    const nodes = document.querySelectorAll('[data-concept-id]');
+
+    nodes.forEach(node => {
+      const conceptId = node.getAttribute('data-concept-id');
+      const rect = node.getBoundingClientRect();
+      const containerRect = containerRef.current?.getBoundingClientRect();
+
+      if (containerRect) {
+        positions[conceptId] = {
+          x: rect.left - containerRect.left + rect.width / 2,
+          y: rect.top - containerRect.top + rect.height / 2,
+          width: rect.width,
+          height: rect.height,
+        };
+      }
+    });
+
+    setNodePositions(positions);
+  }, [concepts]);
+
+  const svgWidth = containerRef.current?.offsetWidth || 800;
+  const svgHeight = Math.max(
+    Object.values(nodePositions).reduce((max, pos) => Math.max(max, pos.y + 50), 300),
+    300
+  );
+
+  return (
+    <div ref={containerRef} className="relative w-full mb-4">
+      <svg
+        width={svgWidth}
+        height={svgHeight}
+        className="absolute top-0 left-0 pointer-events-none"
+        style={{ overflow: 'visible' }}
+      >
+        {/* Draw edges (prerequisite connections) */}
+        {edges.map((edge, idx) => {
+          const fromPos = nodePositions[edge.prerequisite_concept_id];
+          const toPos = nodePositions[edge.concept_id];
+
+          if (!fromPos || !toPos) return null;
+
+          // Strength determines opacity and line width
+          const strengthMap = { strong: 2, medium: 1.5, weak: 1 };
+          const opacityMap = { strong: 0.6, medium: 0.4, weak: 0.2 };
+          const strength = edge.strength?.toLowerCase() || 'medium';
+          const lineWidth = strengthMap[strength] || 1.5;
+          const opacity = opacityMap[strength] || 0.4;
+
+          // Determine if this edge should be highlighted
+          const isHighlighted = hovered && (hovered === edge.prerequisite_concept_id || hovered === edge.concept_id);
+
+          return (
+            <g key={idx}>
+              {/* Line with smooth curve */}
+              <path
+                d={`M ${fromPos.x} ${fromPos.y + fromPos.height / 2} Q ${(fromPos.x + toPos.x) / 2} ${(fromPos.y + toPos.y) / 2} ${toPos.x} ${toPos.y - toPos.height / 2}`}
+                stroke={isHighlighted ? '#0d9488' : '#cbd5e1'}
+                strokeWidth={isHighlighted ? lineWidth * 2 : lineWidth}
+                fill="none"
+                opacity={isHighlighted ? 1 : opacity}
+                className="transition-all"
+              />
+              {/* Arrowhead */}
+              <defs>
+                <marker
+                  id={`arrowhead-${idx}`}
+                  markerWidth="10"
+                  markerHeight="10"
+                  refX="9"
+                  refY="3"
+                  orient="auto"
+                >
+                  <polygon
+                    points="0 0, 10 3, 0 6"
+                    fill={isHighlighted ? '#0d9488' : '#cbd5e1'}
+                    opacity={isHighlighted ? 1 : opacity}
+                  />
+                </marker>
+              </defs>
+              <path
+                d={`M ${fromPos.x} ${fromPos.y + fromPos.height / 2} Q ${(fromPos.x + toPos.x) / 2} ${(fromPos.y + toPos.y) / 2} ${toPos.x} ${toPos.y - toPos.height / 2}`}
+                stroke="none"
+                markerEnd={`url(#arrowhead-${idx})`}
+              />
+            </g>
+          );
+        })}
+      </svg>
+
+      {/* Placeholder for content to be positioned */}
+      <div style={{ pointerEvents: 'auto' }} className="relative z-10">
+        {/* Content goes here */}
+      </div>
+    </div>
+  );
+}
+
 export default function KnowledgeGraph({ subject }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,6 +156,7 @@ export default function KnowledgeGraph({ subject }) {
   const [hovered, setHovered] = useState(null);
   const [search, setSearch] = useState('');
   const detailRef = useRef(null);
+  const nodeRefs = useRef({});
 
   const load = useCallback(() => {
     setLoading(true);
@@ -114,7 +221,7 @@ export default function KnowledgeGraph({ subject }) {
         />
       </div>
 
-      {/* Ranked concept map */}
+      {/* Ranked concept map with visual connections */}
       <div style={{
         background: 'rgba(255, 255, 255, 0.5)',
         backdropFilter: 'blur(16px)',
@@ -127,40 +234,132 @@ export default function KnowledgeGraph({ subject }) {
       }}>
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-sm font-semibold text-slate-700">Concept Hierarchy</h4>
-          <span className="text-xs text-slate-400">Hardest at top, easiest at bottom</span>
+          <span className="text-xs text-slate-400">Hardest at top, easiest at bottom · Lines show prerequisites</span>
         </div>
 
-        <div className="space-y-1">
-          {ranks.map(rank => {
-            const cfg = DIFFICULTY_CONFIG[rank] || DIFFICULTY_CONFIG[3];
-            const items = grouped[rank]?.filter(matchesSearch) || [];
-            if (items.length === 0 && search) return null;
-            return (
-              <div key={rank} className="flex items-start gap-3 py-3" style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.1)' }}>
-                <div className="w-24 flex-shrink-0 pt-1">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${cfg.bg} ${cfg.text} uppercase tracking-wider`}>
-                    Lvl {rank}
-                  </span>
-                  <p className="text-[10px] text-slate-400 mt-0.5">{cfg.label}</p>
+        <div className="relative">
+          {/* SVG visualization layer */}
+          <svg
+            width="100%"
+            height="100%"
+            className="absolute top-0 left-0 pointer-events-none"
+            style={{
+              minHeight: '400px',
+              overflow: 'visible',
+            }}
+          >
+            <defs>
+              <marker
+                id="arrowhead-strong"
+                markerWidth="10"
+                markerHeight="10"
+                refX="9"
+                refY="3"
+                orient="auto"
+              >
+                <polygon points="0 0, 10 3, 0 6" fill="#0d9488" opacity="0.8" />
+              </marker>
+              <marker
+                id="arrowhead-medium"
+                markerWidth="10"
+                markerHeight="10"
+                refX="9"
+                refY="3"
+                orient="auto"
+              >
+                <polygon points="0 0, 10 3, 0 6" fill="#64748b" opacity="0.5" />
+              </marker>
+              <marker
+                id="arrowhead-weak"
+                markerWidth="10"
+                markerHeight="10"
+                refX="9"
+                refY="3"
+                orient="auto"
+              >
+                <polygon points="0 0, 10 3, 0 6" fill="#cbd5e1" opacity="0.3" />
+              </marker>
+            </defs>
+
+            {/* Draw prerequisite connections */}
+            {edges.map((edge, idx) => {
+              const fromNode = nodeRefs.current[edge.prerequisite_concept_id];
+              const toNode = nodeRefs.current[edge.concept_id];
+
+              if (!fromNode || !toNode) return null;
+
+              const fromRect = fromNode.getBoundingClientRect();
+              const toRect = toNode.getBoundingClientRect();
+              const containerRect = document.querySelector('[data-graph-container]')?.getBoundingClientRect();
+
+              if (!containerRect) return null;
+
+              const fromX = fromRect.left - containerRect.left + fromRect.width / 2;
+              const fromY = fromRect.top - containerRect.top + fromRect.height / 2;
+              const toX = toRect.left - containerRect.left + toRect.width / 2;
+              const toY = toRect.top - containerRect.top + toRect.height / 2;
+
+              const strength = edge.strength?.toLowerCase() || 'medium';
+              const strokeWidthMap = { strong: 2.5, medium: 1.5, weak: 1 };
+              const strokeWidth = strokeWidthMap[strength] || 1.5;
+              const opacityMap = { strong: 0.8, medium: 0.4, weak: 0.2 };
+              const opacity = opacityMap[strength] || 0.4;
+              const isHighlighted = hovered && (hovered === edge.prerequisite_concept_id || hovered === edge.concept_id);
+
+              return (
+                <g key={idx}>
+                  <path
+                    d={`M ${fromX} ${fromY} Q ${(fromX + toX) / 2} ${(fromY + toY) / 2} ${toX} ${toY}`}
+                    stroke={isHighlighted ? '#0d9488' : '#cbd5e1'}
+                    strokeWidth={isHighlighted ? strokeWidth * 1.5 : strokeWidth}
+                    fill="none"
+                    opacity={isHighlighted ? 1 : opacity}
+                    markerEnd={`url(#arrowhead-${strength})`}
+                    className="transition-all duration-200"
+                  />
+                </g>
+              );
+            })}
+          </svg>
+
+          {/* Concept nodes container */}
+          <div data-graph-container className="relative z-10 space-y-1">
+            {ranks.map(rank => {
+              const cfg = DIFFICULTY_CONFIG[rank] || DIFFICULTY_CONFIG[3];
+              const items = grouped[rank]?.filter(matchesSearch) || [];
+              if (items.length === 0 && search) return null;
+              return (
+                <div key={rank} className="flex items-start gap-3 py-3" style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                  <div className="w-24 flex-shrink-0 pt-1">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${cfg.bg} ${cfg.text} uppercase tracking-wider`}>
+                      Lvl {rank}
+                    </span>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{cfg.label}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 flex-1 min-h-[32px]">
+                    {items.length > 0 ? items.map(c => (
+                      <div
+                        key={c.id}
+                        data-concept-id={c.id}
+                        ref={el => { if (el) nodeRefs.current[c.id] = el; }}
+                      >
+                        <ConceptNode
+                          concept={c}
+                          isSelected={selected === c.id}
+                          isHovered={hovered === c.id}
+                          onSelect={handleSelect}
+                          onHover={setHovered}
+                          onLeave={() => setHovered(null)}
+                        />
+                      </div>
+                    )) : (
+                      <span className="text-xs text-slate-300 italic py-1">No concepts at this level</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2 flex-1 min-h-[32px]">
-                  {items.length > 0 ? items.map(c => (
-                    <ConceptNode
-                      key={c.id}
-                      concept={c}
-                      isSelected={selected === c.id}
-                      isHovered={hovered === c.id}
-                      onSelect={handleSelect}
-                      onHover={setHovered}
-                      onLeave={() => setHovered(null)}
-                    />
-                  )) : (
-                    <span className="text-xs text-slate-300 italic py-1">No concepts at this level</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex items-center gap-4 mt-3 pt-3 text-xs text-slate-400" style={{ borderTop: '1px solid rgba(148, 163, 184, 0.1)' }}>

@@ -78,9 +78,22 @@ export default function StudentDetail() {
   const [aiInsights, setAiInsights] = useState(null);
   const [wellbeingCtx, setWellbeingCtx] = useState(null);
   const [pedagogicalMemory, setPedagogicalMemory] = useState(null);
-  const [activeConversation, setActiveConversation] = useState(null);
+  const [expandedConversations, setExpandedConversations] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Toggle expanded state for a conversation
+  const toggleConversation = (conversationId) => {
+    setExpandedConversations(prev => {
+      const next = new Set(prev);
+      if (next.has(conversationId)) {
+        next.delete(conversationId);
+      } else {
+        next.add(conversationId);
+      }
+      return next;
+    });
+  };
 
   const focusConcepts = useMemo(() => {
     const cs = mastery?.concepts || [];
@@ -514,27 +527,51 @@ export default function StudentDetail() {
             <div className="axon-card-subtle p-5 sm:p-6">
               <p className="text-sm font-semibold text-slate-700 mb-2">Recent sessions</p>
               <div className="space-y-2">
-                {recentConvos.map(c => (
-                  <button
-                    key={c.id}
-                    className="w-full text-left rounded-lg border border-slate-200 bg-white/40 hover:bg-white/60 transition-colors px-3 py-2"
-                    onClick={() =>
-                      setActiveConversation(activeConversation === c.id ? null : c.id)
-                    }
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-medium text-slate-700 truncate">
-                        {c.concept_name}
-                      </p>
-                      <span className="text-[0.7rem] text-slate-8000">
-                        {pct(c.session_engagement_score)}
-                      </span>
+                {recentConvos.map(c => {
+                  const isExpanded = expandedConversations.has(c.id);
+                  return (
+                    <div key={c.id}>
+                      <button
+                        className={`w-full text-left rounded-lg border transition-colors px-3 py-2 ${
+                          isExpanded
+                            ? 'border-teal-300 bg-teal-50/60'
+                            : 'border-slate-200 bg-white/40 hover:bg-white/60'
+                        }`}
+                        onClick={() => toggleConversation(c.id)}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-medium text-slate-700 truncate">
+                            {c.concept_name}
+                          </p>
+                          <span className="text-[0.7rem] text-slate-8000">
+                            {pct(c.session_engagement_score)}
+                          </span>
+                        </div>
+                        <p className="text-[0.7rem] text-slate-8000 mt-0.5 truncate">
+                          {c.subject} · {new Date(c.started_at).toLocaleDateString()}
+                        </p>
+                      </button>
+
+                      {/* Conversation thread dropdown */}
+                      {isExpanded && (
+                        <div
+                          className="overflow-hidden transition-all duration-200"
+                          style={{
+                            maxHeight: '600px',
+                            marginTop: '8px',
+                          }}
+                        >
+                          <div className="rounded-lg border border-slate-200 overflow-hidden">
+                            <ConversationThread
+                              conversationId={c.id}
+                              onClose={() => toggleConversation(c.id)}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-[0.7rem] text-slate-8000 mt-0.5 truncate">
-                      {c.subject} · {new Date(c.started_at).toLocaleDateString()}
-                    </p>
-                  </button>
-                ))}
+                  );
+                })}
                 {recentConvos.length === 0 && (
                   <p className="text-xs text-slate-8000">No sessions yet.</p>
                 )}
@@ -692,15 +729,6 @@ export default function StudentDetail() {
           </div>
         )}
 
-        {/* ── Conversation Thread ── */}
-        {activeConversation && (
-          <div className="axon-card-subtle p-5 sm:p-6">
-            <ConversationThread
-              conversationId={activeConversation}
-              onClose={() => setActiveConversation(null)}
-            />
-          </div>
-        )}
       </div>
     </DashboardShell>
   );

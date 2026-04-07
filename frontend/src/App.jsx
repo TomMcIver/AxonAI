@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import ClassOverview from './pages/teacher/ClassOverview';
 import StudentDetail from './pages/teacher/StudentDetail';
+import StudentSummary from './pages/teacher/StudentSummary';
 import KnowledgeGraphPage from './pages/teacher/KnowledgeGraphPage';
 import StudentsPage from './pages/teacher/StudentsPage';
 import SubjectsPage from './pages/teacher/SubjectsPage';
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/teacher/subjects" element={<SubjectsPage />} />
         <Route path="/teacher/settings" element={<SettingsPage />} />
         <Route path="/teacher/class/:id" element={<ClassOverview />} />
+        <Route path="/teacher/student/:id/summary" element={<StudentSummary />} />
         <Route path="/teacher/student/:id" element={<StudentDetail />} />
         <Route path="/teacher/knowledge-graph" element={<KnowledgeGraphPage />} />
         <Route path="/student" element={<StudentDashboard />} />
