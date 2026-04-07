@@ -1,4 +1,4 @@
-const BASE_URL = process.env.REACT_APP_API_URL || 'https://73edpnyeqs6gl3eh4gyfnwoji40ldhgo.lambda-url.ap-southeast-2.on.aws';
+export const BASE_URL = process.env.REACT_APP_API_URL || 'https://73edpnyeqs6gl3eh4gyfnwoji40ldhgo.lambda-url.ap-southeast-2.on.aws';
 
 async function fetchAPI(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
@@ -109,9 +109,8 @@ export const getPedagogicalMemory = async (studentId) => {
 
 // Student summary — per-class concept mastery breakdown from live API
 export const getStudentSummary = async (studentId) => {
-  const SUMMARY_API_URL = 'https://73edpnyeqs6gl3eh4gyfnwoji40ldhgo.lambda-url.ap-southeast-2.on.aws';
   try {
-    const res = await fetch(`${SUMMARY_API_URL}/student/${studentId}/summary`);
+    const res = await fetch(`${BASE_URL}/student/${studentId}/summary`);
     console.log(`[AxonAI API] /student/${studentId}/summary → ${res.status}`);
     return res.ok ? res.json() : null;
   } catch (err) {
