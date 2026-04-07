@@ -153,11 +153,8 @@ export default function StudentSummary() {
   const subjectMastery = Object.entries(masteryBySubject).map(([subject, scores]) => {
     const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
     return { subject, mastery: avg };
-  }).sort((a, b) => b.mastery - a.mastery);
+  });
 
-  // Top 3 best and worst subjects
-  const topSubjects = subjectMastery.slice(0, 3);
-  const bottomSubjects = subjectMastery.slice(-3).reverse();
   const overallMastery = summary?.mastery?.avg_mastery ?? 0;
 
   return (
@@ -200,59 +197,30 @@ export default function StudentSummary() {
 
         {/* ── Subject Mastery Grid ── */}
         {subjectMastery.length > 0 && (
-          <div className="axon-card-subtle p-5 sm:p-6 space-y-6">
-            <div>
-              <p className="text-sm font-semibold text-slate-700 mb-4">Strongest subjects</p>
-              <div className="space-y-3">
-                {topSubjects.map(({ subject, mastery: m }) => (
-                  <div
-                    key={subject}
-                    className="rounded-lg border border-emerald-200/60 bg-emerald-50/40 p-3"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-emerald-700 uppercase tracking-wide font-medium">
-                        {subject}
-                      </p>
-                      <p className="text-lg font-bold text-emerald-600">
-                        {Math.round(clamp01(m) * 100)}%
-                      </p>
-                    </div>
-                    <div className="h-2 rounded-full bg-emerald-200 overflow-hidden">
+          <div className="axon-card-subtle p-5 sm:p-6">
+            <p className="text-sm font-semibold text-slate-700 mb-4">Mastery by subject</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {subjectMastery.map(({ subject, mastery: m }) => (
+                <div
+                  key={subject}
+                  className="rounded-lg border border-slate-200/60 bg-white/40 p-4"
+                >
+                  <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-2">
+                    {subject}
+                  </p>
+                  <div className="flex items-end gap-3">
+                    <p className="text-2xl font-bold text-teal-600">
+                      {Math.round(clamp01(m) * 100)}%
+                    </p>
+                    <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
                       <div
-                        className="h-full bg-emerald-500"
+                        className="h-full bg-teal-500"
                         style={{ width: `${clamp01(m) * 100}%` }}
                       />
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold text-slate-700 mb-4">Areas for improvement</p>
-              <div className="space-y-3">
-                {bottomSubjects.map(({ subject, mastery: m }) => (
-                  <div
-                    key={subject}
-                    className="rounded-lg border border-amber-200/60 bg-amber-50/40 p-3"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-amber-700 uppercase tracking-wide font-medium">
-                        {subject}
-                      </p>
-                      <p className="text-lg font-bold text-amber-600">
-                        {Math.round(clamp01(m) * 100)}%
-                      </p>
-                    </div>
-                    <div className="h-2 rounded-full bg-amber-200 overflow-hidden">
-                      <div
-                        className="h-full bg-amber-500"
-                        style={{ width: `${clamp01(m) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
