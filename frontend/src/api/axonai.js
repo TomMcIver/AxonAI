@@ -106,3 +106,15 @@ export const getPedagogicalMemory = async (studentId) => {
     return null;
   }
 };
+
+// Student summary — per-class concept mastery breakdown
+export const getStudentSummary = async (studentId) => {
+  try {
+    const res = await fetch(`${BASE_URL}/student/${studentId}/summary`);
+    console.log(`[AxonAI API] /student/${studentId}/summary → ${res.status}`);
+    return res.ok ? res.json() : null;
+  } catch (err) {
+    console.error(`[AxonAI API] summary failed:`, err.message);
+    return null;
+  }
+};
