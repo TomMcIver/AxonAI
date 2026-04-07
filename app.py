@@ -87,21 +87,21 @@ db.init_app(app)
 # Import routes and models to register them with the app
 with app.app_context():
     # Import models first
-    import models
-    
+    from models import models
+
     # Import routes to register them
-    import routes
-    import api_routes
-    
+    from routes import routes
+    from routes import api_routes
+
     # Create database tables
     db.create_all()
-    
+
     # Initialize background task scheduler for Big AI Coordinator
     # Only run scheduler in main process to avoid duplicates
     import os
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
         try:
-            from scheduler_config import init_scheduler
+            from core.scheduler_config import init_scheduler
             scheduler = init_scheduler(app)
             print("Big AI Coordinator scheduler initialized")
         except Exception as e:
