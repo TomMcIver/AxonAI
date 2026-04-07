@@ -56,10 +56,6 @@ export function getStudentPredictions(studentId) {
   return fetchAPI(`/student/${studentId}/predictions`);
 }
 
-export function getStudentInsights(studentId) {
-  return fetchAPI(`/student/${studentId}/insights`);
-}
-
 // Conversation messages
 export function getConversationMessages(conversationId) {
   return fetchAPI(`/conversation/${conversationId}/messages`);
@@ -70,28 +66,9 @@ export function getClassOverview(classId) {
   return fetchAPI(`/class/${classId}/overview`);
 }
 
-export function getClassInterventions(classId) {
-  return fetchAPI(`/class/${classId}/interventions`);
-}
-
 // Concepts / Knowledge Graph
 export function getConcepts(subject) {
   return fetchAPI(`/concepts/${subject}`);
-}
-
-// Predictions
-export function predictRisk(studentId) {
-  return fetchAPI('/predict/risk', {
-    method: 'POST',
-    body: JSON.stringify({ student_id: studentId }),
-  });
-}
-
-export function predictMastery(studentId, conceptId) {
-  return fetchAPI('/predict/mastery', {
-    method: 'POST',
-    body: JSON.stringify({ student_id: studentId, concept_id: conceptId }),
-  });
 }
 
 // Teacher AI insights — GPT-4o generated summaries
