@@ -209,7 +209,7 @@ export default function StudentsPage() {
           {students.map(student => (
             <div
               key={student.student_id}
-              onClick={() => navigate(`/teacher/student/${student.student_id}`)}
+              onClick={() => navigate(`/teacher/student/${student.student_id}/summary`)}
               style={{
                 display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 0.7fr 0.7fr 40px',
                 padding: '14px 20px', borderBottom: '1px solid rgba(148, 163, 184, 0.06)',

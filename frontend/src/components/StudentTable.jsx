@@ -99,7 +99,7 @@ export default function StudentTable({ students = [] }) {
     return (
       <tr
         key={s.student_id}
-        onClick={() => navigate(`/teacher/student/${s.student_id}`)}
+        onClick={() => navigate(`/teacher/student/${s.student_id}/summary`)}
         style={{
           cursor: 'pointer', transition: 'background 150ms ease-out',
           borderBottom: '1px solid rgba(148,163,184,0.08)',
