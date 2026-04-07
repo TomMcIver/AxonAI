@@ -116,6 +116,13 @@ export default function StudentSummary() {
     load();
   }, [load]);
 
+  // Debug: Log summary data structure
+  useEffect(() => {
+    if (summaryData) {
+      console.log('[StudentSummary] summaryData:', summaryData);
+    }
+  }, [summaryData]);
+
   if (loading) {
     return (
       <DashboardShell subtitle="Student profile">
@@ -265,6 +272,16 @@ export default function StudentSummary() {
             </div>
           </div>
         </div>
+
+        {/* ── Debug: Show raw summary data ── */}
+        {summaryData && (
+          <div className="axon-card-subtle p-5 sm:p-6 text-xs">
+            <p className="font-bold text-slate-700 mb-2">Debug: summaryData structure</p>
+            <pre className="bg-slate-100 p-2 rounded overflow-auto max-h-40">
+              {JSON.stringify(summaryData, null, 2)}
+            </pre>
+          </div>
+        )}
 
         {/* ── Concept Mastery by Class ── */}
         {summaryData?.classes && summaryData.classes.length > 0 && (
