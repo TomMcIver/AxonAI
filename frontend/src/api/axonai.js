@@ -71,6 +71,11 @@ export function getConcepts(subject) {
   return fetchAPI(`/concepts/${subject}`);
 }
 
+// Class concept mastery summary
+export function getClassConceptSummary(classId) {
+  return fetchAPI(`/class/${classId}/concept-summary`);
+}
+
 // Teacher AI insights — GPT-4o generated summaries
 export const getTeacherAIInsights = async (studentId) => {
   try {

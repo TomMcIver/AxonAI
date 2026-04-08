@@ -28,6 +28,7 @@ export default function App() {
         <Route path="/teacher/student/:id/summary" element={<StudentSummary />} />
         <Route path="/teacher/student/:id" element={<StudentDetail />} />
         <Route path="/teacher/knowledge-graph" element={<KnowledgeGraphPage />} />
+        <Route path="/teacher/knowledge-graph/:subject" element={<KnowledgeGraphPage />} />
         <Route path="/student" element={<StudentDashboard />} />
         <Route path="/student/:id" element={<StudentDashboard />} />
         <Route path="/parent" element={<ParentDashboard />} />
