@@ -5,7 +5,7 @@ import {
   AlertCircle,
   Sparkles,
 } from 'lucide-react';
-import { getClassOverview, getConcepts } from '../../api/axonai';
+import { getClassOverview, getConcepts, getClassConceptSummary } from '../../api/axonai';
 import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
@@ -540,6 +540,193 @@ function ClassPulseSection({ students, navigate }) {
   );
 }
 
+/* ── CONCEPT STRENGTHS SECTION ── */
+
+const SORT_OPTIONS = [
+  { key: 'mastery', label: 'By Mastery' },
+  { key: 'alpha', label: 'A–Z' },
+  { key: 'questions', label: 'By Questions' },
+];
+
+function masteryBarColor(pct) {
+  if (pct >= 0.7) return '#059669';
+  if (pct >= 0.4) return '#D97706';
+  return '#DC2626';
+}
+
+function SkeletonBar() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '8px 0', borderBottom: '1px solid rgba(148,163,184,0.07)',
+    }}>
+      <div style={{
+        width: 160, height: 11, borderRadius: 6,
+        background: 'rgba(148,163,184,0.15)', flexShrink: 0,
+      }} />
+      <div style={{ flex: 1, height: 10, borderRadius: 6, background: 'rgba(148,163,184,0.1)' }} />
+      <div style={{ width: 36, height: 11, borderRadius: 6, background: 'rgba(148,163,184,0.12)' }} />
+    </div>
+  );
+}
+
+function ConceptStrengthsSection({ navigate }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [sort, setSort] = useState('mastery');
+  const [hoveredRow, setHoveredRow] = useState(null);
+
+  useEffect(() => {
+    getClassConceptSummary(1)
+      .then(d => { setData(d); setLoading(false); })
+      .catch(() => { setData(null); setLoading(false); });
+  }, []);
+
+  const concepts = data?.concepts || [];
+
+  const sorted = [...concepts].sort((a, b) => {
+    if (sort === 'mastery') return (b.avg_mastery ?? 0) - (a.avg_mastery ?? 0);
+    if (sort === 'alpha') return a.name.localeCompare(b.name);
+    if (sort === 'questions') return (b.question_count ?? 0) - (a.question_count ?? 0);
+    return 0;
+  }).slice(0, 10);
+
+  return (
+    <section>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 style={{
+          fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 20,
+          letterSpacing: '-0.01em', color: 'var(--text-primary)', margin: 0,
+        }}>
+          Class Concept Strengths
+        </h2>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {SORT_OPTIONS.map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setSort(opt.key)}
+              style={{
+                padding: '4px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                fontFamily: "'Lexend', sans-serif", fontSize: 11, fontWeight: 500,
+                background: sort === opt.key ? '#0F766E' : 'rgba(148,163,184,0.12)',
+                color: sort === opt.key ? '#fff' : '#64748B',
+                transition: 'all 140ms',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+          <button
+            onClick={() => navigate('/teacher/knowledge-graph')}
+            style={{
+              fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 12, color: '#0f766e',
+              textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
+              background: 'none', border: 'none', marginLeft: 8,
+            }}
+          >
+            Full Graph &#8594;
+          </button>
+        </div>
+      </div>
+
+      <div style={{
+        background: 'rgba(255,255,255,0.5)',
+        backdropFilter: 'blur(16px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+        border: '1px solid rgba(255,255,255,0.6)',
+        borderRadius: 20,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.7)',
+        padding: '16px 20px',
+      }}>
+        {loading ? (
+          <div>
+            {[...Array(5)].map((_, i) => <SkeletonBar key={i} />)}
+          </div>
+        ) : sorted.length === 0 ? (
+          <p style={{
+            textAlign: 'center', color: '#94A3B8', fontSize: 13,
+            fontFamily: "'Inter', sans-serif", padding: '20px 0',
+          }}>
+            Concept mastery data unavailable — deploy the <code>/class/&#123;id&#125;/concept-summary</code> endpoint to enable this widget.
+          </p>
+        ) : (
+          <div>
+            {/* Column headers */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10,
+              paddingBottom: 8, borderBottom: '1px solid rgba(148,163,184,0.15)',
+            }}>
+              <span style={{ width: 180, flexShrink: 0, fontSize: 10, fontWeight: 600,
+                textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94A3B8',
+                fontFamily: "'Lexend', sans-serif" }}>
+                Concept
+              </span>
+              <span style={{ flex: 1, fontSize: 10, fontWeight: 600,
+                textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94A3B8',
+                fontFamily: "'Lexend', sans-serif" }}>
+                Class Mastery
+              </span>
+              <span style={{ width: 48, textAlign: 'right', fontSize: 10, fontWeight: 600,
+                textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94A3B8',
+                fontFamily: "'Lexend', sans-serif" }}>
+                %
+              </span>
+            </div>
+
+            {sorted.map((concept, i) => {
+              const pct = concept.avg_mastery ?? 0;
+              const barColor = masteryBarColor(pct);
+              const isHov = hoveredRow === i;
+              return (
+                <div
+                  key={concept.concept_id || i}
+                  onClick={() => navigate('/teacher/knowledge-graph')}
+                  onMouseEnter={() => setHoveredRow(i)}
+                  onMouseLeave={() => setHoveredRow(null)}
+                  title={`${concept.students_mastered ?? '?'} mastered · ${concept.students_struggling ?? '?'} struggling · ${concept.question_count ?? 0} Q`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '9px 8px', borderRadius: 8, cursor: 'pointer',
+                    background: isHov ? 'rgba(15,118,110,0.05)' : 'transparent',
+                    borderBottom: i < sorted.length - 1 ? '1px solid rgba(148,163,184,0.07)' : 'none',
+                    transition: 'background 120ms',
+                  }}
+                >
+                  {/* Name */}
+                  <span style={{
+                    width: 180, flexShrink: 0, fontSize: 12, color: '#334155',
+                    fontFamily: "'Inter', sans-serif",
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {concept.name}
+                  </span>
+
+                  {/* Bar track */}
+                  <div style={{ flex: 1, height: 8, borderRadius: 4, background: 'rgba(148,163,184,0.15)' }}>
+                    <div style={{
+                      width: `${Math.round(pct * 100)}%`, height: '100%',
+                      borderRadius: 4, background: barColor,
+                      transition: 'width 600ms cubic-bezier(0.16,1,0.3,1)',
+                    }} />
+                  </div>
+
+                  {/* Pct label */}
+                  <span style={{
+                    width: 36, textAlign: 'right', fontSize: 12, fontWeight: 600,
+                    color: barColor, fontFamily: "'Lexend', sans-serif", flexShrink: 0,
+                  }}>
+                    {Math.round(pct * 100)}%
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 /* ── MAIN DASHBOARD ── */
 
 export default function TeacherDashboard() {
@@ -602,6 +789,7 @@ export default function TeacherDashboard() {
           <NeedsAttentionSection students={students} navigate={navigate} />
         </div>
         <KnowledgeGraphPreview nodes={conceptNodes} edges={conceptEdges} navigate={navigate} />
+        <ConceptStrengthsSection navigate={navigate} />
       </div>
     </DashboardShell>
   );
