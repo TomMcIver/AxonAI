@@ -595,14 +595,14 @@ function RelList({ title, count, items, emptyMsg, onSelect }) {
 
 /* ── MAIN EXPORT ── */
 
-export default function KnowledgeGraphNew({ subject = 'Mathematics' }) {
+export default function KnowledgeGraphNew({ subject = 'Mathematics', mapOnly = false }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
   const [hovered, setHovered] = useState(null);
   const [search, setSearch] = useState('');
-  const [view, setView] = useState('grid'); // 'grid' | 'map'
+  const [view, setView] = useState(mapOnly ? 'map' : 'grid'); // 'grid' | 'map'
 
   const load = useCallback(() => {
     setLoading(true);
@@ -639,9 +639,30 @@ export default function KnowledgeGraphNew({ subject = 'Mathematics' }) {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
       }}>
-        <div style={{ fontSize: 12, color: '#64748B', fontFamily: "'Inter', sans-serif" }}>
-          <span style={{ fontWeight: 600, color: '#1e293b' }}>{allConcepts.length}</span> concepts ·{' '}
-          <span style={{ fontWeight: 600, color: '#1e293b' }}>{allEdges.length}</span> prerequisite links
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 12, color: '#64748B', fontFamily: "'Inter', sans-serif" }}>
+            <span style={{ fontWeight: 600, color: '#1e293b' }}>{allConcepts.length}</span> concepts ·{' '}
+            <span style={{ fontWeight: 600, color: '#1e293b' }}>{allEdges.length}</span> links
+          </div>
+          {/* Inline search — shown in toolbar when mapOnly, otherwise search lives in sidebar */}
+          {mapOnly && (
+            <input
+              type="text"
+              placeholder="Search concepts…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                padding: '5px 10px',
+                border: '1px solid rgba(148,163,184,0.25)',
+                borderRadius: 8, fontSize: 12,
+                background: 'rgba(255,255,255,0.6)',
+                backdropFilter: 'blur(8px)',
+                color: '#1e293b', outline: 'none',
+                fontFamily: "'Inter', sans-serif",
+                width: 200,
+              }}
+            />
+          )}
         </div>
 
         {/* View toggle */}
@@ -668,16 +689,17 @@ export default function KnowledgeGraphNew({ subject = 'Mathematics' }) {
         </div>
       </div>
 
-      {/* Three-panel layout */}
+      {/* Panel layout — full 3-panel normally, centre-only when mapOnly */}
       <div style={{ display: 'flex', gap: 12, flex: 1, minHeight: 0, alignItems: 'stretch' }}>
-        {/* Left: Sidebar */}
-        <Sidebar
-          concepts={filtered}
-          selected={selected}
-          search={search}
-          onSearch={setSearch}
-          onSelect={handleSelect}
-        />
+        {!mapOnly && (
+          <Sidebar
+            concepts={filtered}
+            selected={selected}
+            search={search}
+            onSearch={setSearch}
+            onSelect={handleSelect}
+          />
+        )}
 
         {/* Center: visualization */}
         {view === 'grid' ? (
@@ -699,13 +721,14 @@ export default function KnowledgeGraphNew({ subject = 'Mathematics' }) {
           />
         )}
 
-        {/* Right: Detail panel */}
-        <DetailPanel
-          concept={selectedConcept}
-          concepts={allConcepts}
-          edges={allEdges}
-          onSelect={handleSelect}
-        />
+        {!mapOnly && (
+          <DetailPanel
+            concept={selectedConcept}
+            concepts={allConcepts}
+            edges={allEdges}
+            onSelect={handleSelect}
+          />
+        )}
       </div>
     </div>
   );
