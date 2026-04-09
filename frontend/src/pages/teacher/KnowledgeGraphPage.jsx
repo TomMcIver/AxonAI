@@ -27,9 +27,6 @@ export default function KnowledgeGraphPage() {
             <h1 className="axon-h2 text-lg sm:text-xl text-slate-800">
               {subject} Concept Map
             </h1>
-            <p className="text-xs text-slate-500 mt-1">
-              Click a concept in the sidebar or grid to view prerequisites and dependents.
-            </p>
           </div>
           <div className="flex gap-2">
             {SUBJECTS.map(s => (
@@ -48,7 +45,7 @@ export default function KnowledgeGraphPage() {
 
       {/* Full graph panel — tall fixed height so it doesn't collapse */}
       <div className="axon-card-subtle p-4 sm:p-5" style={{ minHeight: 680 }}>
-        <KnowledgeGraphNew subject={subject} />
+        <KnowledgeGraphNew subject={subject} mapOnly />
       </div>
     </DashboardShell>
   );
