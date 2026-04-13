@@ -61,12 +61,13 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
       <div className="flex min-h-screen">
         {/* Sidebar — frosted white glass */}
         <aside
-          className={`hidden lg:flex lg:flex-col w-64 xl:w-72 transition-all duration-200${sidebarCollapsed ? ' !hidden' : ''}`}
+          className="hidden lg:flex lg:flex-col w-64 xl:w-72"
           style={{
             background: 'rgba(255, 255, 255, 0.65)',
             backdropFilter: 'blur(24px) saturate(150%)',
             WebkitBackdropFilter: 'blur(24px) saturate(150%)',
             borderRight: '1px solid rgba(148, 163, 184, 0.2)',
+            ...(sidebarCollapsed ? { display: 'none' } : {}),
           }}
         >
           <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-200/60">
