@@ -157,7 +157,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
         <div className="flex-1 flex flex-col">
           {/* Top bar — frosted glass */}
           <header
-            className="sticky top-0 z-30"
+            className="sticky top-0 z-50"
             style={{
               background: 'rgba(255, 255, 255, 0.6)',
               backdropFilter: 'blur(24px) saturate(150%)',
@@ -263,7 +263,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
           </header>
 
           {/* Content */}
-          <main className="flex-1 px-3 sm:px-5 lg:px-8 py-5 lg:py-7">
+          <main className="flex-1 px-3 sm:px-5 lg:px-8 py-5 lg:py-7" style={{ position: 'relative', zIndex: 0, isolation: 'isolate' }}>
             <div className="mx-auto w-full max-w-7xl space-y-6 sm:space-y-8">
               {children}
             </div>
@@ -272,18 +272,14 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
 
         {/* Mobile drawer — frosted glass */}
         {mobileNavOpen && (
-          <div className="fixed inset-0 z-40 flex lg:hidden">
-            <div
-              className="flex-1 bg-black/20 backdrop-blur-sm"
-              onClick={() => setMobileNavOpen(false)}
-            />
+          <div className="fixed inset-0 z-[60] flex lg:hidden">
             <div
               className="relative w-72 max-w-full"
               style={{
                 background: 'rgba(255, 255, 255, 0.85)',
                 backdropFilter: 'blur(24px) saturate(150%)',
                 WebkitBackdropFilter: 'blur(24px) saturate(150%)',
-                borderLeft: '1px solid rgba(148, 163, 184, 0.2)',
+                borderRight: '1px solid rgba(148, 163, 184, 0.2)',
               }}
             >
               <button
@@ -352,6 +348,10 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                 })}
               </nav>
             </div>
+            <div
+              className="flex-1 bg-black/20 backdrop-blur-sm"
+              onClick={() => setMobileNavOpen(false)}
+            />
           </div>
         )}
       </div>
