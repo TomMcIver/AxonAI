@@ -27,6 +27,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [qaOpen, setQaOpen] = useState(false);
   const qaRef = useRef(null);
 
@@ -52,6 +53,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
   useEffect(() => {
     setQaOpen(false);
     setMobileNavOpen(false);
+    setSidebarCollapsed(false);
   }, [location.pathname]);
 
   return (
@@ -59,7 +61,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
       <div className="flex min-h-screen">
         {/* Sidebar — frosted white glass */}
         <aside
-          className="hidden lg:flex lg:flex-col w-64 xl:w-72"
+          className={`hidden lg:flex lg:flex-col w-64 xl:w-72 transition-all duration-200${sidebarCollapsed ? ' !hidden' : ''}`}
           style={{
             background: 'rgba(255, 255, 255, 0.65)',
             backdropFilter: 'blur(24px) saturate(150%)',
@@ -165,9 +167,15 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
             <div className="mx-auto w-full max-w-7xl flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
               <div className="flex items-center gap-3">
                 <button
-                  className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/60 text-slate-600 hover:bg-white"
-                  onClick={() => setMobileNavOpen(true)}
-                  aria-label="Open navigation"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/60 text-slate-600 hover:bg-white transition-colors"
+                  onClick={() => {
+                    if (window.innerWidth >= 1024) {
+                      setSidebarCollapsed(v => !v);
+                    } else {
+                      setMobileNavOpen(true);
+                    }
+                  }}
+                  aria-label="Toggle navigation"
                 >
                   <Menu size={18} />
                 </button>

@@ -74,6 +74,19 @@ function masteryLabel(score) {
   return 'Mastered';
 }
 
+/* ── TEXT WRAP HELPER ── */
+
+function wrapLabel(name, maxLen = 13) {
+  if (name.length <= maxLen) return [name];
+  const breakAt = name.lastIndexOf(' ', maxLen);
+  if (breakAt > 0) {
+    const line1 = name.slice(0, breakAt);
+    const rest = name.slice(breakAt + 1);
+    return [line1, rest.length > maxLen ? rest.slice(0, maxLen - 1) + '…' : rest];
+  }
+  return [name.slice(0, maxLen - 1) + '…'];
+}
+
 /* ── STUDENT KNOWLEDGE GAP GRAPH ── */
 
 function StudentKnowledgeGraph({ graphData, masteryMap }) {
@@ -90,7 +103,7 @@ function StudentKnowledgeGraph({ graphData, masteryMap }) {
   // Layout: difficulty level 1–5 mapped to columns left→right
   const COL_X = { 1: 80, 2: 220, 3: 380, 4: 540, 5: 700 };
   const colCount = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  const NODE_SPACING = 68;
+  const NODE_SPACING = 76;
   const TOP_OFFSET = 50;
 
   const positioned = allConcepts.map(c => {
@@ -164,12 +177,18 @@ function StudentKnowledgeGraph({ graphData, masteryMap }) {
             const isBlocked = (srcScore !== null && srcScore !== undefined && srcScore < 0.50)
               && (tgtScore !== null && tgtScore !== undefined && tgtScore < 0.50);
 
-            const mx = (src.x + tgt.x) / 2;
-            const my = (src.y + tgt.y) / 2 - 18;
+            const isSameCol = Math.abs(src.x - tgt.x) < 30;
+            const pathD = isSameCol
+              ? `M${src.x},${src.y} C${src.x - 70},${src.y} ${tgt.x - 70},${tgt.y} ${tgt.x},${tgt.y}`
+              : (() => {
+                  const mx = (src.x + tgt.x) / 2;
+                  const my = (src.y + tgt.y) / 2 - 18;
+                  return `M${src.x},${src.y} Q${mx},${my} ${tgt.x},${tgt.y}`;
+                })();
             return (
               <path
                 key={i}
-                d={`M${src.x},${src.y} Q${mx},${my} ${tgt.x},${tgt.y}`}
+                d={pathD}
                 fill="none"
                 stroke={isBlocked ? '#DC2626' : '#CBD5E1'}
                 strokeWidth={isBlocked ? 1.8 : 1.2}
@@ -223,12 +242,14 @@ function StudentKnowledgeGraph({ graphData, masteryMap }) {
                 }}>
                   {displayPct}
                 </text>
-                <text x={node.x} y={node.y + r + 12} textAnchor="middle" style={{
-                  fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 8,
-                  fill: '#475569', pointerEvents: 'none',
-                }}>
-                  {node.name.length > 16 ? node.name.slice(0, 14) + '…' : node.name}
-                </text>
+                {wrapLabel(node.name, 13).map((line, li) => (
+                  <text key={li} x={node.x} y={node.y + r + 12 + li * 9} textAnchor="middle" style={{
+                    fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 7.5,
+                    fill: '#475569', pointerEvents: 'none',
+                  }}>
+                    {line}
+                  </text>
+                ))}
               </g>
             );
           })}
