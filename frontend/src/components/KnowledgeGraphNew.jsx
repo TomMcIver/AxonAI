@@ -270,50 +270,32 @@ function MapView({ concepts, edges, selected, onSelect }) {
   const svgRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
 
-  const svgW = 900;
-  const svgH = 500;
-  const colX = { 1: 80, 2: 240, 3: 450, 4: 660, 5: 820 };
-  const colCount = {};
+  const svgW = 1000;
+  const colX = { 1: 90, 2: 260, 3: 470, 4: 680, 5: 870 };
+  const colCount = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const NODE_SPACING = 62;
+  const TOP_OFFSET = 52;
 
-  // Select up to 6 per difficulty level for readability
-  const byLevel = {};
-  RANKS.forEach(r => { byLevel[r] = []; });
-  concepts.forEach(c => {
-    const lvl = c.difficulty_level || 3;
-    if (!byLevel[lvl]) byLevel[lvl] = [];
-    byLevel[lvl].push(c);
-  });
-
-  const edgeCount = {};
-  edges.forEach(e => {
-    edgeCount[e.concept_id] = (edgeCount[e.concept_id] || 0) + 1;
-    edgeCount[e.prerequisite_concept_id] = (edgeCount[e.prerequisite_concept_id] || 0) + 1;
-  });
-
-  const picked = new Set();
-  const nodes = [];
-  RANKS.forEach(lvl => {
-    const pool = (byLevel[lvl] || []).sort((a, b) => (edgeCount[b.id] || 0) - (edgeCount[a.id] || 0));
-    const take = 6;
-    pool.slice(0, take).forEach(c => { picked.add(c.id); nodes.push(c); });
-  });
-
-  colCount[1] = colCount[2] = colCount[3] = colCount[4] = colCount[5] = 0;
-  const positioned = nodes.map(n => {
+  // Show ALL concepts — no cap per level
+  const positioned = concepts.map(n => {
     const lvl = n.difficulty_level || 3;
     const col = colCount[lvl] || 0;
     colCount[lvl] = col + 1;
-    return { ...n, x: colX[lvl] || 450, y: 60 + col * 72 };
+    return { ...n, x: colX[lvl] || 470, y: TOP_OFFSET + col * NODE_SPACING };
   });
+
+  const maxNodes = Math.max(...Object.values(colCount));
+  const svgH = Math.max(420, TOP_OFFSET + maxNodes * NODE_SPACING + 50);
 
   const posMap = {};
   positioned.forEach(n => { posMap[n.id] = n; });
 
-  const visibleEdges = edges.filter(e => picked.has(e.concept_id) && picked.has(e.prerequisite_concept_id));
+  // All edges visible since all nodes are shown
+  const visibleEdges = edges.filter(e => posMap[e.concept_id] && posMap[e.prerequisite_concept_id]);
 
   const colLabels = [
-    { x: 80, label: 'Foundation' }, { x: 240, label: 'Basic' },
-    { x: 450, label: 'Intermediate' }, { x: 660, label: 'Advanced' }, { x: 820, label: 'Complex' },
+    { x: 90,  label: 'Foundation' }, { x: 260, label: 'Basic' },
+    { x: 470, label: 'Intermediate' }, { x: 680, label: 'Advanced' }, { x: 870, label: 'Complex' },
   ];
 
   return (
@@ -323,8 +305,9 @@ function MapView({ concepts, edges, selected, onSelect }) {
         borderBottom: '1px solid rgba(148,163,184,0.1)',
         fontSize: 10, color: '#94A3B8', fontFamily: "'Inter', sans-serif",
       }}>
-        Showing most-connected concepts · click a node to select
+        {concepts.length} concepts · {visibleEdges.length} connections · scroll to explore · click a node to select
       </div>
+      <div style={{ overflowY: 'auto', maxHeight: 'calc(100% - 34px)' }}>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${svgW} ${svgH}`}
@@ -370,7 +353,7 @@ function MapView({ concepts, edges, selected, onSelect }) {
 
         {/* Nodes */}
         {positioned.map(node => {
-          const r = 20;
+          const r = 16;
           const cfg = DIFF[node.difficulty_level] || DIFF[3];
           const isSel = selected === node.id;
           return (
@@ -382,12 +365,11 @@ function MapView({ concepts, edges, selected, onSelect }) {
                 if (!svgRef.current) return;
                 const rect = svgRef.current.getBoundingClientRect();
                 const sx = rect.width / svgW;
-                const sy = rect.height / svgH;
                 setTooltip({
                   name: node.name, level: node.difficulty_level,
                   type: node.concept_type, count: node.question_count ?? 0,
                   x: rect.left + node.x * sx,
-                  y: rect.top + (node.y - r - 8) * sy,
+                  y: rect.top + node.y * (rect.height / svgH) - r * (rect.height / svgH) - 8,
                 });
               }}
               onMouseLeave={() => setTooltip(null)}
@@ -401,20 +383,21 @@ function MapView({ concepts, edges, selected, onSelect }) {
               />
               <text x={node.x} y={node.y + 4} textAnchor="middle" style={{
                 fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
-                fontSize: 9, fill: '#fff', pointerEvents: 'none',
+                fontSize: 8, fill: '#fff', pointerEvents: 'none',
               }}>
                 L{node.difficulty_level}
               </text>
-              <text x={node.x} y={node.y + r + 13} textAnchor="middle" style={{
-                fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 9,
+              <text x={node.x} y={node.y + r + 11} textAnchor="middle" style={{
+                fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 8,
                 fill: '#475569', pointerEvents: 'none',
               }}>
-                {node.name.length > 16 ? node.name.slice(0, 14) + '…' : node.name}
+                {node.name.length > 20 ? node.name.slice(0, 18) + '…' : node.name}
               </text>
             </g>
           );
         })}
       </svg>
+      </div>
 
       {/* Tooltip */}
       {tooltip && (

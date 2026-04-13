@@ -422,10 +422,19 @@ function ClassPulseSection({ students, navigate }) {
     ? Math.round(arr.reduce((s, st) => s + (st.avg_mastery || 0), 0) / arr.length * 100)
     : 0;
 
-  const lowAvg     = avg(low);
-  const midAvg     = avg(mid);
-  const highAvg    = avg(high);
-  const overallAvg = avg(students);
+  const lowAvg  = avg(low);
+  const midAvg  = avg(mid);
+  const highAvg = avg(high);
+
+  // Overall = unweighted mean of the three band averages (matches what the rings show)
+  const nonEmptyBands = [
+    { avg: lowAvg, count: low.length },
+    { avg: midAvg, count: mid.length },
+    { avg: highAvg, count: high.length },
+  ].filter(b => b.count > 0);
+  const overallAvg = nonEmptyBands.length
+    ? Math.round(nonEmptyBands.reduce((s, b) => s + b.avg, 0) / nonEmptyBands.length)
+    : 0;
 
   const lowPct  = total ? Math.round((low.length  / total) * 100) : 0;
   const midPct  = total ? Math.round((mid.length  / total) * 100) : 0;
