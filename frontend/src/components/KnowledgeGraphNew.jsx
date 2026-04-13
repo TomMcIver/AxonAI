@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { getConcepts } from '../api/axonai';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorState from './ErrorState';
@@ -318,189 +318,249 @@ function GridView({ concepts, edges, selected, hovered, onSelect, onHover, onLea
 
 function MapView({ concepts, edges, selected, onSelect }) {
   const svgRef = useRef(null);
+  const scrollRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
 
-  const svgW = 1000;
-  const colX = { 1: 90, 2: 260, 3: 470, 4: 680, 5: 870 };
-  const colCount = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  // Enough spacing so even a single label line never overlaps the next node circle
-  const NODE_SPACING = 84;
-  const TOP_OFFSET = 52;
-  const NODE_R = 16;
+  /* ── Dynamic column layout based on actual difficulty levels ── */
+  const levels = useMemo(
+    () => [...new Set(concepts.map(c => c.difficulty_level || 3))].sort((a, b) => a - b),
+    [concepts],
+  );
 
-  const positioned = concepts.map(n => {
-    const lvl = n.difficulty_level || 3;
-    const col = colCount[lvl] || 0;
-    colCount[lvl] = col + 1;
-    return { ...n, x: colX[lvl] || 470, y: TOP_OFFSET + col * NODE_SPACING };
-  });
+  const svgW = 1060;
+  const NODE_R = 18;
+  const NODE_GAP = 92;
+  const TOP = 56;
+  const PAD_X = 80;
 
-  const maxNodes = Math.max(...Object.values(colCount));
-  const svgH = Math.max(420, TOP_OFFSET + maxNodes * NODE_SPACING + 60);
-
-  const posMap = {};
-  positioned.forEach(n => { posMap[n.id] = n; });
-
-  const visibleEdges = edges.filter(e => posMap[e.concept_id] && posMap[e.prerequisite_concept_id]);
-
-  // Direct connections only (1 hop) — full transitive closure creates an unreadable
-  // spider web in large graphs. The detail panel lists every ancestor/descendant.
-  const directPrereqIds = new Set();
-  const directDependentIds = new Set();
-  if (selected) {
-    visibleEdges.forEach(e => {
-      if (e.concept_id === selected) directPrereqIds.add(e.prerequisite_concept_id);
-      if (e.prerequisite_concept_id === selected) directDependentIds.add(e.concept_id);
+  const colX = useMemo(() => {
+    const map = {};
+    const span = svgW - PAD_X * 2;
+    levels.forEach((lvl, i) => {
+      map[lvl] = levels.length < 2 ? svgW / 2 : PAD_X + (i / (levels.length - 1)) * span;
     });
-  }
+    return map;
+  }, [levels]);
 
-  const colLabels = [
-    { x: 90,  label: 'Foundation' }, { x: 260, label: 'Basic' },
-    { x: 470, label: 'Intermediate' }, { x: 680, label: 'Advanced' }, { x: 870, label: 'Complex' },
-  ];
+  const COL_NAMES = { 1: 'Foundation', 2: 'Basic', 3: 'Intermediate', 4: 'Advanced', 5: 'Complex' };
+
+  /* ── Position nodes in their columns ── */
+  const { positioned, svgH, posMap } = useMemo(() => {
+    const counter = {};
+    levels.forEach(l => { counter[l] = 0; });
+
+    const nodes = concepts.map(n => {
+      const lvl = n.difficulty_level || 3;
+      const idx = counter[lvl] || 0;
+      counter[lvl] = idx + 1;
+      return { ...n, x: colX[lvl] || svgW / 2, y: TOP + idx * NODE_GAP };
+    });
+
+    const maxCol = Math.max(...Object.values(counter), 1);
+    const h = Math.max(440, TOP + maxCol * NODE_GAP + 60);
+
+    const pm = {};
+    nodes.forEach(n => { pm[n.id] = n; });
+
+    return { positioned: nodes, svgH: h, posMap: pm };
+  }, [concepts, colX, levels]);
+
+  const visibleEdges = useMemo(
+    () => edges.filter(e => posMap[e.concept_id] && posMap[e.prerequisite_concept_id]),
+    [edges, posMap],
+  );
+
+  /* ── Full BFS path when a node is selected ── */
+  const pathData = useMemo(() => {
+    if (!selected) return null;
+    const info = getFullPath(selected, visibleEdges);
+    const nodeIds = new Set([selected]);
+    info.ancestors.forEach(id => nodeIds.add(id));
+    info.descendants.forEach(id => nodeIds.add(id));
+    return { ...info, nodeIds };
+  }, [selected, visibleEdges]);
+
+  /* ── Edge path generator ── */
+  function edgePath(src, tgt) {
+    const sameCol = Math.abs(src.x - tgt.x) < 20;
+    if (sameCol) {
+      const off = -54;
+      return `M${src.x},${src.y} C${src.x + off},${src.y} ${tgt.x + off},${tgt.y} ${tgt.x},${tgt.y}`;
+    }
+    const mx = (src.x + tgt.x) / 2;
+    const my = (src.y + tgt.y) / 2 - Math.abs(src.x - tgt.x) * 0.12;
+    return `M${src.x},${src.y} Q${mx},${my} ${tgt.x},${tgt.y}`;
+  }
 
   return (
     <div style={{ ...GLASS, flex: 1, overflow: 'hidden', position: 'relative' }}>
+      {/* Info bar */}
       <div style={{
         padding: '10px 14px 6px',
         borderBottom: '1px solid rgba(148,163,184,0.1)',
         fontSize: 10, color: '#94A3B8', fontFamily: "'Inter', sans-serif",
         display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
       }}>
-        <span>{concepts.length} concepts · {visibleEdges.length} connections · scroll to explore · click a node to select</span>
+        <span>
+          {concepts.length} concepts · {visibleEdges.length} connections · click a node to see its full learning path
+        </span>
         {selected && (
-          <span style={{ display: 'flex', gap: 10 }}>
+          <span style={{ display: 'flex', gap: 12 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 20, height: 2, background: '#3B82F6', display: 'inline-block', borderRadius: 1 }} />
-              <span style={{ fontSize: 9 }}>Needs first</span>
+              <span style={{ width: 20, height: 2.5, background: '#3B82F6', display: 'inline-block', borderRadius: 2 }} />
+              <span style={{ fontSize: 9, fontWeight: 500 }}>Prerequisites (needs first)</span>
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 20, height: 2, background: '#8B5CF6', display: 'inline-block', borderRadius: 1 }} />
-              <span style={{ fontSize: 9 }}>Unlocks</span>
+              <span style={{ width: 20, height: 2.5, background: '#8B5CF6', display: 'inline-block', borderRadius: 2 }} />
+              <span style={{ fontSize: 9, fontWeight: 500 }}>Leads to (unlocks)</span>
             </span>
           </span>
         )}
       </div>
-      <div style={{ overflowY: 'auto', maxHeight: 'calc(100% - 38px)' }}>
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${svgW} ${svgH}`}
-        width="100%"
-        style={{ display: 'block' }}
-      >
-        <defs>
-          <marker id="kg-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#94A3B8" opacity="0.5" />
-          </marker>
-          <marker id="kg-arrow-prereq" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#3B82F6" opacity="0.9" />
-          </marker>
-          <marker id="kg-arrow-leads" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#8B5CF6" opacity="0.9" />
-          </marker>
-          <marker id="kg-arrow-sel" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#0F766E" opacity="1" />
-          </marker>
-        </defs>
 
-        {/* Column labels */}
-        {colLabels.map(col => (
-          <text key={col.label} x={col.x} y={22} textAnchor="middle" style={{
-            fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 9,
-            fill: '#94A3B8', textTransform: 'uppercase',
-          }}>
-            {col.label}
-          </text>
-        ))}
+      <div ref={scrollRef} style={{ overflowY: 'auto', overflowX: 'auto', maxHeight: 'calc(100% - 38px)' }}>
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${svgW} ${svgH}`}
+          width="100%"
+          style={{ display: 'block', minWidth: 600 }}
+        >
+          <defs>
+            <marker id="kg-arr-gray" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+              <polygon points="0 0, 7 2.5, 0 5" fill="#CBD5E1" opacity="0.5" />
+            </marker>
+            <marker id="kg-arr-blue" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+              <polygon points="0 0, 7 2.5, 0 5" fill="#3B82F6" opacity="0.85" />
+            </marker>
+            <marker id="kg-arr-purple" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+              <polygon points="0 0, 7 2.5, 0 5" fill="#8B5CF6" opacity="0.85" />
+            </marker>
+          </defs>
 
-        {/* Edges */}
-        {visibleEdges.map((edge, i) => {
-          const src = posMap[edge.prerequisite_concept_id];
-          const tgt = posMap[edge.concept_id];
-          if (!src || !tgt) return null;
+          {/* Column headers + guide lines */}
+          {levels.map(lvl => {
+            const x = colX[lvl];
+            return (
+              <g key={`col-${lvl}`}>
+                <text x={x} y={24} textAnchor="middle" style={{
+                  fontFamily: "'Lexend', sans-serif", fontWeight: 600, fontSize: 10,
+                  fill: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em',
+                }}>
+                  {COL_NAMES[lvl] || `Level ${lvl}`}
+                </text>
+                <line x1={x} y1={36} x2={x} y2={svgH - 16}
+                  stroke="#E2E8F0" strokeWidth={1} strokeDasharray="4 4" opacity={0.5}
+                />
+              </g>
+            );
+          })}
 
-          const isPrereq  = selected && edge.concept_id === selected;
-          const isLeadsTo = selected && edge.prerequisite_concept_id === selected;
-          const isHighlit = isPrereq || isLeadsTo;
+          {/* Edges — rendered behind nodes */}
+          {visibleEdges.map((edge, i) => {
+            const src = posMap[edge.prerequisite_concept_id];
+            const tgt = posMap[edge.concept_id];
+            if (!src || !tgt) return null;
 
-          // Same-column edges curve gently to the left; cross-column use quadratic arc
-          const isSameCol = Math.abs(src.x - tgt.x) < 30;
-          let pathD;
-          if (isSameCol) {
-            pathD = `M${src.x},${src.y} C${src.x - 46},${src.y} ${tgt.x - 46},${tgt.y} ${tgt.x},${tgt.y}`;
-          } else {
-            const mx = (src.x + tgt.x) / 2;
-            const my = Math.min(src.y, tgt.y) - 20;
-            pathD = `M${src.x},${src.y} Q${mx},${my} ${tgt.x},${tgt.y}`;
-          }
+            const isAncestorEdge = pathData && pathData.ancestorEdgeIdx.has(i);
+            const isDescendantEdge = pathData && pathData.descendantEdgeIdx.has(i);
+            const isPathEdge = isAncestorEdge || isDescendantEdge;
 
-          const stroke = isPrereq ? '#3B82F6' : isLeadsTo ? '#8B5CF6' : '#CBD5E1';
-          const strokeWidth = isHighlit ? 2 : 1;
-          const opacity = selected ? (isHighlit ? 0.9 : 0.12) : Math.max(0.2, edge.strength || 0.4);
-          const marker = isPrereq ? 'url(#kg-arrow-prereq)'
-            : isLeadsTo ? 'url(#kg-arrow-leads)'
-            : 'url(#kg-arrow)';
+            const stroke = isAncestorEdge ? '#3B82F6' : isDescendantEdge ? '#8B5CF6' : '#CBD5E1';
+            const sw = isPathEdge ? 2.5 : 0.8;
+            const opacity = selected ? (isPathEdge ? 0.85 : 0.07) : 0.18;
+            const marker = isAncestorEdge
+              ? 'url(#kg-arr-blue)'
+              : isDescendantEdge
+                ? 'url(#kg-arr-purple)'
+                : 'url(#kg-arr-gray)';
 
-          return (
-            <path key={i} d={pathD} fill="none"
-              stroke={stroke} strokeWidth={strokeWidth}
-              opacity={opacity} markerEnd={marker}
-            />
-          );
-        })}
-
-        {/* Nodes */}
-        {positioned.map(node => {
-          const cfg = DIFF[node.difficulty_level] || DIFF[3];
-          const isSel  = selected === node.id;
-          const isPrereq  = directPrereqIds.has(node.id);
-          const isLeadsTo = directDependentIds.has(node.id);
-          const isConnected = isSel || isPrereq || isLeadsTo;
-          const r = isSel ? NODE_R + 4 : NODE_R;
-          const nodeOpacity = selected ? (isConnected ? 1 : 0.3) : 0.85;
-
-          // Short single-line label — full name is always in tooltip
-          const label = node.name.length > 11 ? node.name.slice(0, 10) + '…' : node.name;
-          const labelFill = selected ? (isConnected ? '#1e293b' : '#CBD5E1') : '#475569';
-
-          return (
-            <g key={node.id} style={{ cursor: 'pointer' }}
-              onClick={() => onSelect(node.id)}
-              onMouseEnter={e => {
-                if (!svgRef.current) return;
-                const rect = svgRef.current.getBoundingClientRect();
-                const sx = rect.width / svgW;
-                const role = isSel ? 'selected' : isPrereq ? 'needs first' : isLeadsTo ? 'unlocks' : null;
-                setTooltip({
-                  name: node.name, level: node.difficulty_level,
-                  type: node.concept_type, count: node.question_count ?? 0, role,
-                  x: rect.left + node.x * sx,
-                  y: rect.top + node.y * (rect.height / svgH) - r * (rect.height / svgH) - 8,
-                });
-              }}
-              onMouseLeave={() => setTooltip(null)}
-            >
-              <circle cx={node.x} cy={node.y} r={r}
-                fill={cfg.color} opacity={nodeOpacity}
-                stroke={isSel ? '#0F766E' : isPrereq ? '#3B82F6' : isLeadsTo ? '#8B5CF6' : 'transparent'}
-                strokeWidth={isConnected && !isSel ? 2.5 : isSel ? 3 : 0}
+            return (
+              <path key={i} d={edgePath(src, tgt)} fill="none"
+                stroke={stroke} strokeWidth={sw} opacity={opacity} markerEnd={marker}
               />
-              <text x={node.x} y={node.y + 4} textAnchor="middle" style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
-                fontSize: 8, fill: '#fff', pointerEvents: 'none',
-              }}>
-                L{node.difficulty_level}
-              </text>
-              <text x={node.x} y={node.y + NODE_R + 13} textAnchor="middle" style={{
-                fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 8,
-                fill: labelFill, pointerEvents: 'none',
-              }}>
-                {label}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+            );
+          })}
+
+          {/* Nodes */}
+          {positioned.map(node => {
+            const cfg = DIFF[node.difficulty_level] || DIFF[3];
+            const isSel = selected === node.id;
+            const isInPath = pathData && pathData.nodeIds.has(node.id);
+            const isAncestor = pathData && pathData.ancestors.has(node.id);
+            const isDescendant = pathData && pathData.descendants.has(node.id);
+            const r = isSel ? NODE_R + 3 : NODE_R;
+            const nodeOpacity = selected ? (isInPath ? 1 : 0.22) : 0.9;
+
+            const lines = wrapLabel(node.name, 12);
+            const labelFill = selected ? (isInPath ? '#1e293b' : '#CBD5E1') : '#475569';
+
+            return (
+              <g key={node.id} style={{ cursor: 'pointer' }}
+                onClick={() => onSelect(node.id)}
+                onMouseEnter={e => {
+                  if (!svgRef.current) return;
+                  const rect = svgRef.current.getBoundingClientRect();
+                  const sx = rect.width / svgW;
+                  const sy = rect.height / svgH;
+                  const scrollTop = scrollRef.current ? scrollRef.current.scrollTop : 0;
+                  const role = isSel ? 'selected'
+                    : isAncestor ? 'prerequisite'
+                    : isDescendant ? 'unlocks'
+                    : null;
+                  setTooltip({
+                    name: node.name, level: node.difficulty_level,
+                    type: node.concept_type, count: node.question_count ?? 0, role,
+                    x: rect.left + node.x * sx,
+                    y: rect.top + node.y * sy - scrollTop * sy - 10,
+                  });
+                }}
+                onMouseLeave={() => setTooltip(null)}
+              >
+                {/* Glow ring for path nodes */}
+                {isInPath && (
+                  <circle cx={node.x} cy={node.y} r={r + 5}
+                    fill="none"
+                    stroke={isSel ? '#0F766E' : isAncestor ? '#3B82F6' : '#8B5CF6'}
+                    strokeWidth={2} opacity={0.25}
+                  />
+                )}
+                {/* Main circle */}
+                <circle cx={node.x} cy={node.y} r={r}
+                  fill={cfg.color} opacity={nodeOpacity}
+                  stroke={isSel ? '#0F766E' : isAncestor ? '#3B82F6' : isDescendant ? '#8B5CF6' : 'rgba(255,255,255,0.6)'}
+                  strokeWidth={isSel ? 3 : isInPath ? 2.5 : 1}
+                />
+                {/* Level text inside circle */}
+                <text x={node.x} y={node.y + 4} textAnchor="middle" style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
+                  fontSize: 9, fill: '#fff', pointerEvents: 'none',
+                }}>
+                  L{node.difficulty_level}
+                </text>
+                {/* Label with background for readability */}
+                {lines.map((line, li) => {
+                  const ly = node.y + NODE_R + 8 + li * 13;
+                  return (
+                    <React.Fragment key={li}>
+                      <rect
+                        x={node.x - 38} y={ly - 8}
+                        width={76} height={12}
+                        fill="rgba(255,255,255,0.85)" rx={3}
+                        opacity={nodeOpacity}
+                      />
+                      <text x={node.x} y={ly} textAnchor="middle" style={{
+                        fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 9,
+                        fill: labelFill, pointerEvents: 'none',
+                      }}>
+                        {line}
+                      </text>
+                    </React.Fragment>
+                  );
+                })}
+              </g>
+            );
+          })}
+        </svg>
       </div>
 
       {/* Tooltip */}
@@ -511,20 +571,24 @@ function MapView({ concepts, edges, selected, onSelect }) {
           background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           border: '1px solid rgba(148,163,184,0.2)',
-          borderRadius: 10, padding: '7px 12px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-          zIndex: 50, whiteSpace: 'nowrap', pointerEvents: 'none',
+          borderRadius: 10, padding: '8px 14px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+          zIndex: 9999, whiteSpace: 'nowrap', pointerEvents: 'none',
         }}>
-          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 13, color: '#1e293b' }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 14, color: '#1e293b' }}>
             {tooltip.name}
           </div>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#64748B', marginTop: 2 }}>
-            Level {tooltip.level} · {tooltip.type} · {tooltip.count} Q
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#64748B', marginTop: 3 }}>
+            Level {tooltip.level} · {tooltip.type} · {tooltip.count} questions
             {tooltip.role && (
               <span style={{
-                marginLeft: 6, padding: '1px 6px', borderRadius: 10, fontSize: 9, fontWeight: 600,
-                background: tooltip.role === 'needs first' ? 'rgba(59,130,246,0.1)' : tooltip.role === 'unlocks' ? 'rgba(139,92,246,0.1)' : 'rgba(15,118,110,0.1)',
-                color: tooltip.role === 'needs first' ? '#3B82F6' : tooltip.role === 'unlocks' ? '#8B5CF6' : '#0F766E',
+                marginLeft: 6, padding: '2px 8px', borderRadius: 10, fontSize: 9, fontWeight: 600,
+                background: tooltip.role === 'prerequisite' ? 'rgba(59,130,246,0.1)'
+                  : tooltip.role === 'unlocks' ? 'rgba(139,92,246,0.1)'
+                  : 'rgba(15,118,110,0.1)',
+                color: tooltip.role === 'prerequisite' ? '#3B82F6'
+                  : tooltip.role === 'unlocks' ? '#8B5CF6'
+                  : '#0F766E',
               }}>
                 {tooltip.role}
               </span>

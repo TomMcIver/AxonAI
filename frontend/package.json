@@ -13,7 +13,7 @@
     "react-router-dom": "^7.13.1",
     "react-scripts": "5.0.1",
     "recharts": "^3.7.0",
-    "tailwindcss": "^4.2.1"
+    "tailwindcss": "^4.2.2"
   },
   "scripts": {
     "build:css": "tailwindcss -i src/index.css -o src/compiled.css && node -e \"const f=require('fs');f.writeFileSync('src/compiled.css',f.readFileSync('src/compiled.css','utf8').replace(/infinity/g,'99999'))\"",
