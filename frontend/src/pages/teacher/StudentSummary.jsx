@@ -103,7 +103,7 @@ function StudentKnowledgeGraph({ graphData, masteryMap }) {
   // Layout: difficulty level 1–5 mapped to columns left→right
   const COL_X = { 1: 80, 2: 220, 3: 380, 4: 540, 5: 700 };
   const colCount = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  const NODE_SPACING = 76;
+  const NODE_SPACING = 84;
   const TOP_OFFSET = 50;
 
   const positioned = allConcepts.map(c => {
@@ -242,14 +242,12 @@ function StudentKnowledgeGraph({ graphData, masteryMap }) {
                 }}>
                   {displayPct}
                 </text>
-                {wrapLabel(node.name, 13).map((line, li) => (
-                  <text key={li} x={node.x} y={node.y + r + 12 + li * 9} textAnchor="middle" style={{
-                    fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 7.5,
-                    fill: '#475569', pointerEvents: 'none',
-                  }}>
-                    {line}
-                  </text>
-                ))}
+                <text x={node.x} y={node.y + r + 13} textAnchor="middle" style={{
+                  fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 8,
+                  fill: '#475569', pointerEvents: 'none',
+                }}>
+                  {node.name.length > 11 ? node.name.slice(0, 10) + '…' : node.name}
+                </text>
               </g>
             );
           })}
