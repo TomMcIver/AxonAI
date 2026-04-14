@@ -56,8 +56,28 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
     setSidebarCollapsed(false);
   }, [location.pathname]);
 
+  function handleToggleNavigation() {
+    if (window.innerWidth >= 1024) {
+      setSidebarCollapsed(v => !v);
+    } else {
+      setMobileNavOpen(true);
+    }
+  }
+
   return (
     <div className="app-shell min-h-screen">
+      {/* Rebuilt top-left menu trigger with isolated click layer */}
+      <div className="fixed left-3 top-3 z-[1000] pointer-events-none">
+        <button
+          type="button"
+          className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-md border-2 border-[#2c2418] bg-[#fff8dc] text-slate-700 shadow-[3px_3px_0_#2c2418] hover:bg-[#fffef4] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_#2c2418]"
+          onClick={handleToggleNavigation}
+          aria-label="Toggle navigation"
+        >
+          <Menu size={18} />
+        </button>
+      </div>
+
       <div className="flex min-h-screen">
         {/* Sidebar — frosted white glass */}
         <aside
@@ -163,19 +183,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
           >
             <div className="mx-auto w-full max-w-7xl flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
               <div className="flex items-center gap-3">
-                <button
-                  className="relative z-[230] inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/60 text-slate-600 hover:bg-white transition-colors"
-                  onClick={() => {
-                    if (window.innerWidth >= 1024) {
-                      setSidebarCollapsed(v => !v);
-                    } else {
-                      setMobileNavOpen(true);
-                    }
-                  }}
-                  aria-label="Toggle navigation"
-                >
-                  <Menu size={18} />
-                </button>
+                <div className="h-9 w-9" aria-hidden="true" />
                 <div>
                   <p className="axon-label mb-0.5">
                     {mode === 'teacher' ? 'Teacher' : mode === 'student' ? 'Student' : 'Parent'} · AxonAI

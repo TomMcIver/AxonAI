@@ -463,3 +463,9 @@ body {
 .app-shell table td {
   border-color: rgba(44, 36, 24, 0.24) !important;
 }
+
+/* Force pixel font consistently across all app UI text */
+.app-shell,
+.app-shell *:not(.katex):not(.katex *) {
+  font-family: 'Press Start 2P', 'Inter', sans-serif !important;
+}
