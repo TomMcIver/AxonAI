@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   AlertCircle,
   Sparkles,
 } from 'lucide-react';
-import { getClassOverview, getConcepts, getClassConceptSummary } from '../../api/axonai';
+import { getClassOverview, getClassConceptSummary } from '../../api/axonai';
 import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
+import KnowledgeGraphNew from '../../components/KnowledgeGraphNew';
 import { filterDemoStudents, sortWithArohaFirst } from '../../constants/demoStudents';
 
 /* ── HELPERS ── */
@@ -19,18 +20,6 @@ function masteryColor(mastery) {
   if (mastery >= 0.51) return 'var(--in-progress)';
   if (mastery >= 0.26) return 'var(--needs-attention)';
   return 'var(--at-risk)';
-}
-
-function nodeColor(mastery) {
-  if (mastery >= 0.91) return "#059669";
-  if (mastery >= 0.76) return "#0F766E";
-  if (mastery >= 0.51) return "#2563EB";
-  if (mastery >= 0.26) return "#D97706";
-  return "#DC2626";
-}
-
-function getInitials(name) {
-  return name.split(' ').map(w => w[0]).join('').toUpperCase();
 }
 
 /* ── MASTERY RING (configurable size) ── */
@@ -223,187 +212,6 @@ function NeedsAttentionSection({ students, navigate }) {
             />
           );
         })}
-      </div>
-    </section>
-  );
-}
-
-/* ── KNOWLEDGE GRAPH PREVIEW ── */
-
-function selectPreviewConcepts(allConcepts, allEdges) {
-  if (!allConcepts?.length) return { nodes: [], edges: [] };
-  const byLevel = {};
-  allConcepts.forEach(c => {
-    const lvl = c.difficulty_level || 3;
-    if (!byLevel[lvl]) byLevel[lvl] = [];
-    byLevel[lvl].push(c);
-  });
-  const edgeCount = {};
-  (allEdges || []).forEach(e => {
-    edgeCount[e.concept_id] = (edgeCount[e.concept_id] || 0) + 1;
-    edgeCount[e.prerequisite_concept_id] = (edgeCount[e.prerequisite_concept_id] || 0) + 1;
-  });
-  const picked = new Set();
-  const pickedNodes = [];
-  [1, 2, 3, 4, 5].forEach(lvl => {
-    const pool = (byLevel[lvl] || []).sort((a, b) => (edgeCount[b.id] || 0) - (edgeCount[a.id] || 0));
-    const take = lvl <= 2 || lvl >= 5 ? 2 : 3;
-    pool.slice(0, take).forEach(c => { picked.add(c.id); pickedNodes.push(c); });
-  });
-  const pickedEdges = (allEdges || []).filter(e => picked.has(e.concept_id) && picked.has(e.prerequisite_concept_id));
-  return { nodes: pickedNodes, edges: pickedEdges };
-}
-
-function KnowledgeGraphPreview({ nodes: allNodes, edges: allEdges, navigate }) {
-  const [tooltip, setTooltip] = useState(null);
-  const svgRef = useRef(null);
-
-  if (!allNodes || allNodes.length === 0) {
-    return <p className="text-sm text-slate-500">No concepts available.</p>;
-  }
-
-  const { nodes, edges } = selectPreviewConcepts(allNodes, allEdges);
-  const svgWidth = 900;
-  const svgHeight = 400;
-  const colX = { 1: 90, 2: 250, 3: 450, 4: 650, 5: 810 };
-  const colCount = {};
-
-  const positionedNodes = nodes.map(n => {
-    const lvl = n.difficulty_level || 3;
-    const col = colCount[lvl] || 0;
-    colCount[lvl] = col + 1;
-    return { ...n, x: colX[lvl] || 450, y: 80 + col * 110 };
-  });
-
-  const posMap = {};
-  positionedNodes.forEach(n => { posMap[n.id] = n; });
-
-  function difficultyColor(level) {
-    if (level <= 1) return '#10B981';
-    if (level <= 2) return '#0891B2';
-    if (level <= 3) return '#3B82F6';
-    if (level <= 4) return '#F59E0B';
-    return '#EF4444';
-  }
-
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-4">
-        <h2 style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 20,
-          letterSpacing: '-0.01em', color: 'var(--text-primary)', margin: 0,
-        }}>
-          Knowledge Graph
-        </h2>
-        <button
-          onClick={() => navigate('/teacher/knowledge-graph')}
-          style={{
-            fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 12, color: '#0f766e',
-            textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
-            background: 'none', border: 'none',
-          }}
-        >
-          View Full Graph &#8594;
-        </button>
-      </div>
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.5)',
-        backdropFilter: 'blur(16px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
-        border: '1px solid rgba(255, 255, 255, 0.6)',
-        borderRadius: 20,
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
-        padding: 16, position: 'relative', overflow: 'hidden',
-      }}>
-        <svg ref={svgRef} viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" style={{ display: 'block' }}>
-          <defs>
-            <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-              <polygon points="0 0, 8 3, 0 6" fill="var(--text-faint)" opacity="0.5" />
-            </marker>
-          </defs>
-          {[
-            { x: 90, label: 'Foundational' }, { x: 250, label: 'Basic' },
-            { x: 450, label: 'Intermediate' }, { x: 650, label: 'Advanced' }, { x: 810, label: 'Complex' },
-          ].map(col => (
-            <text key={col.label} x={col.x} y={30} textAnchor="middle" style={{
-              fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 10,
-              fill: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.06em',
-            }}>
-              {col.label}
-            </text>
-          ))}
-          {edges.map((edge, i) => {
-            const src = posMap[edge.prerequisite_concept_id];
-            const tgt = posMap[edge.concept_id];
-            if (!src || !tgt) return null;
-            const mx = (src.x + tgt.x) / 2;
-            const my = (src.y + tgt.y) / 2 - 20;
-            return (
-              <path key={i} d={`M${src.x},${src.y} Q${mx},${my} ${tgt.x},${tgt.y}`}
-                fill="none" stroke="var(--text-faint)" strokeWidth={1.5}
-                opacity={Math.max(0.2, edge.strength || 0.4)} markerEnd="url(#arrowhead)" />
-            );
-          })}
-          {positionedNodes.map(node => {
-            const r = 22;
-            const fill = difficultyColor(node.difficulty_level);
-            return (
-              <g key={node.id}
-                onMouseEnter={e => {
-                  const svgRect = svgRef.current.getBoundingClientRect();
-                  const sx = svgRect.width / svgWidth;
-                  const sy = svgRect.height / svgHeight;
-                  setTooltip({
-                    label: node.name, level: node.difficulty_level, type: node.concept_type,
-                    x: svgRect.left + node.x * sx, y: svgRect.top + (node.y - r - 12) * sy,
-                  });
-                }}
-                onMouseLeave={() => setTooltip(null)}
-                style={{ cursor: 'pointer' }}
-              >
-                <circle cx={node.x} cy={node.y} r={r} fill={fill} opacity={0.85} />
-                <text x={node.x} y={node.y + 4} textAnchor="middle" style={{
-                  fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 9, fill: '#FFFFFF',
-                }}>
-                  L{node.difficulty_level}
-                </text>
-                <text x={node.x} y={node.y + r + 14} textAnchor="middle" style={{
-                  fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 10, fill: 'var(--text-secondary)',
-                }}>
-                  {node.name.length > 18 ? node.name.substring(0, 16) + '...' : node.name}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-        {tooltip && (
-          <div style={{
-            position: 'fixed', left: tooltip.x, top: tooltip.y - 8, transform: 'translateX(-50%)',
-            background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(148, 163, 184, 0.2)',
-            borderRadius: 10, padding: '6px 10px', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
-            zIndex: 50, whiteSpace: 'nowrap', pointerEvents: 'none',
-          }}>
-            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
-              {tooltip.label}
-            </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 12, color: 'var(--text-tertiary)' }}>
-              Level {tooltip.level} · {tooltip.type}
-            </div>
-          </div>
-        )}
-        <div className="flex items-center justify-center gap-6 mt-3 pt-3" style={{ borderTop: '1px solid rgba(148, 163, 184, 0.1)' }}>
-          {[
-            { label: 'Foundational', color: '#10B981' }, { label: 'Basic', color: '#0891B2' },
-            { label: 'Intermediate', color: '#3B82F6' }, { label: 'Advanced', color: '#F59E0B' },
-            { label: 'Complex', color: '#EF4444' },
-          ].map(item => (
-            <span key={item.label} className="flex items-center gap-1.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: 'var(--text-tertiary)' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, display: 'inline-block' }} />
-              {item.label}
-            </span>
-          ))}
-        </div>
       </div>
     </section>
   );
@@ -741,20 +549,15 @@ function ConceptStrengthsSection({ navigate }) {
 export default function TeacherDashboard() {
   const navigate = useNavigate();
   const [classData, setClassData] = useState(null);
-  const [conceptsData, setConceptsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    Promise.all([
-      getClassOverview(1),
-      getConcepts('Mathematics'),
-    ])
-      .then(([classRes, conceptsRes]) => {
+    Promise.all([getClassOverview(1)])
+      .then(([classRes]) => {
         setClassData(classRes);
-        setConceptsData(conceptsRes);
         setLoading(false);
       })
       .catch(e => {
@@ -787,9 +590,6 @@ export default function TeacherDashboard() {
 
   const students = sortWithArohaFirst(filterDemoStudents(classData?.students));
 
-  const conceptNodes = conceptsData?.concepts || [];
-  const conceptEdges = conceptsData?.prerequisites || [];
-
   return (
     <DashboardShell subtitle="Year 11 Mathematics · Mastery signal">
       <div className="grid gap-6 lg:gap-7">
@@ -797,7 +597,20 @@ export default function TeacherDashboard() {
           <ClassPulseSection students={students} navigate={navigate} />
           <NeedsAttentionSection students={students} navigate={navigate} />
         </div>
-        <KnowledgeGraphPreview nodes={conceptNodes} edges={conceptEdges} navigate={navigate} />
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="axon-h2 text-base text-slate-800">Knowledge Graph</h2>
+            <button
+              onClick={() => navigate('/teacher/knowledge-graph')}
+              className="axon-btn axon-btn-ghost"
+            >
+              Full View
+            </button>
+          </div>
+          <div className="axon-card-subtle p-3 sm:p-4" style={{ minHeight: 'min(72vh, 760px)' }}>
+            <KnowledgeGraphNew subject="Mathematics" mapOnly />
+          </div>
+        </section>
         <ConceptStrengthsSection navigate={navigate} />
       </div>
     </DashboardShell>
