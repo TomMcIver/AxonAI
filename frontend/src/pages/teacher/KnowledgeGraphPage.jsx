@@ -44,8 +44,8 @@ export default function KnowledgeGraphPage() {
       </div>
 
       {/* Full graph panel — tall fixed height so it doesn't collapse */}
-      <div className="axon-card-subtle p-4 sm:p-5" style={{ minHeight: 680 }}>
-        <KnowledgeGraphNew subject={subject} mapOnly />
+      <div className="axon-card-subtle p-4 sm:p-5" style={{ minHeight: 'min(78vh, 820px)' }}>
+        <KnowledgeGraphNew subject={subject} />
       </div>
     </DashboardShell>
   );

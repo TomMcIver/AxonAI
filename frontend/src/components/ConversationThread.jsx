@@ -163,12 +163,10 @@ export default function ConversationThread({ conversationId, onClose }) {
   return (
     <div
       style={{
-        background: 'rgba(255, 255, 255, 0.6)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255, 255, 255, 0.7)',
-        borderRadius: 16,
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+        background: 'var(--surface-card)',
+        border: '2px solid #2c2418',
+        borderRadius: 10,
+        boxShadow: '3px 3px 0 #2c2418',
       }}
     >
       <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.15)' }}>
@@ -188,8 +186,8 @@ export default function ConversationThread({ conversationId, onClose }) {
               <div
                 className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
                   fromStudent
-                    ? 'bg-teal-500 text-white rounded-br-md'
-                    : 'bg-white/70 text-slate-700 border border-slate-200/60 rounded-bl-md'
+                    ? 'bg-amber-300 text-slate-900 rounded-br-md border-2 border-[#2c2418]'
+                    : 'bg-[#fffef4] text-slate-700 border-2 border-[#2c2418] rounded-bl-md'
                 }`}
               >
                 <p className={`text-[10px] font-semibold mb-1 uppercase tracking-wide ${

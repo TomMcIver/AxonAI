@@ -63,10 +63,8 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
         <aside
           className="hidden lg:flex lg:flex-col w-64 xl:w-72"
           style={{
-            background: 'rgba(255, 255, 255, 0.65)',
-            backdropFilter: 'blur(24px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(150%)',
-            borderRight: '1px solid rgba(148, 163, 184, 0.2)',
+            background: '#efe4be',
+            borderRight: '2px solid #2c2418',
             ...(sidebarCollapsed ? { display: 'none' } : {}),
           }}
         >
@@ -159,10 +157,8 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
           <header
             className="sticky top-0 z-50"
             style={{
-              background: 'rgba(255, 255, 255, 0.6)',
-              backdropFilter: 'blur(24px) saturate(150%)',
-              WebkitBackdropFilter: 'blur(24px) saturate(150%)',
-              borderBottom: '1px solid rgba(148, 163, 184, 0.2)',
+              background: '#fff8dc',
+              borderBottom: '2px solid #2c2418',
             }}
           >
             <div className="mx-auto w-full max-w-7xl flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
@@ -276,10 +272,8 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
             <div
               className="relative w-72 max-w-full"
               style={{
-                background: 'rgba(255, 255, 255, 0.85)',
-                backdropFilter: 'blur(24px) saturate(150%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(150%)',
-                borderRight: '1px solid rgba(148, 163, 184, 0.2)',
+                background: '#efe4be',
+                borderRight: '2px solid #2c2418',
               }}
             >
               <button
