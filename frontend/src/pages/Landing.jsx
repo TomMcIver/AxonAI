@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getHealth } from '../api/axonai';
+import { Button, Card } from 'pixel-retroui';
 
 const roles = [
   {
@@ -150,12 +151,12 @@ export default function Landing() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <button
+              <Button
                 onClick={() => navigate('/teacher')}
                 className="axon-btn axon-btn-primary"
               >
                 Enter as teacher
-              </button>
+              </Button>
               <button
                 onClick={() => navigate('/student')}
                 className="axon-btn axon-btn-ghost"
@@ -166,7 +167,7 @@ export default function Landing() {
           </section>
 
           {/* Right: role selector panel */}
-          <section className="axon-card px-5 py-5 sm:px-6 sm:py-6 lg:px-7 lg:py-7">
+          <Card className="axon-card px-5 py-5 sm:px-6 sm:py-6 lg:px-7 lg:py-7">
             <div className="flex items-center justify-between mb-5">
               <div>
                 <p className="axon-label mb-1">Choose a lens</p>
@@ -223,7 +224,7 @@ export default function Landing() {
                 </button>
               ))}
             </div>
-          </section>
+          </Card>
         </div>
       </main>
 

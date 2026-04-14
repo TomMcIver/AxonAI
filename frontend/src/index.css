@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "pixel-retroui/dist/index.css";
+@import "pixel-retroui/dist/fonts.css";
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
@@ -320,4 +322,144 @@ body {
 }
 .pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* RetroUI redesign layer */
+:root {
+  --mastered: #2f9955;
+  --mastered-bg: rgba(47, 153, 85, 0.2);
+  --on-track: #3b7bd6;
+  --on-track-bg: rgba(59, 123, 214, 0.2);
+  --in-progress: #c2792f;
+  --in-progress-bg: rgba(194, 121, 47, 0.2);
+  --needs-attention: #c25835;
+  --needs-attention-bg: rgba(194, 88, 53, 0.2);
+  --at-risk: #b74232;
+  --at-risk-bg: rgba(183, 66, 50, 0.2);
+  --surface-app: #f5eecf;
+  --surface-card: #fff8dc;
+  --surface-muted: #efe4be;
+  --text-primary: #2c2418;
+  --text-secondary: #53442e;
+  --text-tertiary: #725f44;
+  --text-faint: #9a8461;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background:
+    linear-gradient(0deg, rgba(100, 74, 38, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 74, 38, 0.08) 1px, transparent 1px),
+    var(--surface-app);
+  background-size: 16px 16px, 16px 16px, auto;
+}
+
+.app-shell {
+  background: transparent;
+}
+
+.axon-card,
+.glass-card,
+.axon-card-subtle,
+.glass-card-subtle,
+.axon-card-ghost,
+.glass-card-ghost {
+  background: var(--surface-card);
+  border: 2px solid #2c2418;
+  border-radius: 10px;
+  box-shadow: 4px 4px 0 #2c2418;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.axon-btn {
+  border-radius: 8px;
+  border: 2px solid #2c2418;
+  box-shadow: 2px 2px 0 #2c2418;
+  font-family: 'Press Start 2P', 'Inter', sans-serif;
+  font-size: 10px;
+  line-height: 1.45;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.axon-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 #2c2418;
+}
+
+.axon-btn-primary {
+  background: #f6c445;
+  color: #2c2418;
+  border-color: #2c2418;
+}
+
+.axon-btn-primary:hover {
+  background: #ffd66f;
+}
+
+.axon-btn-ghost {
+  background: #fff;
+  color: #2c2418;
+}
+
+.axon-btn-quiet {
+  border-style: dashed;
+  background: #efe4be;
+  color: #4d3c29;
+}
+
+.axon-pill {
+  border: 2px solid #2c2418;
+  border-radius: 8px;
+  background: #efe4be;
+  color: #2c2418;
+  font-weight: 600;
+}
+
+.axon-pill-soft {
+  background: #d9ebff;
+}
+
+.axon-pill-success {
+  background: #d7f0de;
+}
+
+.axon-pill-danger {
+  background: #f7d7d3;
+}
+
+.axon-h1,
+.axon-h2,
+.axon-label {
+  font-family: 'Press Start 2P', 'Plus Jakarta Sans', sans-serif;
+}
+
+@media (max-width: 1024px) {
+  .axon-btn {
+    font-size: 9px;
+  }
+}
+
+/* Apply retro styling to legacy inline-glass blocks */
+.app-shell [style*="rgba(255, 255, 255"],
+.app-shell [style*="rgba(255,255,255"] {
+  border: 2px solid #2c2418 !important;
+  box-shadow: 3px 3px 0 #2c2418 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.app-shell input,
+.app-shell select,
+.app-shell textarea {
+  border: 2px solid #2c2418 !important;
+  background: #fffef4 !important;
+  border-radius: 8px !important;
+  color: #2c2418 !important;
+}
+
+.app-shell table th,
+.app-shell table td {
+  border-color: rgba(44, 36, 24, 0.24) !important;
 }

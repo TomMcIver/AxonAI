@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import {
@@ -11,6 +11,7 @@ import {
 import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
+import KnowledgeGraphNew from '../../components/KnowledgeGraphNew';
 
 function clamp01(n) {
   if (typeof n !== 'number' || Number.isNaN(n)) return 0;
@@ -54,272 +55,6 @@ function MasteryRing({ percentage, size = 120 }) {
           </span>
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ── MASTERY NODE COLOUR ── */
-
-function masteryNodeColor(score) {
-  if (score === null || score === undefined) return '#94A3B8'; // gray — no data
-  if (score < 0.40) return '#DC2626'; // red — struggling
-  if (score < 0.70) return '#D97706'; // orange — developing
-  return '#059669';                    // green — mastered
-}
-
-function masteryLabel(score) {
-  if (score === null || score === undefined) return 'Not assessed';
-  if (score < 0.40) return 'Struggling';
-  if (score < 0.70) return 'Developing';
-  return 'Mastered';
-}
-
-/* ── TEXT WRAP HELPER ── */
-
-function wrapLabel(name, maxLen = 13) {
-  if (name.length <= maxLen) return [name];
-  const breakAt = name.lastIndexOf(' ', maxLen);
-  if (breakAt > 0) {
-    const line1 = name.slice(0, breakAt);
-    const rest = name.slice(breakAt + 1);
-    return [line1, rest.length > maxLen ? rest.slice(0, maxLen - 1) + '…' : rest];
-  }
-  return [name.slice(0, maxLen - 1) + '…'];
-}
-
-/* ── STUDENT KNOWLEDGE GAP GRAPH ── */
-
-function StudentKnowledgeGraph({ graphData, masteryMap }) {
-  const svgRef = useRef(null);
-  const [tooltip, setTooltip] = useState(null);
-
-  if (!graphData) return null;
-
-  const allConcepts = graphData.concepts || [];
-  const allEdges = graphData.prerequisites || [];
-
-  if (allConcepts.length === 0) return null;
-
-  // Layout: difficulty level 1–5 mapped to columns left→right
-  const COL_X = { 1: 80, 2: 220, 3: 380, 4: 540, 5: 700 };
-  const colCount = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  const NODE_SPACING = 84;
-  const TOP_OFFSET = 50;
-
-  const positioned = allConcepts.map(c => {
-    const lvl = c.difficulty_level || 3;
-    const idx = colCount[lvl] || 0;
-    colCount[lvl] = idx + 1;
-    return { ...c, x: COL_X[lvl] || 380, y: TOP_OFFSET + idx * NODE_SPACING };
-  });
-
-  const maxNodes = Math.max(...Object.values(colCount));
-  const svgW = 780;
-  const svgH = Math.max(360, TOP_OFFSET + maxNodes * NODE_SPACING + 40);
-
-  const posMap = {};
-  positioned.forEach(n => { posMap[n.id] = n; });
-
-  const colLabels = [
-    { x: 80,  label: 'Foundation' },
-    { x: 220, label: 'Basic' },
-    { x: 380, label: 'Intermediate' },
-    { x: 540, label: 'Advanced' },
-    { x: 700, label: 'Complex' },
-  ];
-
-  return (
-    <div style={{
-      background: 'rgba(255,255,255,0.5)',
-      backdropFilter: 'blur(16px) saturate(140%)',
-      WebkitBackdropFilter: 'blur(16px) saturate(140%)',
-      border: '1px solid rgba(255,255,255,0.6)',
-      borderRadius: 20,
-      boxShadow: '0 4px 16px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.7)',
-      overflow: 'hidden',
-    }}>
-      {/* Scrollable SVG */}
-      <div style={{ overflowY: 'auto', maxHeight: 440 }}>
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${svgW} ${svgH}`}
-          width="100%"
-          style={{ display: 'block', minHeight: 360 }}
-        >
-          <defs>
-            <marker id="gap-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-              <polygon points="0 0, 7 2.5, 0 5" fill="#CBD5E1" opacity="0.8" />
-            </marker>
-            <marker id="gap-arrow-blocked" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-              <polygon points="0 0, 7 2.5, 0 5" fill="#DC2626" opacity="0.7" />
-            </marker>
-          </defs>
-
-          {/* Column labels */}
-          {colLabels.map(col => (
-            <text key={col.label} x={col.x} y={22} textAnchor="middle" style={{
-              fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 9,
-              fill: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em',
-            }}>
-              {col.label}
-            </text>
-          ))}
-
-          {/* Edges */}
-          {allEdges.map((edge, i) => {
-            const src = posMap[edge.prerequisite_concept_id];
-            const tgt = posMap[edge.concept_id];
-            if (!src || !tgt) return null;
-
-            const srcScore = masteryMap[src.id];
-            const tgtScore = masteryMap[tgt.id];
-            // Highlight edge red if source is not mastered AND target is also struggling
-            const isBlocked = (srcScore !== null && srcScore !== undefined && srcScore < 0.50)
-              && (tgtScore !== null && tgtScore !== undefined && tgtScore < 0.50);
-
-            const isSameCol = Math.abs(src.x - tgt.x) < 30;
-            const pathD = isSameCol
-              ? `M${src.x},${src.y} C${src.x - 70},${src.y} ${tgt.x - 70},${tgt.y} ${tgt.x},${tgt.y}`
-              : (() => {
-                  const mx = (src.x + tgt.x) / 2;
-                  const my = (src.y + tgt.y) / 2 - 18;
-                  return `M${src.x},${src.y} Q${mx},${my} ${tgt.x},${tgt.y}`;
-                })();
-            return (
-              <path
-                key={i}
-                d={pathD}
-                fill="none"
-                stroke={isBlocked ? '#DC2626' : '#CBD5E1'}
-                strokeWidth={isBlocked ? 1.8 : 1.2}
-                opacity={isBlocked ? 0.6 : 0.4}
-                markerEnd={isBlocked ? 'url(#gap-arrow-blocked)' : 'url(#gap-arrow)'}
-              />
-            );
-          })}
-
-          {/* Nodes */}
-          {positioned.map(node => {
-            const rawScore = masteryMap[node.id];
-            // masteryMap stores 0–1 floats; API may return 0–100 integers
-            const score = rawScore !== null && rawScore !== undefined
-              ? (rawScore > 1 ? rawScore / 100 : rawScore)
-              : null;
-            const color = masteryNodeColor(score);
-            const r = 18;
-            const displayPct = score !== null ? `${Math.round(score * 100)}%` : '—';
-            return (
-              <g
-                key={node.id}
-                style={{ cursor: 'default' }}
-                onMouseEnter={e => {
-                  if (!svgRef.current) return;
-                  const rect = svgRef.current.getBoundingClientRect();
-                  const sx = rect.width / svgW;
-                  const sy = rect.height / svgH;
-                  setTooltip({
-                    name: node.name,
-                    score: displayPct,
-                    label: masteryLabel(score),
-                    color,
-                    x: rect.left + node.x * sx,
-                    y: rect.top + (node.y - r - 10) * sy,
-                  });
-                }}
-                onMouseLeave={() => setTooltip(null)}
-              >
-                <circle
-                  cx={node.x} cy={node.y} r={r}
-                  fill={color}
-                  opacity={score === null ? 0.35 : 0.82}
-                  stroke={score !== null && score < 0.50 ? color : 'transparent'}
-                  strokeWidth={score !== null && score < 0.50 ? 2.5 : 0}
-                  strokeOpacity={0.4}
-                />
-                <text x={node.x} y={node.y + 4} textAnchor="middle" style={{
-                  fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
-                  fontSize: 8, fill: '#fff', pointerEvents: 'none',
-                }}>
-                  {displayPct}
-                </text>
-                <text x={node.x} y={node.y + r + 13} textAnchor="middle" style={{
-                  fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 8,
-                  fill: '#475569', pointerEvents: 'none',
-                }}>
-                  {node.name.length > 11 ? node.name.slice(0, 10) + '…' : node.name}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      {/* Legend */}
-      <div style={{
-        display: 'flex', gap: 16, flexWrap: 'wrap', padding: '10px 16px',
-        borderTop: '1px solid rgba(148,163,184,0.12)',
-      }}>
-        {[
-          { color: '#94A3B8', label: 'Not assessed' },
-          { color: '#DC2626', label: 'Struggling (<40%)' },
-          { color: '#D97706', label: 'Developing (40–70%)' },
-          { color: '#059669', label: 'Mastered (≥70%)' },
-        ].map(item => (
-          <span key={item.label} style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#64748B',
-          }}>
-            <span style={{
-              width: 9, height: 9, borderRadius: '50%',
-              background: item.color, display: 'inline-block', flexShrink: 0,
-            }} />
-            {item.label}
-          </span>
-        ))}
-        <span style={{
-          display: 'flex', alignItems: 'center', gap: 5,
-          fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#64748B',
-        }}>
-          <span style={{
-            width: 18, height: 1.5, background: '#DC2626',
-            opacity: 0.6, display: 'inline-block', flexShrink: 0,
-          }} />
-          Blocked path
-        </span>
-      </div>
-
-      {/* Tooltip */}
-      {tooltip && (
-        <div style={{
-          position: 'fixed',
-          left: tooltip.x,
-          top: tooltip.y - 8,
-          transform: 'translateX(-50%)',
-          background: 'rgba(255,255,255,0.97)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          border: '1px solid rgba(148,163,184,0.2)',
-          borderRadius: 10,
-          padding: '8px 12px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-          zIndex: 100,
-          whiteSpace: 'nowrap',
-          pointerEvents: 'none',
-        }}>
-          <div style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600,
-            fontSize: 13, color: '#1e293b',
-          }}>
-            {tooltip.name}
-          </div>
-          <div style={{
-            fontFamily: "'Inter', sans-serif", fontSize: 11,
-            color: tooltip.color, marginTop: 2, fontWeight: 600,
-          }}>
-            {tooltip.score} · {tooltip.label}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -593,7 +328,9 @@ export default function StudentSummary() {
                 blocking a higher concept — hover any node for details.
               </p>
             </div>
-            <StudentKnowledgeGraph graphData={graphData} masteryMap={masteryMap} />
+            <div className="axon-card-subtle p-3 sm:p-4" style={{ minHeight: 'min(70vh, 720px)' }}>
+              <KnowledgeGraphNew dataOverride={graphData} masteryMap={masteryMap} mapOnly />
+            </div>
           </div>
         )}
 

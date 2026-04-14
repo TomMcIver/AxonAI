@@ -95,7 +95,7 @@ export default function SettingsPage() {
 
   return (
     <DashboardShell>
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 40px' }}>
+      <div style={{ maxWidth: 980, margin: '0 auto', padding: '20px 12px' }}>
         <div className="flex items-center justify-between mb-2">
           <div>
             <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)' }}>

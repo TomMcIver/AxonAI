@@ -117,7 +117,7 @@ export default function StudentsPage() {
 
   return (
     <DashboardShell>
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '32px 40px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 12px' }}>
         <div className="flex items-center justify-between mb-2">
           <div>
             <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)' }}>
@@ -133,7 +133,7 @@ export default function StudentsPage() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-3 gap-4 my-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 my-6">
           {[
             { label: 'At Risk', value: atRisk, color: 'var(--at-risk)', bg: 'var(--at-risk-bg)' },
             { label: 'Needs Attention', value: needsAtt, color: 'var(--needs-attention)', bg: 'var(--needs-attention-bg)' },
@@ -180,10 +180,12 @@ export default function StudentsPage() {
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
           overflow: 'hidden',
         }}>
+          <div style={{ overflowX: 'auto' }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 0.7fr 0.7fr 40px',
             padding: '12px 20px', borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
             background: 'rgba(255, 255, 255, 0.3)',
+            minWidth: 860,
           }}>
             {[
               { label: 'Student', field: 'last_name' },
@@ -214,6 +216,7 @@ export default function StudentsPage() {
                 display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 0.7fr 0.7fr 40px',
                 padding: '14px 20px', borderBottom: '1px solid rgba(148, 163, 184, 0.06)',
                 cursor: 'pointer', transition: 'background 150ms', alignItems: 'center',
+                minWidth: 860,
               }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(148, 163, 184, 0.06)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -255,6 +258,7 @@ export default function StudentsPage() {
               <ChevronRight size={16} style={{ color: '#94a3b8' }} />
             </div>
           ))}
+          </div>
         </div>
       </div>
     </DashboardShell>

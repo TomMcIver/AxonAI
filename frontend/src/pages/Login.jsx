@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card } from 'pixel-retroui';
 
 const roles = [
   {
@@ -27,7 +28,7 @@ export default function Login() {
 
   return (
     <div className="app-shell min-h-screen flex items-center justify-center px-4">
-      <div className="axon-card w-full max-w-md px-6 py-6 sm:px-7 sm:py-7">
+      <Card className="axon-card w-full max-w-md px-6 py-6 sm:px-7 sm:py-7">
         <div className="mb-6 text-center">
           <div className="inline-flex items-center justify-center h-10 w-10 rounded-2xl bg-teal-500 text-white font-semibold text-lg mb-3">
             A
@@ -69,7 +70,7 @@ export default function Login() {
             AxonAI demo — no real student data is used here.
           </p>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
