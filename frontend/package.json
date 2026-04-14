@@ -22,7 +22,7 @@
   "scripts": {
     "build:css": "tailwindcss -i src/index.css -o src/compiled.css && node -e \"const f=require('fs');f.writeFileSync('src/compiled.css',f.readFileSync('src/compiled.css','utf8').replace(/infinity/g,'99999'))\"",
     "start": "npm run build:css && react-scripts start",
-    "build": "CI=false npm run build:css && CI=false react-scripts build",
+    "build": "CI=false npm run build:css && CI=false GENERATE_SOURCEMAP=false NODE_OPTIONS=--max_old_space_size=4096 react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
