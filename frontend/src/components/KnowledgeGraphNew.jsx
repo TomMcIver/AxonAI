@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import CytoscapeComponent from 'react-cytoscapejs';
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
@@ -98,12 +98,15 @@ export default function KnowledgeGraphNew({
   mapOnly = false,
   dataOverride = null,
   masteryMap = null,
+  focusKeyNodes = null,
 }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState(null);
+  const [showAllNodes, setShowAllNodes] = useState(!mapOnly);
+  const cyRef = useRef(null);
 
   const load = useCallback(() => {
     if (dataOverride) {
@@ -128,8 +131,9 @@ export default function KnowledgeGraphNew({
 
   useEffect(() => {
     setSelectedId(null);
+    setShowAllNodes(!mapOnly);
     load();
-  }, [load]);
+  }, [load, mapOnly]);
 
   const concepts = data?.concepts || [];
   const edges = data?.prerequisites || [];
@@ -140,7 +144,39 @@ export default function KnowledgeGraphNew({
     return concepts.filter((c) => c.name.toLowerCase().includes(q));
   }, [concepts, search]);
 
-  const visibleIds = new Set(filteredConcepts.map((c) => c.id));
+  const keyNodeIds = useMemo(() => {
+    if (!mapOnly || search.trim()) return null;
+    const degree = {};
+    edges.forEach((e) => {
+      degree[e.concept_id] = (degree[e.concept_id] || 0) + 1;
+      degree[e.prerequisite_concept_id] = (degree[e.prerequisite_concept_id] || 0) + 1;
+    });
+
+    const ranked = [...filteredConcepts]
+      .sort((a, b) => (degree[b.id] || 0) - (degree[a.id] || 0))
+      .slice(0, 24)
+      .map((c) => c.id);
+
+    return new Set(ranked);
+  }, [edges, filteredConcepts, mapOnly, search]);
+
+  const displayConcepts = useMemo(() => {
+    const shouldFocus = focusKeyNodes ?? mapOnly;
+    if (!shouldFocus || showAllNodes || !keyNodeIds) return filteredConcepts;
+    const required = new Set(keyNodeIds);
+
+    if (selectedId != null) {
+      required.add(selectedId);
+      edges.forEach((e) => {
+        if (e.concept_id === selectedId) required.add(e.prerequisite_concept_id);
+        if (e.prerequisite_concept_id === selectedId) required.add(e.concept_id);
+      });
+    }
+
+    return filteredConcepts.filter((c) => required.has(c.id));
+  }, [edges, filteredConcepts, focusKeyNodes, keyNodeIds, mapOnly, selectedId, showAllNodes]);
+
+  const visibleIds = new Set(displayConcepts.map((c) => c.id));
   const visibleEdges = edges.filter(
     (e) => visibleIds.has(e.concept_id) && visibleIds.has(e.prerequisite_concept_id),
   );
@@ -158,7 +194,7 @@ export default function KnowledgeGraphNew({
   }, [concepts]);
 
   const elements = useMemo(() => {
-    const nodes = filteredConcepts.map((c) => {
+    const nodes = displayConcepts.map((c) => {
       const score = masteryMap?.[c.id] ?? masteryMap?.[String(c.id)] ?? null;
       const color = masteryMap ? masteryTone(score) : '#f6c445';
       const label = masteryMap && score != null
@@ -203,7 +239,23 @@ export default function KnowledgeGraphNew({
     });
 
     return [...nodes, ...edgeEls];
-  }, [filteredConcepts, masteryMap, pathSets, selectedId, visibleEdges]);
+  }, [displayConcepts, masteryMap, pathSets, selectedId, visibleEdges]);
+
+  useEffect(() => {
+    if (!cyRef.current) return;
+    const cy = cyRef.current;
+    requestAnimationFrame(() => {
+      cy.layout({
+        name: 'dagre',
+        rankDir: 'LR',
+        fit: true,
+        padding: 30,
+        nodeSep: 50,
+        rankSep: 110,
+      }).run();
+      cy.fit(cy.elements(), 30);
+    });
+  }, [elements]);
 
   if (loading) return <LoadingSpinner message="Loading graph..." />;
   if (error) return <ErrorState message={error} onRetry={load} />;
@@ -212,7 +264,7 @@ export default function KnowledgeGraphNew({
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-xs text-slate-700 font-semibold tracking-[0.08em] uppercase">
-          {filteredConcepts.length} nodes · {visibleEdges.length} links
+          {displayConcepts.length}{!showAllNodes && mapOnly ? ` / ${filteredConcepts.length}` : ''} nodes · {visibleEdges.length} links
         </div>
         <input
           value={search}
@@ -221,6 +273,15 @@ export default function KnowledgeGraphNew({
           className="w-full max-w-xs px-3 py-2 text-sm bg-[#fffef4] border-2 border-[#2c2418] rounded-[8px]"
         />
       </div>
+
+      {mapOnly && !showAllNodes && !search.trim() && (
+        <div className="flex items-center justify-between rounded-md border-2 border-[#2c2418] bg-[#efe4be] px-3 py-2 text-[11px] text-slate-700">
+          <span>Focused view: key nodes only. Zoom out to auto-expand.</span>
+          <button className="axon-btn axon-btn-ghost !py-1 !px-2" onClick={() => setShowAllNodes(true)}>
+            Show All
+          </button>
+        </div>
+      )}
 
       <div className={`grid min-h-0 flex-1 gap-3 ${mapOnly ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px]'}`}>
         <div className="axon-card-subtle min-h-[520px] p-2 sm:p-3">
@@ -236,11 +297,18 @@ export default function KnowledgeGraphNew({
               rankSep: 110,
             }}
             cy={(cy) => {
+              cyRef.current = cy;
               cy.on('tap', 'node', (evt) => {
                 setSelectedId(Number(evt.target.id()));
               });
               cy.on('tap', (evt) => {
                 if (evt.target === cy) setSelectedId(null);
+              });
+              cy.on('zoom', () => {
+                if (!mapOnly || showAllNodes || search.trim()) return;
+                if (cy.zoom() < 0.7) {
+                  setShowAllNodes(true);
+                }
               });
             }}
             stylesheet={[

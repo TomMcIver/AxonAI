@@ -155,7 +155,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
         <div className="flex-1 flex flex-col">
           {/* Top bar — frosted glass */}
           <header
-            className="sticky top-0 z-50"
+            className="sticky top-0 z-[220]"
             style={{
               background: '#fff8dc',
               borderBottom: '2px solid #2c2418',
@@ -164,7 +164,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
             <div className="mx-auto w-full max-w-7xl flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
               <div className="flex items-center gap-3">
                 <button
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/60 text-slate-600 hover:bg-white transition-colors"
+                  className="relative z-[230] inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/60 text-slate-600 hover:bg-white transition-colors"
                   onClick={() => {
                     if (window.innerWidth >= 1024) {
                       setSidebarCollapsed(v => !v);

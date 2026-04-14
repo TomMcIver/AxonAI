@@ -328,8 +328,8 @@ export default function StudentSummary() {
                 blocking a higher concept — hover any node for details.
               </p>
             </div>
-            <div className="axon-card-subtle p-3 sm:p-4" style={{ minHeight: 'min(70vh, 720px)' }}>
-              <KnowledgeGraphNew dataOverride={graphData} masteryMap={masteryMap} mapOnly />
+            <div className="axon-card-subtle p-3 sm:p-4" style={{ minHeight: 'min(56vh, 560px)' }}>
+              <KnowledgeGraphNew dataOverride={graphData} masteryMap={masteryMap} mapOnly focusKeyNodes />
             </div>
           </div>
         )}
