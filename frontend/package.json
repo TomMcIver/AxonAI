@@ -7,7 +7,7 @@
     "katex": "^0.16.9",
     "lucide-react": "^0.577.0",
     "postcss": "^8.5.6",
-    "pixel-retroui": "^2.1.8",
+    "pixel-retroui": "^2.1.0",
     "cytoscape": "^3.31.0",
     "cytoscape-dagre": "^2.5.0",
     "react": "^19.2.4",
