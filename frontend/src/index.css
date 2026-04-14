@@ -1,8 +1,7 @@
 @import "tailwindcss";
 @import "pixel-retroui/dist/index.css";
-@import "pixel-retroui/dist/fonts.css";
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
 :root {
   /* Brand — light mode */
