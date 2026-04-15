@@ -183,19 +183,42 @@ export default function StudentDashboard() {
           </div>
 
           <div className="axon-card-subtle p-4 sm:p-5">
-            <h3 className="text-sm font-semibold text-slate-700 mb-2">AI learning sessions</h3>
-            <p className="text-[0.72rem] text-slate-500 mb-2">Recently with the AxonAI tutor.</p>
-            <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-              {filteredConvos.slice(0, 5).map(c => (
-                <div
-                  key={c.id}
-                  className="flex items-center justify-between rounded-lg bg-white/50 border border-slate-200 px-3 py-2 text-xs text-slate-700 cursor-pointer hover:bg-white/70 transition-colors"
-                  onClick={() => setActiveConversation(activeConversation === c.id ? null : c.id)}
-                >
-                  <span className="truncate mr-2">{c.concept_name}</span>
-                  <span className="text-slate-400">{(c.session_engagement_score * 100).toFixed(0)}%</span>
-                </div>
-              ))}
+            <h3 className="text-sm font-semibold text-slate-700 mb-1">AI learning sessions</h3>
+            <p className="text-[0.72rem] text-slate-500 mb-2 leading-relaxed">
+              Recently with the AxonAI tutor.{' '}
+              <span className="text-slate-600">
+                Click a session to open that conversation — it appears directly below the row.
+              </span>
+            </p>
+            <div className="space-y-2 max-h-[min(28rem,70vh)] overflow-y-auto pr-1">
+              {filteredConvos.slice(0, 5).map(c => {
+                const open = activeConversation === c.id;
+                return (
+                  <div key={c.id} className="space-y-0">
+                    <button
+                      type="button"
+                      className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs text-slate-700 transition-colors ${
+                        open
+                          ? 'border-teal-400/80 bg-teal-50/70 ring-1 ring-teal-200/60'
+                          : 'border-slate-200 bg-white/50 hover:bg-white/80'
+                      }`}
+                      onClick={() => setActiveConversation(open ? null : c.id)}
+                    >
+                      <span className="truncate mr-2 font-medium">{c.concept_name}</span>
+                      <span className="shrink-0 text-slate-400">{(c.session_engagement_score * 100).toFixed(0)}%</span>
+                    </button>
+                    {open && (
+                      <div className="mt-2 overflow-hidden rounded-lg border border-[#2c2418]/25 bg-[#fffef4]/90">
+                        <ConversationThread
+                          conversationId={c.id}
+                          variant="inline"
+                          onClose={() => setActiveConversation(null)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               {filteredConvos.length === 0 && <p className="text-[0.72rem] text-slate-400">No sessions yet.</p>}
             </div>
           </div>
@@ -223,11 +246,6 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {activeConversation && (
-        <div className="mt-6 axon-card-subtle p-4 sm:p-5">
-          <ConversationThread conversationId={activeConversation} onClose={() => setActiveConversation(null)} />
-        </div>
-      )}
     </DashboardShell>
   );
 }
