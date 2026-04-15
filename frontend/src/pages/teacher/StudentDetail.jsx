@@ -538,7 +538,10 @@ export default function StudentDetail() {
             </div>
 
             <div className="axon-card-subtle p-5 sm:p-6">
-              <p className="text-sm font-semibold text-slate-700 mb-2">Recent sessions</p>
+              <p className="text-sm font-semibold text-slate-700">Recent sessions</p>
+              <p className="text-[0.72rem] text-slate-500 mb-2 leading-relaxed">
+                Click a row to open that conversation — it appears directly below.
+              </p>
               <div className="space-y-2">
                 {recentConvos.map(c => {
                   const isExpanded = expandedConversations.has(c.id);
