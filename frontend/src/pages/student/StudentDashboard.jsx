@@ -95,16 +95,13 @@ export default function StudentDashboard() {
   const mathMastery = mathAvg.length ? mathAvg.reduce((s, c) => s + n(c.mastery_score), 0) / mathAvg.length : 0;
   const bioMastery = bioAvg.length ? bioAvg.reduce((s, c) => s + n(c.mastery_score), 0) / bioAvg.length : 0;
 
-  const masteryMapForGraph = useMemo(() => {
-    const map = {};
-    concepts.forEach((c) => {
-      if (c.concept_id != null) {
-        const raw = c.mastery_score ?? null;
-        map[c.concept_id] = raw !== null ? n(raw) : null;
-      }
-    });
+  const masteryMapForGraph = concepts.reduce((map, c) => {
+    if (c.concept_id != null) {
+      const raw = c.mastery_score ?? null;
+      map[c.concept_id] = raw !== null ? n(raw) : null;
+    }
     return map;
-  }, [concepts]);
+  }, {});
 
   const hasLearningGraph = graphData && (graphData.concepts || []).length > 0;
 
