@@ -335,7 +335,7 @@ export default function KnowledgeGraphNew({
             <button
               type="button"
               aria-pressed={teacherMasteryMode === 'class'}
-              className={`axon-btn min-h-[2.5rem] w-full justify-center px-3 py-2 text-[11px] !normal-case ${
+              className={`axon-btn min-h-[2.5rem] w-full justify-start px-3 py-2 text-[11px] !normal-case ${
                 teacherMasteryMode === 'class' ? 'axon-btn-primary' : 'axon-btn-ghost'
               }`}
               onClick={() => setTeacherMasteryMode('class')}
@@ -345,7 +345,7 @@ export default function KnowledgeGraphNew({
             <button
               type="button"
               aria-pressed={teacherMasteryMode === 'structure'}
-              className={`axon-btn min-h-[2.5rem] w-full justify-center px-3 py-2 text-[11px] !normal-case ${
+              className={`axon-btn min-h-[2.5rem] w-full justify-start px-3 py-2 text-[11px] !normal-case ${
                 teacherMasteryMode === 'structure' ? 'axon-btn-primary' : 'axon-btn-ghost'
               }`}
               onClick={() => setTeacherMasteryMode('structure')}
