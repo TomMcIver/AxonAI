@@ -30,6 +30,14 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   /** Desktop: start with nav hidden so content isn’t squeezed; hamburger expands it. */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const logNav = (event, details = {}) => {
+    const viewport = typeof window !== 'undefined' ? window.innerWidth : null;
+    console.debug('[DashboardShell nav]', event, {
+      pathname: location.pathname,
+      viewport,
+      ...details,
+    });
+  };
 
   const mode = useMemo(() => {
     if (modeProp) return modeProp;
@@ -41,33 +49,58 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
   const navItems = NAVS[mode] || NAVS.teacher;
 
   useEffect(() => {
+    if (mobileNavOpen) {
+      logNav('auto-close mobile on route change', { reason: 'pathname change' });
+    }
     setMobileNavOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, mobileNavOpen]);
 
   const navLocksScroll = !sidebarCollapsed || mobileNavOpen;
   useEffect(() => {
     if (!navLocksScroll) return undefined;
+    logNav('body scroll locked', { reason: 'nav open' });
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
+      logNav('body scroll restored', { reason: 'all nav closed' });
     };
   }, [navLocksScroll]);
 
   useEffect(() => {
     if (sidebarCollapsed) return undefined;
     function onEsc(e) {
-      if (e.key === 'Escape') setSidebarCollapsed(true);
+      if (e.key === 'Escape') {
+        logNav('desktop close', { source: 'escape key' });
+        setSidebarCollapsed(true);
+      }
     }
     window.addEventListener('keydown', onEsc);
     return () => window.removeEventListener('keydown', onEsc);
   }, [sidebarCollapsed]);
 
+  useEffect(() => {
+    logNav('desktop state changed', { open: !sidebarCollapsed });
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    logNav('mobile state changed', { open: mobileNavOpen });
+  }, [mobileNavOpen]);
+
   function handleToggleNavigation() {
+    logNav('menu button clicked');
     if (window.innerWidth >= 1024) {
-      setSidebarCollapsed(v => !v);
+      setSidebarCollapsed(v => {
+        const next = !v;
+        logNav('desktop toggle requested', { fromCollapsed: v, toCollapsed: next });
+        return next;
+      });
     } else {
-      setMobileNavOpen(v => !v);
+      setMobileNavOpen(v => {
+        const next = !v;
+        logNav('mobile toggle requested', { fromOpen: v, toOpen: next });
+        return next;
+      });
     }
   }
 
@@ -131,7 +164,10 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
             className="fixed inset-0 z-[500] hidden cursor-default bg-[#2c2418]/55 backdrop-blur-[2px] lg:block"
             aria-hidden
             role="presentation"
-            onClick={() => setSidebarCollapsed(true)}
+            onClick={() => {
+              logNav('desktop close', { source: 'backdrop click' });
+              setSidebarCollapsed(true);
+            }}
           />
           <aside
             className="fixed inset-y-0 left-0 z-[510] hidden w-64 min-w-[16rem] flex-col overflow-hidden border-r-2 border-[#2c2418] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-[8px_0_32px_rgba(44,36,24,0.22)] xl:w-72 xl:min-w-[18rem] lg:flex lg:flex-col"
@@ -144,13 +180,17 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
               <button
                 type="button"
                 className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-300/80 bg-white/50 text-slate-600 hover:bg-white/80"
-                onClick={() => setSidebarCollapsed(true)}
+                onClick={() => {
+                  logNav('desktop close', { source: 'panel close button' });
+                  setSidebarCollapsed(true);
+                }}
                 aria-label="Collapse navigation"
               >
                 <PanelLeftClose size={18} />
               </button>
               <button
                 onClick={() => {
+                  logNav('desktop nav click', { target: '/', source: 'brand' });
                   navigate('/');
                   setSidebarCollapsed(true);
                 }}
@@ -195,6 +235,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                   <button
                     key={item.path}
                     onClick={() => {
+                      logNav('desktop nav click', { target: item.path, source: 'nav item' });
                       navigate(item.path);
                       setSidebarCollapsed(true);
                     }}
@@ -258,7 +299,10 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
             >
               <button
                 className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/60 text-slate-600 hover:bg-white"
-                onClick={() => setMobileNavOpen(false)}
+                onClick={() => {
+                  logNav('mobile close', { source: 'panel close button' });
+                  setMobileNavOpen(false);
+                }}
                 aria-label="Close navigation"
               >
                 <X size={16} />
@@ -266,6 +310,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
               <div className="border-b border-slate-200/60 px-3 pb-3 pt-2">
                 <button
                   onClick={() => {
+                    logNav('mobile nav click', { target: '/', source: 'brand' });
                     navigate('/');
                     setMobileNavOpen(false);
                   }}
@@ -303,6 +348,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                     <button
                       key={item.path}
                       onClick={() => {
+                        logNav('mobile nav click', { target: item.path, source: 'nav item' });
                         navigate(item.path);
                         setMobileNavOpen(false);
                       }}
@@ -331,7 +377,10 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
             </div>
           <div
             className="flex-1 bg-black/20 backdrop-blur-sm"
-            onClick={() => setMobileNavOpen(false)}
+            onClick={() => {
+              logNav('mobile close', { source: 'backdrop click' });
+              setMobileNavOpen(false);
+            }}
           />
         </div>
       )}
