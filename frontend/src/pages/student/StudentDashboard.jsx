@@ -1,10 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { getStudentDashboard, getStudentMastery, getStudentPedagogy, getStudentConversations } from '../../api/axonai';
+import {
+  getStudentDashboard,
+  getStudentMastery,
+  getStudentPedagogy,
+  getStudentConversations,
+  getConcepts,
+} from '../../api/axonai';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 import ConversationThread from '../../components/ConversationThread';
 import DashboardShell from '../../components/DashboardShell';
+import KnowledgeGraphNew from '../../components/KnowledgeGraphNew';
 
 export default function StudentDashboard() {
   const { id } = useParams();
@@ -18,6 +25,7 @@ export default function StudentDashboard() {
   const [error, setError] = useState(null);
   const [activeConversation, setActiveConversation] = useState(null);
   const [chatSubjectFilter, setChatSubjectFilter] = useState('all');
+  const [graphData, setGraphData] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -27,12 +35,14 @@ export default function StudentDashboard() {
       getStudentMastery(studentId),
       getStudentPedagogy(studentId),
       getStudentConversations(studentId, 44),
+      getConcepts('Mathematics').catch(() => null),
     ])
-      .then(([d, m, p, c]) => {
+      .then(([d, m, p, c, g]) => {
         setDashboard(d);
         setMastery(m);
         setPedagogy(p);
         setConversations(c);
+        setGraphData(g);
         setLoading(false);
       })
       .catch(e => { setError(e.message); setLoading(false); });
@@ -66,15 +76,37 @@ export default function StudentDashboard() {
       </DashboardShell>
     );
   }
-  if (!dashboard) return null;
+  if (!dashboard) {
+    return (
+      <DashboardShell subtitle="Student view">
+        <div className="flex items-center justify-center py-16">
+          <ErrorState message="No dashboard data was returned. Check the API or student id." onRetry={load} />
+        </div>
+      </DashboardShell>
+    );
+  }
 
-  const { student, profile, summary } = dashboard;
+  const { student, profile = {}, summary = { mastery: { avg_mastery: 0 } } } = dashboard;
   const concepts = mastery?.concepts || [];
   const weakest = concepts.slice(0, 5);
   const mathAvg = concepts.filter(c => c.subject === 'Mathematics');
   const bioAvg = concepts.filter(c => c.subject === 'Biology');
-  const mathMastery = mathAvg.length ? mathAvg.reduce((s, c) => s + c.mastery_score, 0) / mathAvg.length : 0;
-  const bioMastery = bioAvg.length ? bioAvg.reduce((s, c) => s + c.mastery_score, 0) / bioAvg.length : 0;
+  const n = (x) => (typeof x === 'number' && x > 1 ? x / 100 : x) || 0;
+  const mathMastery = mathAvg.length ? mathAvg.reduce((s, c) => s + n(c.mastery_score), 0) / mathAvg.length : 0;
+  const bioMastery = bioAvg.length ? bioAvg.reduce((s, c) => s + n(c.mastery_score), 0) / bioAvg.length : 0;
+
+  const masteryMapForGraph = useMemo(() => {
+    const map = {};
+    concepts.forEach((c) => {
+      if (c.concept_id != null) {
+        const raw = c.mastery_score ?? null;
+        map[c.concept_id] = raw !== null ? n(raw) : null;
+      }
+    });
+    return map;
+  }, [concepts]);
+
+  const hasLearningGraph = graphData && (graphData.concepts || []).length > 0;
 
   return (
     <DashboardShell subtitle={`Student · ${student.first_name}'s overview`}>
@@ -95,18 +127,18 @@ export default function StudentDashboard() {
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-slate-700">Overall mastery</p>
               <span className="axon-pill text-[0.7rem]">
-                {profile.overall_mastery_trend === 'improving' ? "You're improving" : profile.overall_mastery_trend}
+                {profile?.overall_mastery_trend === 'improving' ? "You're improving" : (profile?.overall_mastery_trend || '—')}
               </span>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex-1 h-2.5 rounded-full bg-slate-200 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-400 transition-all duration-500"
-                  style={{ width: `${(summary.mastery.avg_mastery * 100).toFixed(1)}%` }}
+                  style={{ width: `${((summary?.mastery?.avg_mastery ?? 0) * 100).toFixed(1)}%` }}
                 />
               </div>
               <span className="text-xl font-semibold text-teal-600">
-                {(summary.mastery.avg_mastery * 100).toFixed(1)}%
+                {((summary?.mastery?.avg_mastery ?? 0) * 100).toFixed(1)}%
               </span>
             </div>
           </div>
@@ -172,6 +204,27 @@ export default function StudentDashboard() {
           </div>
         </div>
       </div>
+
+      {hasLearningGraph && (
+        <div className="mt-6 space-y-4 axon-card-subtle p-4 sm:p-5 sm:space-y-5">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-slate-700">Your learning map (Mathematics)</p>
+            <p className="text-xs leading-relaxed text-slate-500">
+              Switch between the full prerequisite tree and explore mode — click to open the path and see what comes next.
+              Shaded columns show level (left = fundamentals).
+            </p>
+          </div>
+          <div className="min-h-[min(52vh,520px)] overflow-hidden rounded-lg border border-[#2c2418]/10 p-1 sm:p-2">
+            <KnowledgeGraphNew
+              dataOverride={graphData}
+              masteryMap={masteryMapForGraph}
+              mapOnly
+              focusKeyNodes
+              defaultExploration="path"
+            />
+          </div>
+        </div>
+      )}
 
       {activeConversation && (
         <div className="mt-6 axon-card-subtle p-4 sm:p-5">

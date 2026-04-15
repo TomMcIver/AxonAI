@@ -10,11 +10,13 @@ import {
   getTeacherAIInsights,
   getStudentWellbeing,
   getPedagogicalMemory,
+  getConcepts,
 } from '../../api/axonai';
 import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 import ConversationThread from '../../components/ConversationThread';
+import KnowledgeGraphNew from '../../components/KnowledgeGraphNew';
 
 function clamp01(n) {
   if (typeof n !== 'number' || Number.isNaN(n)) return 0;
@@ -78,6 +80,7 @@ export default function StudentDetail() {
   const [aiInsights, setAiInsights] = useState(null);
   const [wellbeingCtx, setWellbeingCtx] = useState(null);
   const [pedagogicalMemory, setPedagogicalMemory] = useState(null);
+  const [graphData, setGraphData] = useState(null);
   const [expandedConversations, setExpandedConversations] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -101,6 +104,19 @@ export default function StudentDetail() {
       .sort((a, b) => (a.mastery_score ?? 0) - (b.mastery_score ?? 0))
       .slice(0, 5);
   }, [mastery]);
+
+  const masteryMapForGraph = useMemo(() => {
+    const map = {};
+    (mastery?.concepts || []).forEach((c) => {
+      if (c.concept_id != null) {
+        const raw = c.mastery_score ?? null;
+        map[c.concept_id] = raw !== null ? (raw > 1 ? raw / 100 : raw) : null;
+      }
+    });
+    return map;
+  }, [mastery]);
+
+  const hasLearningGraph = graphData && (graphData.concepts || []).length > 0;
 
   const recentConvos = useMemo(() => {
     return (conversations?.conversations || []).slice(0, 6);
@@ -150,8 +166,9 @@ export default function StudentDetail() {
       getTeacherAIInsights(id).catch(() => null),
       getStudentWellbeing(id).catch(() => null),
       getPedagogicalMemory(id).catch(() => null),
+      getConcepts('Mathematics').catch(() => null),
     ])
-      .then(([d, m, f, c, p, pr, ai, wb, pm]) => {
+      .then(([d, m, f, c, p, pr, ai, wb, pm, g]) => {
         setDashboard(d);
         setMastery(m);
         setFlags(f);
@@ -161,6 +178,7 @@ export default function StudentDetail() {
         setAiInsights(ai);
         setWellbeingCtx(wb);
         setPedagogicalMemory(pm);
+        setGraphData(g);
         setLoading(false);
       })
       .catch(e => {
@@ -574,6 +592,28 @@ export default function StudentDetail() {
             </div>
           </div>
         </div>
+
+        {/* ── Learning map (same Mathematics graph as summary; full map + explore path) ── */}
+        {hasLearningGraph && (
+          <div className="axon-card-subtle space-y-4 p-5 sm:p-6 sm:space-y-5">
+            <div className="space-y-2 pr-1">
+              <p className="text-sm font-semibold text-slate-700">Learning path (Mathematics)</p>
+              <p className="text-xs leading-relaxed text-slate-500">
+                Use <span className="font-medium text-slate-600">Explore path</span> to reveal prerequisites and the next steps forward, or{' '}
+                <span className="font-medium text-slate-600">Full map</span> for the full tree. Node colours follow this student&apos;s mastery; hover a node for the exact %.
+              </p>
+            </div>
+            <div className="min-h-[min(56vh,560px)] overflow-hidden rounded-lg border border-[#2c2418]/10 p-1 sm:p-2">
+              <KnowledgeGraphNew
+                dataOverride={graphData}
+                masteryMap={masteryMapForGraph}
+                mapOnly
+                focusKeyNodes
+                defaultExploration="path"
+              />
+            </div>
+          </div>
+        )}
 
         {/* ── Pedagogy Recommendations ── */}
         <div className="axon-card-subtle p-5 sm:p-6">

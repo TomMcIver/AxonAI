@@ -1,4 +1,9 @@
-export const BASE_URL = process.env.REACT_APP_API_URL || 'https://73edpnyeqs6gl3eh4gyfnwoji40ldhgo.lambda-url.ap-southeast-2.on.aws';
+const DEFAULT_API_URL =
+  'https://73edpnyeqs6gl3eh4gyfnwoji40ldhgo.lambda-url.ap-southeast-2.on.aws';
+const RAW_BASE_URL = process.env.REACT_APP_API_URL || DEFAULT_API_URL;
+
+// Normalize trailing slash so endpoint joins are predictable.
+export const BASE_URL = RAW_BASE_URL.replace(/\/+$/, '');
 
 async function fetchAPI(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;

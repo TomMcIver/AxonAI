@@ -75,6 +75,35 @@ npm start
 
 The app will open at `http://localhost:3000`
 
+### Local UI workflow (no Vercel deploy needed)
+Use this when you want to iterate on UI locally but keep calling the same deployed API.
+
+```bash
+cd frontend
+copy .env.local.example .env.local
+npm install
+npm start
+```
+
+- `npm start` hosts the UI locally at `http://localhost:3000`
+- `.env.local` is ignored by git, so you can tweak local API config safely
+- By default, `.env.local.example` points at the current hosted AxonAI API URL
+
+### No-admin setup script (Windows PowerShell)
+If you do not have Node/npm installed system-wide, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup-local-frontend.ps1
+```
+
+Optional: `-ApiUrl "https://..."` to override the default Lambda URL.
+
+What it does:
+- Downloads portable Node.js to your user profile (`%USERPROFILE%\tools\node`)
+- Writes `frontend/.env.local` with your API URL
+- Installs frontend dependencies
+- Starts the local dev server on `http://localhost:3000`
+
 ### Build for Production
 ```bash
 npm run build

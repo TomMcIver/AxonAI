@@ -9,6 +9,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  PanelLeftClose,
 } from 'lucide-react';
 
 const NAVS = {
@@ -27,7 +28,8 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  /** Desktop: start with nav hidden so content isn’t squeezed; hamburger expands it. */
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [qaOpen, setQaOpen] = useState(false);
   const qaRef = useRef(null);
 
@@ -53,7 +55,6 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
   useEffect(() => {
     setQaOpen(false);
     setMobileNavOpen(false);
-    setSidebarCollapsed(false);
   }, [location.pathname]);
 
   function handleToggleNavigation() {
@@ -65,12 +66,15 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
   }
 
   return (
-    <div className="app-shell min-h-screen">
+    <div className="app-shell min-h-screen px-[max(var(--ux-space-2),env(safe-area-inset-left))] pr-[max(var(--ux-space-2),env(safe-area-inset-right))] pb-[max(var(--ux-space-3),env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
       {/* Rebuilt top-left menu trigger with isolated click layer */}
-      <div className="fixed left-3 top-3 z-[1000] pointer-events-none">
+      {/* Mobile: always show. Desktop (lg+): only when sidebar is collapsed — avoids overlapping the open sidebar. */}
+      <div className="fixed left-[max(0.5rem,env(safe-area-inset-left))] top-[max(0.25rem,env(safe-area-inset-top))] z-[1000] pointer-events-none">
         <button
           type="button"
-          className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-md border-2 border-[#2c2418] bg-[#fff8dc] text-slate-700 shadow-[3px_3px_0_#2c2418] hover:bg-[#fffef4] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_#2c2418]"
+          className={`pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-md border-2 border-[#2c2418] bg-[#fff8dc] text-slate-700 shadow-[3px_3px_0_#2c2418] hover:bg-[#fffef4] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_#2c2418] ${
+            sidebarCollapsed ? 'flex' : 'max-lg:flex lg:hidden'
+          }`}
           onClick={handleToggleNavigation}
           aria-label="Toggle navigation"
         >
@@ -81,17 +85,25 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
       <div className="flex min-h-screen">
         {/* Sidebar — frosted white glass */}
         <aside
-          className="hidden lg:flex lg:flex-col w-64 xl:w-72"
+          className="hidden min-h-0 lg:sticky lg:top-0 lg:flex lg:h-screen lg:max-h-screen lg:flex-col lg:overflow-hidden w-64 min-w-[16rem] xl:w-72 xl:min-w-[18rem] shrink-0"
           style={{
             background: '#efe4be',
             borderRight: '2px solid #2c2418',
             ...(sidebarCollapsed ? { display: 'none' } : {}),
           }}
         >
-          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-200/60">
+          <div className="flex shrink-0 items-center justify-between gap-1.5 border-b border-slate-200/60 px-2 pb-2.5 pt-1">
+            <button
+              type="button"
+              className="hidden lg:inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-300/80 bg-white/50 text-slate-600 hover:bg-white/80"
+              onClick={() => setSidebarCollapsed(true)}
+              aria-label="Collapse navigation"
+            >
+              <PanelLeftClose size={18} />
+            </button>
             <button
               onClick={() => navigate('/')}
-              className="group flex items-center gap-2"
+              className="group flex min-w-0 flex-1 items-center gap-2"
             >
               <div className="relative">
                 <div className="h-8 w-8 rounded-2xl bg-teal-500 group-hover:bg-teal-400 text-white font-semibold flex items-center justify-center text-lg transition-colors">
@@ -112,10 +124,15 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
             </button>
           </div>
 
-          <nav className="flex-1 px-3 py-4 space-y-1">
-            <p className="axon-label px-3 pb-1 pt-0">
-              {mode === 'teacher' ? 'Teacher view' : mode === 'student' ? 'Student view' : 'Parent view'}
-            </p>
+          <nav className="min-h-0 flex-1 space-y-[var(--ux-space-2)] overflow-y-auto overscroll-y-contain px-2 py-3">
+            <div className="flex items-start gap-2 px-2 pb-2 pt-0">
+              <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200/80 bg-white/50 text-[10px] font-bold text-slate-400" aria-hidden>
+                {mode === 'teacher' ? 'T' : mode === 'student' ? 'S' : 'P'}
+              </span>
+              <p className="axon-label !m-0 !p-0 leading-tight">
+                {mode === 'teacher' ? 'Teacher view' : mode === 'student' ? 'Student view' : 'Parent view'}
+              </p>
+            </div>
             {navItems.map(item => {
               const Icon = item.icon;
               const isActive =
@@ -127,14 +144,14 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                  className={`group flex w-full items-start gap-2 rounded-lg px-2 py-2 text-sm font-medium transition-all duration-200 ease-out ${
                     isActive
                       ? 'bg-teal-500/10 text-teal-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]'
                       : 'text-slate-500 hover:bg-white/50 hover:text-slate-700'
                   }`}
                 >
                   <span
-                    className={`inline-flex h-7 w-7 items-center justify-center rounded-full border ${
+                    className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
                       isActive
                         ? 'border-teal-400/60 bg-teal-500/10 text-teal-600'
                         : 'border-slate-200 bg-white/60 text-slate-400 group-hover:border-slate-300 group-hover:text-slate-600'
@@ -142,14 +159,16 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                   >
                     <Icon size={16} />
                   </span>
-                  <span className="truncate">{item.label}</span>
+                  <span className="min-w-0 flex-1 text-left text-sm leading-snug break-words [overflow-wrap:anywhere]">
+                    {item.label}
+                  </span>
                 </button>
               );
             })}
           </nav>
 
-          <div className="border-t border-slate-200/60 px-4 py-4">
-            <button className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 hover:bg-white/50 transition-colors">
+          <div className="shrink-0 border-t border-slate-200/60 px-2 py-3">
+            <button className="flex w-full items-center justify-between rounded-lg px-1.5 py-2 hover:bg-white/50 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="h-8 w-8 rounded-full bg-teal-500/15 text-teal-700 flex items-center justify-center text-xs font-semibold">
@@ -181,21 +200,23 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
               borderBottom: '2px solid #2c2418',
             }}
           >
-            <div className="mx-auto w-full max-w-7xl flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9" aria-hidden="true" />
-                <div>
-                  <p className="axon-label mb-0.5">
+            <div
+              className="mx-auto w-full max-w-7xl flex flex-col gap-[var(--ux-space-3)] sm:flex-row sm:items-center sm:justify-between px-2 sm:px-3 lg:px-4 pb-2.5 pt-0 sm:pb-3"
+            >
+              <div className="flex min-w-0 items-start gap-[var(--ux-space-3)]">
+                <div className="h-9 w-9 shrink-0" aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="axon-label mb-[var(--ux-space-2)]">
                     {mode === 'teacher' ? 'Teacher' : mode === 'student' ? 'Student' : 'Parent'} · AxonAI
                   </p>
-                  <p className="axon-h2 text-base sm:text-lg text-slate-800">
+                  <p className="axon-h2 text-base sm:text-lg text-slate-800 leading-snug">
                     {subtitle || 'Class mastery overview'}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-1.5">
+              <div className="flex shrink-0 flex-wrap items-center gap-[var(--ux-space-3)] sm:justify-end">
+                <div className="hidden sm:flex items-center gap-[var(--ux-space-2)] rounded-full border border-slate-200 bg-white/60 px-[var(--ux-space-3)] py-[var(--ux-space-2)]">
                   <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                   <p className="text-xs text-slate-500">
                     <span className="font-medium text-slate-700">Live</span>{' '}
@@ -267,8 +288,11 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
           </header>
 
           {/* Content */}
-          <main className="flex-1 px-3 sm:px-5 lg:px-8 py-5 lg:py-7" style={{ position: 'relative', zIndex: 0, isolation: 'isolate' }}>
-            <div className="mx-auto w-full max-w-7xl space-y-6 sm:space-y-8">
+          <main
+            className="app-shell-main flex-1 px-2 sm:px-3 lg:px-4 py-[var(--ux-space-4)] lg:py-[var(--ux-space-5)]"
+            style={{ position: 'relative', zIndex: 0, isolation: 'isolate' }}
+          >
+            <div className="mx-auto w-full max-w-7xl space-y-[var(--ux-space-4)] sm:space-y-[var(--ux-space-5)]">
               {children}
             </div>
           </main>
@@ -291,7 +315,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
               >
                 <X size={16} />
               </button>
-              <div className="px-4 pt-6 pb-4 border-b border-slate-200/60">
+              <div className="border-b border-slate-200/60 px-3 pb-3 pt-2">
                 <button
                   onClick={() => {
                     navigate('/');
@@ -312,10 +336,15 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                   </div>
                 </button>
               </div>
-              <nav className="px-3 py-4 space-y-1">
-                <p className="axon-label px-2 pb-1">
-                  {mode === 'teacher' ? 'Teacher view' : mode === 'student' ? 'Student view' : 'Parent view'}
-                </p>
+              <nav className="space-y-[var(--ux-space-2)] px-2 py-3">
+                <div className="flex items-start gap-2 px-2 pb-2">
+                  <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200/80 bg-white/50 text-[10px] font-bold text-slate-400" aria-hidden>
+                    {mode === 'teacher' ? 'T' : mode === 'student' ? 'S' : 'P'}
+                  </span>
+                  <p className="axon-label !m-0 !p-0 leading-tight">
+                    {mode === 'teacher' ? 'Teacher view' : mode === 'student' ? 'Student view' : 'Parent view'}
+                  </p>
+                </div>
                 {navItems.map(item => {
                   const Icon = item.icon;
                   const isActive =
@@ -329,14 +358,14 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                         navigate(item.path);
                         setMobileNavOpen(false);
                       }}
-                      className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                      className={`group flex w-full items-start gap-2 rounded-lg px-2 py-2 text-sm font-medium transition-all duration-200 ease-out ${
                         isActive
                           ? 'bg-teal-500/10 text-teal-700'
                           : 'text-slate-500 hover:bg-white/50 hover:text-slate-700'
                       }`}
                     >
                       <span
-                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full border ${
+                        className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
                           isActive
                             ? 'border-teal-400/60 bg-teal-500/10 text-teal-600'
                             : 'border-slate-200 bg-white/60 text-slate-400 group-hover:border-slate-300 group-hover:text-slate-600'
@@ -344,7 +373,9 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                       >
                         <Icon size={16} />
                       </span>
-                      <span className="truncate">{item.label}</span>
+                      <span className="min-w-0 flex-1 text-left text-sm leading-snug break-words [overflow-wrap:anywhere]">
+                        {item.label}
+                      </span>
                     </button>
                   );
                 })}

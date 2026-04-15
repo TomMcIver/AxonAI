@@ -324,6 +324,59 @@ body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* ── UX system: golden ratio rhythm, hierarchy, flow (F-pattern friendly) ── */
+:root {
+  --ux-phi: 1.6180339887;
+  /* Fibonacci-ish spacing (px → rem) — Gestalt proximity & negative space */
+  --ux-space-1: 0.25rem;   /* 4 */
+  --ux-space-2: 0.5rem;    /* 8 */
+  --ux-space-3: 0.8125rem; /* 13 */
+  --ux-space-4: 1.3125rem; /* 21 */
+  --ux-space-5: 2.125rem;  /* 34 */
+  --ux-space-6: 3.4375rem; /* 55 */
+  --ux-line-tight: 1.35;
+  --ux-line-body: 1.65;
+  --ux-line-relaxed: 1.75;
+  --ux-max-read: 65ch;
+  --ux-max-page: min(92vw, 80rem);
+  --ux-ease-flow: cubic-bezier(0.22, 1, 0.36, 1);
+  --ux-shadow-focus: 0 0 0 3px rgba(15, 118, 110, 0.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ux-ease-flow: linear;
+  }
+}
+
+/* Vertical rhythm: related blocks cluster (proximity), sections breathe (similarity) */
+.ux-stack-phi > * + * {
+  margin-top: var(--ux-space-4);
+}
+.ux-stack-phi-sm > * + * {
+  margin-top: var(--ux-space-3);
+}
+.ux-stack-phi-lg > * + * {
+  margin-top: var(--ux-space-5);
+}
+
+/* F-pattern: primary column width; long prose doesn’t span full viewport */
+.ux-measure-read {
+  max-width: var(--ux-max-read);
+}
+.ux-measure-page {
+  max-width: var(--ux-max-page);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Affordance: consistent focus (locality — same affordance app-wide) */
+.app-shell :where(a, button, input:not([type="hidden"]), select, textarea, summary):focus-visible {
+  outline: 2px solid var(--primary-700, #0f766e);
+  outline-offset: 3px;
+  transition: outline-offset var(--transition-fast, 160ms) var(--ux-ease-flow);
+}
+
 /* RetroUI redesign layer */
 :root {
   --mastered: #2f9955;
@@ -464,8 +517,60 @@ body {
   border-color: rgba(44, 36, 24, 0.24) !important;
 }
 
-/* Force pixel font consistently across all app UI text */
-.app-shell,
-.app-shell *:not(.katex):not(.katex *) {
-  font-family: 'Press Start 2P', 'Inter', sans-serif !important;
+/*
+ * Typography: pixel font for retro chrome; Inter + Plus Jakarta in readable surfaces
+ * (Law of similarity: one body style, hierarchy via weight/size — not font chaos)
+ */
+.app-shell {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: var(--ux-line-body);
+  letter-spacing: 0.01em;
+}
+
+.app-shell aside .axon-h2,
+.app-shell aside .axon-label,
+.app-shell header .axon-h2,
+.app-shell header .axon-label {
+  font-family: 'Press Start 2P', 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Work surface: readable sans (flow / F-pattern scanning) */
+.app-shell-main {
+  font-family: 'Inter', system-ui, sans-serif !important;
+  line-height: var(--ux-line-body);
+}
+
+.app-shell-main,
+.app-shell-main *:not(.katex):not(.katex *) {
+  font-family: 'Inter', system-ui, sans-serif !important;
+}
+
+.app-shell-main .axon-h1,
+.app-shell-main .axon-h2,
+.app-shell-main h1,
+.app-shell-main h2 {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: var(--ux-line-tight);
+}
+
+.app-shell-main .axon-label {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+}
+
+/* Login & landing: same readable stack */
+.ux-auth-surface,
+.ux-auth-surface *:not(.katex):not(.katex *) {
+  font-family: 'Inter', system-ui, sans-serif !important;
+}
+
+.ux-auth-surface .axon-h2,
+.ux-auth-surface h1 {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  font-weight: 600;
+  letter-spacing: -0.03em;
 }
