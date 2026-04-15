@@ -164,7 +164,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
       {!sidebarCollapsed && (
         <>
           <div
-            className="fixed inset-0 z-[500] hidden cursor-default bg-[#2c2418]/55 backdrop-blur-[2px] lg:block"
+            className="fixed inset-0 z-[500] cursor-default bg-[#2c2418]/55 backdrop-blur-[2px]"
             aria-hidden
             role="presentation"
             onClick={() => {
@@ -173,7 +173,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
             }}
           />
           <aside
-            className="fixed inset-y-0 left-0 z-[510] hidden w-64 min-w-[16rem] flex-col overflow-hidden border-r-2 border-[#2c2418] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-[8px_0_32px_rgba(44,36,24,0.22)] xl:w-72 xl:min-w-[18rem] lg:flex lg:flex-col"
+            className="fixed inset-y-0 left-0 z-[510] w-64 min-w-[16rem] flex flex-col overflow-hidden border-r-2 border-[#2c2418] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-[8px_0_32px_rgba(44,36,24,0.22)] xl:w-72 xl:min-w-[18rem]"
             style={{ background: '#efe4be' }}
             aria-label="Primary navigation"
             aria-modal="true"
