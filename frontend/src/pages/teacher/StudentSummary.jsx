@@ -323,13 +323,21 @@ export default function StudentSummary() {
           <div className="max-w-4xl mx-auto">
             <div className="mb-3">
               <p className="text-sm font-semibold text-slate-700">Learning path analysis</p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Each node shows this student's mastery. Red edges indicate a foundational gap
-                blocking a higher concept — hover any node for details.
+              <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                Colors: green strong (≥70%), orange steady (40–69%), red needs support (&lt;40%), gray not yet assessed.
+                Toggle <span className="font-medium text-slate-600">Full map</span> or{' '}
+                <span className="font-medium text-slate-600">Explore path</span> — in explore mode each click reveals prerequisites and the next steps forward.
+                Background columns show depth (left = fundamentals).
               </p>
             </div>
-            <div className="axon-card-subtle p-3 sm:p-4" style={{ minHeight: 'min(56vh, 560px)' }}>
-              <KnowledgeGraphNew dataOverride={graphData} masteryMap={masteryMap} mapOnly focusKeyNodes />
+            <div className="axon-card-subtle overflow-hidden rounded-lg p-3 sm:p-4" style={{ minHeight: 'min(56vh, 560px)' }}>
+              <KnowledgeGraphNew
+                dataOverride={graphData}
+                masteryMap={masteryMap}
+                mapOnly
+                focusKeyNodes
+                defaultExploration="path"
+              />
             </div>
           </div>
         )}

@@ -81,7 +81,7 @@ export default function Landing() {
   })();
 
   return (
-    <div className="app-shell min-h-screen flex flex-col">
+    <div className="app-shell ux-auth-surface flex min-h-screen flex-col px-[max(var(--ux-space-3),env(safe-area-inset-left))] pr-[max(var(--ux-space-3),env(safe-area-inset-right))] pb-[max(var(--ux-space-3),env(safe-area-inset-bottom))] pt-[max(var(--ux-space-2),env(safe-area-inset-top))]">
       <header
         className="app-shell-blur border-b border-slate-200/60"
         style={{ background: 'rgba(255, 255, 255, 0.6)' }}

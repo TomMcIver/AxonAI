@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -10,7 +10,8 @@ import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 import KnowledgeGraphNew from '../../components/KnowledgeGraphNew';
-import { filterDemoStudents, sortWithArohaFirst } from '../../constants/demoStudents';
+import { useClassMasteryMap } from '../../hooks/useClassMasteryMap';
+import { DEMO_STUDENT_IDS, filterDemoStudents, sortWithArohaFirst } from '../../constants/demoStudents';
 
 /* ── HELPERS ── */
 
@@ -568,6 +569,22 @@ export default function TeacherDashboard() {
 
   useEffect(() => { load(); }, [load]);
 
+  const students = useMemo(
+    () => sortWithArohaFirst(filterDemoStudents(classData?.students)),
+    [classData],
+  );
+
+  const graphStudentIds = useMemo(
+    () => students.map((s) => s.student_id ?? s.id).filter((id) => DEMO_STUDENT_IDS.includes(id)),
+    [students],
+  );
+
+  const {
+    masteryMap: classFairMasteryMap,
+    source: cohortSource,
+    studentCount: cohortN,
+  } = useClassMasteryMap(1, 'Mathematics', { studentIds: graphStudentIds });
+
   if (loading) {
     return (
       <DashboardShell subtitle="Year 11 Mathematics · Mastery signal">
@@ -588,8 +605,6 @@ export default function TeacherDashboard() {
     );
   }
 
-  const students = sortWithArohaFirst(filterDemoStudents(classData?.students));
-
   return (
     <DashboardShell subtitle="Year 11 Mathematics · Mastery signal">
       <div className="grid gap-6 lg:gap-7">
@@ -597,18 +612,38 @@ export default function TeacherDashboard() {
           <ClassPulseSection students={students} navigate={navigate} />
           <NeedsAttentionSection students={students} navigate={navigate} />
         </div>
-        <section>
-          <div className="flex items-center justify-between mb-4">
+        <section className="space-y-3 sm:space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <h2 className="axon-h2 text-base text-slate-800">Knowledge Graph</h2>
             <button
+              type="button"
               onClick={() => navigate('/teacher/knowledge-graph')}
-              className="axon-btn axon-btn-ghost"
+              className="axon-btn axon-btn-ghost shrink-0 self-start sm:self-auto"
             >
               Full View
             </button>
           </div>
-          <div className="axon-card-subtle p-3 sm:p-4" style={{ minHeight: 'min(72vh, 760px)' }}>
-            <KnowledgeGraphNew subject="Mathematics" mapOnly />
+          <p className="text-[11px] text-slate-500 max-w-3xl leading-relaxed">
+            Class overview shows the full concept map. Cohort colours use a median across learners when built from
+            individual mastery (and a softened display scale) so outliers don’t dominate; class-summary uses the API
+            average with the same scaling. Shaded boxes group nodes by prerequisite depth (fundamentals on the left).
+            Use Whole class vs Concepts to switch cohort colouring off.
+          </p>
+          <div className="axon-card-subtle flex min-h-0 flex-col rounded-lg p-3 sm:p-4">
+            <KnowledgeGraphNew
+              subject="Mathematics"
+              mapOnly
+              focusKeyNodes={false}
+              masteryMap={classFairMasteryMap || undefined}
+              showTeacherViewToggle
+              cohortMasteryMeta={
+                cohortSource === 'student-aggregate' && cohortN > 0
+                  ? { source: 'student-aggregate', studentCount: cohortN }
+                  : cohortSource === 'class-summary'
+                    ? { source: 'class-summary' }
+                    : null
+              }
+            />
           </div>
         </section>
         <ConceptStrengthsSection navigate={navigate} />

@@ -76,32 +76,46 @@ export default function ParentDashboard() {
       </DashboardShell>
     );
   }
-  if (!dashboard) return null;
+  if (!dashboard) {
+    return (
+      <DashboardShell subtitle="Parent / Whanau view">
+        <div className="flex items-center justify-center py-16">
+          <ErrorState message="No dashboard data was returned. Check the API or student id." onRetry={load} />
+        </div>
+      </DashboardShell>
+    );
+  }
 
-  const { student, profile, wellbeing, summary } = dashboard;
-  const riskScore = profile.overall_risk_score;
+  const {
+    student,
+    profile = {},
+    wellbeing = {},
+    summary = {},
+  } = dashboard;
+  const riskScore = profile?.overall_risk_score ?? 0.5;
   const concepts = mastery?.concepts || [];
   const mathConcepts = concepts.filter(c => c.subject === 'Mathematics');
   const bioConcepts = concepts.filter(c => c.subject === 'Biology');
-  const mathMastery = mathConcepts.length ? mathConcepts.reduce((s, c) => s + c.mastery_score, 0) / mathConcepts.length : 0;
-  const bioMastery = bioConcepts.length ? bioConcepts.reduce((s, c) => s + c.mastery_score, 0) / bioConcepts.length : 0;
+  const n = (x) => (typeof x === 'number' && x > 1 ? x / 100 : x) || 0;
+  const mathMastery = mathConcepts.length ? mathConcepts.reduce((s, c) => s + n(c.mastery_score), 0) / mathConcepts.length : 0;
+  const bioMastery = bioConcepts.length ? bioConcepts.reduce((s, c) => s + n(c.mastery_score), 0) / bioConcepts.length : 0;
   const bestApproach = pedagogy?.approaches?.[0];
 
-  const trendMessage = profile.overall_mastery_trend === 'improving'
+  const trendMessage = profile?.overall_mastery_trend === 'improving'
     ? `${student.first_name} is improving across their subjects`
-    : profile.overall_mastery_trend === 'declining'
+    : profile?.overall_mastery_trend === 'declining'
     ? `${student.first_name} may need some extra support right now`
     : `${student.first_name} is maintaining steady progress`;
 
-  const engagementMessage = profile.overall_engagement_score >= 0.7
+  const engagementMessage = (profile?.overall_engagement_score ?? 0) >= 0.7
     ? `${student.first_name} is highly engaged with their learning`
-    : profile.overall_engagement_score >= 0.4
+    : (profile?.overall_engagement_score ?? 0) >= 0.4
     ? `${student.first_name} is moderately engaged with their learning`
     : `${student.first_name} could benefit from more encouragement to engage`;
 
   return (
     <DashboardShell subtitle={`Parent · ${student.first_name}'s overview`}>
-      <div className="max-w-3xl space-y-5">
+      <div className="mx-auto w-full max-w-3xl space-y-5">
         <div className="axon-card-subtle p-5 sm:p-6 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -112,10 +126,10 @@ export default function ParentDashboard() {
             <div className="text-right">
               <p className="text-[0.7rem] text-slate-400 mb-1">Attendance</p>
               <p className={`text-xl font-semibold ${
-                wellbeing.attendance_percentage >= 90 ? 'text-emerald-600' :
-                wellbeing.attendance_percentage >= 80 ? 'text-amber-600' : 'text-rose-600'
+                (wellbeing?.attendance_percentage ?? 0) >= 90 ? 'text-emerald-600' :
+                (wellbeing?.attendance_percentage ?? 0) >= 80 ? 'text-amber-600' : 'text-rose-600'
               }`}>
-                {wellbeing.attendance_percentage}%
+                {wellbeing?.attendance_percentage ?? '—'}%
               </p>
             </div>
           </div>
@@ -130,10 +144,10 @@ export default function ParentDashboard() {
           <div className="flex items-center gap-3">
             <span className="text-xs text-slate-500 w-16">Overall</span>
             <div className="flex-1 h-2.5 rounded-full bg-slate-200 overflow-hidden">
-              <div className="h-full rounded-full bg-teal-500" style={{ width: `${(summary.mastery.avg_mastery * 100).toFixed(1)}%` }} />
+              <div className="h-full rounded-full bg-teal-500" style={{ width: `${((summary?.mastery?.avg_mastery ?? 0) * 100).toFixed(1)}%` }} />
             </div>
             <span className="text-sm font-semibold text-slate-800 w-14 text-right">
-              {(summary.mastery.avg_mastery * 100).toFixed(1)}%
+              {((summary?.mastery?.avg_mastery ?? 0) * 100).toFixed(1)}%
             </span>
           </div>
 
@@ -166,15 +180,15 @@ export default function ParentDashboard() {
           <p className="text-xs text-slate-500">{engagementMessage}</p>
           <div className="grid grid-cols-3 gap-3 text-center text-[0.75rem]">
             <div>
-              <p className="text-base font-semibold text-teal-600">{summary.conversations.total_conversations}</p>
+              <p className="text-base font-semibold text-teal-600">{summary?.conversations?.total_conversations ?? '—'}</p>
               <p className="text-slate-400">Learning sessions</p>
             </div>
             <div>
-              <p className="text-base font-semibold text-amber-600">{summary.conversations.lightbulb_count}</p>
+              <p className="text-base font-semibold text-amber-600">{summary?.conversations?.lightbulb_count ?? '—'}</p>
               <p className="text-slate-400">Lightbulb moments</p>
             </div>
             <div>
-              <p className="text-base font-semibold text-emerald-600">{summary.quizzes.avg_score.toFixed(0)}%</p>
+              <p className="text-base font-semibold text-emerald-600">{(summary?.quizzes?.avg_score ?? 0).toFixed(0)}%</p>
               <p className="text-slate-400">Quiz average</p>
             </div>
           </div>
