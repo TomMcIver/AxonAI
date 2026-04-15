@@ -634,6 +634,7 @@ export default function TeacherDashboard() {
               subject="Mathematics"
               mapOnly
               focusKeyNodes={false}
+              defaultExploration="canvas"
               masteryMap={classFairMasteryMap || undefined}
               showTeacherViewToggle
               cohortMasteryMeta={

@@ -61,6 +61,7 @@ export default function KnowledgeGraphPage() {
         <KnowledgeGraphNew
           subject={subject}
           focusKeyNodes={false}
+          defaultExploration="canvas"
           masteryMap={classFairMasteryMap || undefined}
           showTeacherViewToggle
           cohortMasteryMeta={

@@ -305,11 +305,11 @@ export default function KnowledgeGraphNew({
     <div className="flex min-h-0 flex-col gap-4">
       {showTeacherViewToggle && (
         <div
-          className="flex w-full min-w-0 shrink-0 flex-col gap-3 rounded-lg border-2 border-[#2c2418] bg-[#efe4be] px-3 py-3 shadow-[3px_3px_0_#2c2418] lg:flex-row lg:items-start lg:justify-between lg:gap-4"
+          className="flex min-w-0 shrink-0 flex-col gap-3 rounded-lg border-2 border-[#2c2418] bg-[#efe4be] px-3 py-3 shadow-[3px_3px_0_#2c2418]"
           role="region"
           aria-label="Class mastery map mode"
         >
-          <div className="w-full min-w-[min(100%,16rem)] max-w-3xl flex-1 basis-0 space-y-2 text-[11px] font-semibold leading-relaxed text-[#2c2418]">
+          <div className="min-w-0 max-w-full space-y-2 text-[11px] font-semibold leading-relaxed text-[#2c2418]">
             <p className="break-words">
               Whole class — mastery colours and % on hover. Concept map only — gold nodes, no scores.
             </p>
@@ -326,15 +326,16 @@ export default function KnowledgeGraphNew({
               </p>
             )}
           </div>
+          {/* Two-column grid keeps both toggles visible; avoid w-full + flex-row (second button was shoved off-screen). */}
           <div
-            className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-start sm:gap-2 lg:shrink-0"
+            className="grid w-full min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-2"
             role="group"
             aria-label="Teacher graph view"
           >
             <button
               type="button"
               aria-pressed={teacherMasteryMode === 'class'}
-              className={`axon-btn min-h-[2.5rem] w-full shrink-0 px-3 py-2 text-[11px] !normal-case sm:w-auto sm:min-w-[9rem] ${
+              className={`axon-btn min-h-[2.5rem] w-full justify-center px-3 py-2 text-[11px] !normal-case ${
                 teacherMasteryMode === 'class' ? 'axon-btn-primary' : 'axon-btn-ghost'
               }`}
               onClick={() => setTeacherMasteryMode('class')}
@@ -344,7 +345,7 @@ export default function KnowledgeGraphNew({
             <button
               type="button"
               aria-pressed={teacherMasteryMode === 'structure'}
-              className={`axon-btn min-h-[2.5rem] w-full shrink-0 px-3 py-2 text-[11px] !normal-case sm:w-auto sm:min-w-[9rem] ${
+              className={`axon-btn min-h-[2.5rem] w-full justify-center px-3 py-2 text-[11px] !normal-case ${
                 teacherMasteryMode === 'structure' ? 'axon-btn-primary' : 'axon-btn-ghost'
               }`}
               onClick={() => setTeacherMasteryMode('structure')}
