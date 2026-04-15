@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -30,6 +30,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   /** Desktop: start with nav hidden so content isn’t squeezed; hamburger expands it. */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const previousPathRef = useRef(location.pathname);
   const logNav = (event, details = {}) => {
     const viewport = typeof window !== 'undefined' ? window.innerWidth : null;
     console.debug('[DashboardShell nav]', event, {
@@ -49,10 +50,12 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
   const navItems = NAVS[mode] || NAVS.teacher;
 
   useEffect(() => {
-    if (mobileNavOpen) {
+    const previousPath = previousPathRef.current;
+    if (previousPath !== location.pathname && mobileNavOpen) {
       logNav('auto-close mobile on route change', { reason: 'pathname change' });
+      setMobileNavOpen(false);
     }
-    setMobileNavOpen(false);
+    previousPathRef.current = location.pathname;
   }, [location.pathname, mobileNavOpen]);
 
   const navLocksScroll = !sidebarCollapsed || mobileNavOpen;
