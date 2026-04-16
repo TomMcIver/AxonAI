@@ -253,7 +253,7 @@ export default function StudentsPage() {
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)' }}>
                 {student.active_flags > 0
                   ? <span style={{ background: 'rgba(220,38,38,0.1)', color: '#dc2626', padding: '2px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 600 }}>{student.active_flags}</span>
-                  : '—'}
+                  : '-'}
               </span>
               <ChevronRight size={16} style={{ color: '#94a3b8' }} />
             </div>

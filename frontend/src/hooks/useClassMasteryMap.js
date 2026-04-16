@@ -23,7 +23,7 @@ function resolveStudentIds(overviewStudents, explicitIds) {
  *    average per concept, then apply the same fair cohort transform.
  *
  * @param {object} [options]
- * @param {number[]} [options.studentIds] — if set (e.g. from class roster), only these learners; still restricted to demo IDs.
+ * @param {number[]} [options.studentIds]: if set (e.g. from class roster), only these learners; still restricted to demo IDs.
  */
 export function useClassMasteryMap(classId, subject, options = {}) {
   const [masteryMap, setMasteryMap] = useState(null);

@@ -323,9 +323,9 @@ export default function StudentSummary() {
             <div className="mb-3">
               <p className="text-sm font-semibold text-slate-700">Learning path analysis</p>
               <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                Colors: green strong (≥70%), orange steady (40–69%), red needs support (&lt;40%), gray not yet assessed.
+                Colors: green strong (≥70%), orange developing (51–69%), red focus (≤50%), gray not yet assessed.
                 Toggle <span className="font-medium text-slate-600">Full map</span> or{' '}
-                <span className="font-medium text-slate-600">Explore path</span> — in explore mode each click reveals prerequisites and the next steps forward.
+                <span className="font-medium text-slate-600">Explore path</span>. In explore mode each click reveals prerequisites and the next steps forward.
                 Background columns show depth (left = fundamentals).
               </p>
             </div>

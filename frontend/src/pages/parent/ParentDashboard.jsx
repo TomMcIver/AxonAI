@@ -159,7 +159,7 @@ export default function ParentDashboard() {
                 (wellbeing?.attendance_percentage ?? 0) >= 90 ? 'text-emerald-600' :
                 (wellbeing?.attendance_percentage ?? 0) >= 80 ? 'text-amber-600' : 'text-rose-600'
               }`}>
-                {wellbeing?.attendance_percentage ?? '—'}%
+                {wellbeing?.attendance_percentage ?? '-'}%
               </p>
             </div>
           </div>
@@ -210,11 +210,11 @@ export default function ParentDashboard() {
           <p className="text-xs text-slate-500">{engagementMessage}</p>
           <div className="grid grid-cols-3 gap-3 text-center text-[0.75rem]">
             <div>
-              <p className="text-base font-semibold text-teal-600">{summary?.conversations?.total_conversations ?? '—'}</p>
+              <p className="text-base font-semibold text-teal-600">{summary?.conversations?.total_conversations ?? '-'}</p>
               <p className="text-slate-400">Learning sessions</p>
             </div>
             <div>
-              <p className="text-base font-semibold text-amber-600">{summary?.conversations?.lightbulb_count ?? '—'}</p>
+              <p className="text-base font-semibold text-amber-600">{summary?.conversations?.lightbulb_count ?? '-'}</p>
               <p className="text-slate-400">Lightbulb moments</p>
             </div>
             <div>
@@ -245,7 +245,7 @@ export default function ParentDashboard() {
                   <div className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-500 flex-shrink-0" />
                   <div>
                     <p className="text-xs font-medium text-slate-700">{f.concept_name}</p>
-                    <p className="text-[0.7rem] text-slate-400">{f.subject} — {f.flag_detail}</p>
+                    <p className="text-[0.7rem] text-slate-400">{f.subject}: {f.flag_detail}</p>
                   </div>
                 </div>
               ))}

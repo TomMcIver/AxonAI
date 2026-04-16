@@ -4,7 +4,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
 :root {
-  /* Brand — light mode */
+  /* Brand: light mode */
   --brand-50: #f0f9ff;
   --brand-100: #e0f2fe;
   --brand-200: #bae6fd;
@@ -18,7 +18,7 @@
   --warning-500: #ea580c;
   --danger-500: #dc2626;
 
-  /* Surfaces — light glassmorphism */
+  /* Surfaces: light glassmorphism */
   --surface-app: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
   --surface-elevated: rgba(255, 255, 255, 0.7);
   --surface-subtle: rgba(255, 255, 255, 0.5);
@@ -26,7 +26,7 @@
   --surface-border-subtle: rgba(148, 163, 184, 0.2);
   --surface-border-strong: rgba(148, 163, 184, 0.35);
 
-  /* Text — dark on light */
+  /* Text: dark on light */
   --text-primary: #1e293b;
   --text-secondary: #475569;
   --text-soft: #64748b;
@@ -103,7 +103,7 @@ body {
   line-height: 1.6;
 }
 
-/* App chrome — light mode */
+/* App chrome: light mode */
 .app-shell {
   min-height: 100vh;
   background:
@@ -118,7 +118,7 @@ body {
   -webkit-backdrop-filter: blur(24px) saturate(150%);
 }
 
-/* Apple Glass card system — light mode */
+/* Apple Glass card system: light mode */
 .glass-card,
 .axon-card {
   background: rgba(255, 255, 255, 0.55);
@@ -160,7 +160,7 @@ body {
   -webkit-backdrop-filter: blur(24px) saturate(150%);
 }
 
-/* Buttons — Glass system, light mode */
+/* Buttons: Glass system, light mode */
 .axon-btn {
   display: inline-flex;
   align-items: center;
@@ -213,7 +213,7 @@ body {
   box-shadow: none !important;
 }
 
-/* Pills & tags — light mode */
+/* Pills & tags: light mode */
 .axon-pill {
   display: inline-flex;
   align-items: center;
@@ -272,7 +272,7 @@ body {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
-/* Scrollbars — light mode */
+/* Scrollbars: light mode */
 ::-webkit-scrollbar {
   width: 7px;
 }
@@ -327,7 +327,7 @@ body {
 /* ── UX system: golden ratio rhythm, hierarchy, flow (F-pattern friendly) ── */
 :root {
   --ux-phi: 1.6180339887;
-  /* Fibonacci-ish spacing (px → rem) — Gestalt proximity & negative space */
+  /* Fibonacci-ish spacing (px → rem). Gestalt proximity and negative space */
   --ux-space-1: 0.25rem;   /* 4 */
   --ux-space-2: 0.5rem;    /* 8 */
   --ux-space-3: 0.8125rem; /* 13 */
@@ -370,7 +370,7 @@ body {
   margin-right: auto;
 }
 
-/* Affordance: consistent focus (locality — same affordance app-wide) */
+/* Affordance: consistent focus (locality: same affordance app-wide) */
 .app-shell :where(a, button, input:not([type="hidden"]), select, textarea, summary):focus-visible {
   outline: 2px solid var(--primary-700, #0f766e);
   outline-offset: 3px;
@@ -519,7 +519,7 @@ body {
 
 /*
  * Typography: pixel font for retro chrome; Inter + Plus Jakarta in readable surfaces
- * (Law of similarity: one body style, hierarchy via weight/size — not font chaos)
+ * (Law of similarity: one body style, hierarchy via weight/size, not font chaos)
  */
 .app-shell {
   font-family: 'Inter', system-ui, sans-serif;

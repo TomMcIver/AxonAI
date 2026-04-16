@@ -10,7 +10,7 @@ import {
 
 /**
  * In-flight dedupe for GETs the app already makes. Starting a request from Login
- * and the destination page shares the same Promise — no extra auth or new endpoints.
+ * and the destination page shares the same Promise (no extra auth or new endpoints).
  */
 const inflight = new Map();
 

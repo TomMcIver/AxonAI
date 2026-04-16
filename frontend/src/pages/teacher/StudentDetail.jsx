@@ -62,7 +62,7 @@ function InfoRow({ label, value }) {
     <div className="flex items-start justify-between gap-3 text-sm">
       <span className="text-slate-400 shrink-0">{label}</span>
       <span className={`text-right ${value ? 'text-slate-700' : 'text-slate-600'}`}>
-        {value || '—'}
+        {value || '-'}
       </span>
     </div>
   );
@@ -218,14 +218,14 @@ export default function StudentDetail() {
   const tone = riskTone(risk);
   const trend = trendTone(profile?.overall_mastery_trend);
 
-  // Profile-mapped fields — new schema stores these in profile/wellbeing, not student
+  // Profile-mapped fields: new schema stores these in profile/wellbeing, not student
   const learningStyle = profile?.dominant_learning_style || student?.learning_style || null;
   const learningDifficulty = wellbeing?.has_learning_support_plan
     ? (wellbeing?.learning_support_details || 'Learning support plan active')
     : (student?.learning_difficulty || null);
   const primaryLanguage = student?.primary_language || 'English';
   const academicGoals = student?.academic_goals || 'NCEA Level 2';
-  // Interests/activities not present in new schema — use legacy field if available
+  // Interests/activities not present in new schema: use legacy field if available
   const interestsList = Array.isArray(student?.interests)
     ? student.interests.join(', ')
     : student?.interests || null;
@@ -244,7 +244,7 @@ export default function StudentDetail() {
   const riskFactors = predictions?.risk_factors || [];
   const improvementAreas = predictions?.improvement_areas || [];
 
-  // AI Insights data — from TeacherAIInsight via /student/:id/ai-insights
+  // AI Insights data from TeacherAIInsight via /student/:id/ai-insights
   const aiSummary = aiInsights?.insights?.student_summary || null;
   const insightType = null;
   const suggestedInterventions = [];
@@ -252,7 +252,7 @@ export default function StudentDetail() {
   const failedStrategies = [];
   const generatedAt = aiInsights?.insights?.generated_at || null;
 
-  // Wellbeing context pills — prefer new endpoint, fall back to dashboard wellbeing
+  // Wellbeing context pills: prefer new endpoint, fall back to dashboard wellbeing
   const wbData = wellbeingCtx || wellbeing;
   const showIEP = !!(wbData?.has_learning_support_plan);
   const showPastoral = !!(wbData?.home_situation_flag);
@@ -294,7 +294,7 @@ export default function StudentDetail() {
                   <span className={`axon-pill ${trend.pill}`}>{trend.label}</span>
                 )}
                 <span className="axon-pill">
-                  Attendance {wellbeing?.attendance_percentage?.toFixed?.(0) ?? wellbeing?.attendance_percentage ?? '—'}%
+                  Attendance {wellbeing?.attendance_percentage?.toFixed?.(0) ?? wellbeing?.attendance_percentage ?? '-'}%
                 </span>
                 <span className="axon-pill">
                   {summary?.active_flags ?? 0} flags
@@ -475,7 +475,7 @@ export default function StudentDetail() {
               <div>
                 <p className="text-sm font-semibold text-slate-700">Focus concepts</p>
                 <p className="text-xs text-slate-8000">
-                  Lowest mastery first — keep the list short and actionable.
+                  Lowest mastery first. Keep the list short and actionable.
                 </p>
               </div>
             </div>
@@ -540,7 +540,7 @@ export default function StudentDetail() {
             <div className="axon-card-subtle p-5 sm:p-6">
               <p className="text-sm font-semibold text-slate-700">Recent sessions</p>
               <p className="text-[0.72rem] text-slate-500 mb-2 leading-relaxed">
-                Click a row to open that conversation — it appears directly below.
+                Click a row to open that conversation. It appears directly below.
               </p>
               <div className="space-y-2">
                 {recentConvos.map(c => {

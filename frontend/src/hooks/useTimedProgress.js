@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 /**
  * Linear 0 → 100 over `durationMs` (for ProgressBar sync with minimum display time).
- * `resetEpoch` — increment to restart the bar (e.g. retry or route param change).
+ * `resetEpoch`: increment to restart the bar (e.g. retry or route param change).
  */
 export function useTimedProgress(durationMs = 4000, resetEpoch = 0) {
   const [progress, setProgress] = useState(0);

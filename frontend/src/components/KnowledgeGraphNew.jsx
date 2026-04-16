@@ -9,13 +9,15 @@ import { forwardUnlockIds, getRootConceptIds } from '../utils/graphExploration';
 import KnowledgeTreeDiagram from './KnowledgeTreeDiagram';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorState from './ErrorState';
+import { masteryBandKey } from '../constants/masteryBands';
 
-/** Teacher + student graph: green strong, orange mid / steady, red weak, gray not assessed. */
+/** Teacher + student graph: green strong, orange developing, red focus, gray not assessed. */
 function masteryFillTeacher(score) {
   if (score == null || score === undefined) return '#9ca3af';
-  const s = typeof score === 'number' && score > 1 ? score / 100 : score;
-  if (s >= 0.7) return '#16a34a';
-  if (s >= 0.4) return '#f97316';
+  const band = masteryBandKey(score);
+  if (band === 'none') return '#9ca3af';
+  if (band === 'strong') return '#16a34a';
+  if (band === 'developing') return '#f97316';
   return '#dc2626';
 }
 
@@ -210,7 +212,7 @@ export default function KnowledgeGraphNew({
     (e) => visibleIds.has(e.concept_id) && visibleIds.has(e.prerequisite_concept_id),
   );
 
-  /** Stable while selection expands a key-node view — avoids resetting zoom/pan on every node click. */
+  /** Stable while selection expands a key-node view (avoids resetting zoom/pan on every node click). */
   const treeViewportKey = useMemo(() => {
     if (exploration === 'path') {
       return `path:${subject}`;
@@ -316,31 +318,55 @@ export default function KnowledgeGraphNew({
 
   if (loading) {
     return (
-      <div className="flex min-h-[min(92dvh,1800px)] w-full items-center justify-center">
+      <div
+        className="flex w-full items-center justify-center"
+        style={{ minHeight: 'min(70vh, 1200px)' }}
+      >
         <LoadingSpinner message="Loading graph..." />
       </div>
     );
   }
   if (error) {
     return (
-      <div className="flex min-h-[min(92dvh,1800px)] w-full items-center justify-center">
+      <div
+        className="flex w-full items-center justify-center"
+        style={{ minHeight: 'min(70vh, 1200px)' }}
+      >
         <ErrorState message={error} onRetry={load} />
       </div>
     );
   }
 
-  /** Overlay shell lives inside a portal wrapper (no second `fixed` — avoids broken layout / zero-size graph). */
+  /** Overlay shell lives inside a portal wrapper (no second `fixed`; avoids broken layout / zero-size graph). */
   const graphViewportShellClass = graphExpanded
     ? 'shadow-[6px_6px_0_#2c2418] z-[240] flex w-full max-w-[min(100vw,3200px)] flex-col overflow-hidden rounded-lg border-2 border-[#2c2418] bg-[#fffef4] p-2 sm:p-3'
     : 'axon-card-subtle relative flex w-full shrink-0 flex-col overflow-hidden p-2 sm:p-3';
 
-  /** Inline: scale with viewport (dvh) with a high pixel ceiling; expanded: nearly full screen minus safe areas. */
-  const graphViewportSizeClass = graphExpanded
-    ? 'h-[min(calc(100dvh-1.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom)),3200px)] min-h-[50dvh] max-h-[100dvh]'
-    : 'h-[min(92dvh,min(3200px,max(68dvh,calc(92*min(1vw,1vh)))))] max-h-[min(98dvh,3200px)] min-h-[min(62dvh,960px)]';
+  /**
+   * Pixel / vh sizing via inline style so the diagram always gets height even when Tailwind arbitrary
+   * classes (h-[min(92dvh,…)]) are missing from compiled.css; otherwise the flex column collapses,
+   * ResizeObserver sees ~0×0, and the tree/SVG disappears or shows as a thin text strip.
+   */
+  const graphViewportStyle = graphExpanded
+    ? {
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        minHeight: '50dvh',
+        height: 'calc(100dvh - 1.5rem)',
+        maxHeight: '100dvh',
+      }
+    : {
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        minHeight: 'min(480px, 70vh)',
+        height: 'min(92vh, 1400px)',
+        maxHeight: 'min(98vh, 3200px)',
+      };
 
   const diagramBlock = (
-    <div className={`${graphViewportShellClass} ${graphViewportSizeClass}`}>
+    <div className={graphViewportShellClass} style={graphViewportStyle}>
       {graphExpanded ? (
         <div className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-[#2c2418]/20 pb-2">
           <span className="text-[11px] font-semibold text-[#2c2418]">Full screen graph</span>
@@ -353,7 +379,14 @@ export default function KnowledgeGraphNew({
           </button>
         </div>
       ) : null}
-      <div className="relative h-full min-h-[min(40dvh,320px)] flex-1 basis-0 overflow-hidden">
+      <div
+        className="relative flex-1 basis-0 overflow-hidden"
+        style={{
+          flex: '1 1 auto',
+          minHeight: 'min(320px, 45vh)',
+          position: 'relative',
+        }}
+      >
         <KnowledgeTreeDiagram
           concepts={displayConcepts}
           edges={visibleEdges}
@@ -383,11 +416,11 @@ export default function KnowledgeGraphNew({
         >
           <div className="min-w-0 max-w-full space-y-2 text-[11px] font-semibold leading-relaxed text-[#2c2418]">
             <p className="break-words">
-              Whole class — mastery colours and % on hover. Concept map only — gold nodes, no scores.
+              Whole class: mastery colours and % on hover. Concept map only: gold nodes, no scores.
             </p>
             {cohortMasteryMeta?.source === 'student-aggregate' && Number(cohortMasteryMeta.studentCount) > 0 && (
               <p className="rounded border border-emerald-700/25 bg-emerald-50/95 px-2 py-1.5 text-[10px] font-medium leading-snug text-emerald-950">
-                Class summary empty — cohort map built locally (median per concept across{' '}
+                Class summary empty. Cohort map built locally (median per concept across{' '}
                 {cohortMasteryMeta.studentCount} learners, GET /student/…/mastery), filtered to {subject}.
               </p>
             )}
@@ -539,7 +572,7 @@ export default function KnowledgeGraphNew({
                 className="flex min-h-[100px] items-center justify-center rounded-lg border border-dashed border-[#2c2418]/30 bg-[#efe4be]/50 px-3 py-4 text-center text-[11px] leading-snug text-[#2c2418]/80"
                 aria-hidden
               >
-                Full screen map is open — use Close, Esc, or the dimmed backdrop to return.
+                Full screen map is open. Use Close, Esc, or the dimmed backdrop to return.
               </div>
             </>
           ) : (

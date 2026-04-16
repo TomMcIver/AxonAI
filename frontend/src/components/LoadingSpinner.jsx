@@ -4,7 +4,7 @@ import { ProgressBar } from 'pixel-retroui';
 /**
  * @param {object} props
  * @param {string} [props.message]
- * @param {number} [props.progress] — 0–100; if omitted, a gentle indeterminate fill runs.
+ * @param {number} [props.progress]: 0–100; if omitted, a gentle indeterminate fill runs.
  */
 export default function LoadingSpinner({ message = 'Loading data...', progress: progressProp }) {
   const [fallback, setFallback] = useState(0);
