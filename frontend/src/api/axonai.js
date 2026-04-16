@@ -7,28 +7,18 @@ export const BASE_URL = RAW_BASE_URL.replace(/\/+$/, '');
 
 async function fetchAPI(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
-  console.log(`[AxonAI API] ${options.method || 'GET'} ${url}`);
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-    console.log(`[AxonAI API] ${url} → ${response.status} ${response.statusText}`);
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      console.error(`[AxonAI API] Error body:`, errorText);
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
-    }
-    const data = await response.json();
-    console.log(`[AxonAI API] ${endpoint} response:`, data);
-    return data;
-  } catch (err) {
-    console.error(`[AxonAI API] ${url} failed:`, err.message);
-    throw err;
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+  if (!response.ok) {
+    await response.text().catch(() => '');
+    throw new Error(`API error: ${response.status} ${response.statusText}`);
   }
+  return response.json();
 }
 
 // Health
@@ -76,19 +66,37 @@ export function getConcepts(subject) {
   return fetchAPI(`/concepts/${subject}`);
 }
 
-// Class concept mastery summary
-export function getClassConceptSummary(classId) {
-  return fetchAPI(`/class/${classId}/concept-summary`);
+/**
+ * Class concept mastery summary (optional).
+ * The hosted API may not expose this route yet — 404 returns null.
+ * The teacher UI falls back to aggregated /student/…/mastery.
+ * Deploy the handler from `routes/lambda_new_routes.py` to enable the endpoint.
+ */
+export async function getClassConceptSummary(classId) {
+  const url = `${BASE_URL}/class/${classId}/concept-summary`;
+  try {
+    const response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (response.status === 404) {
+      return null;
+    }
+    if (!response.ok) {
+      await response.text().catch(() => '');
+      return null;
+    }
+    return await response.json();
+  } catch {
+    return null;
+  }
 }
 
 // Teacher AI insights — GPT-4o generated summaries
 export const getTeacherAIInsights = async (studentId) => {
   try {
     const res = await fetch(`${BASE_URL}/student/${studentId}/ai-insights`);
-    console.log(`[AxonAI API] /student/${studentId}/ai-insights → ${res.status}`);
     return res.ok ? res.json() : null;
-  } catch (err) {
-    console.error(`[AxonAI API] ai-insights failed:`, err.message);
+  } catch {
     return null;
   }
 };
@@ -97,10 +105,8 @@ export const getTeacherAIInsights = async (studentId) => {
 export const getStudentWellbeing = async (studentId) => {
   try {
     const res = await fetch(`${BASE_URL}/student/${studentId}/wellbeing`);
-    console.log(`[AxonAI API] /student/${studentId}/wellbeing → ${res.status}`);
     return res.ok ? res.json() : null;
-  } catch (err) {
-    console.error(`[AxonAI API] wellbeing failed:`, err.message);
+  } catch {
     return null;
   }
 };
@@ -109,10 +115,8 @@ export const getStudentWellbeing = async (studentId) => {
 export const getPedagogicalMemory = async (studentId) => {
   try {
     const res = await fetch(`${BASE_URL}/student/${studentId}/pedagogical-memory`);
-    console.log(`[AxonAI API] /student/${studentId}/pedagogical-memory → ${res.status}`);
     return res.ok ? res.json() : null;
-  } catch (err) {
-    console.error(`[AxonAI API] pedagogical-memory failed:`, err.message);
+  } catch {
     return null;
   }
 };
@@ -121,10 +125,8 @@ export const getPedagogicalMemory = async (studentId) => {
 export const getStudentSummary = async (studentId) => {
   try {
     const res = await fetch(`${BASE_URL}/student/${studentId}/summary`);
-    console.log(`[AxonAI API] /student/${studentId}/summary → ${res.status}`);
     return res.ok ? res.json() : null;
-  } catch (err) {
-    console.error(`[AxonAI API] summary failed:`, err.message);
+  } catch {
     return null;
   }
 };

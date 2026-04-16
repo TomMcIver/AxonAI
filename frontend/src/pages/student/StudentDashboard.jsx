@@ -257,7 +257,7 @@ export default function StudentDashboard() {
               Shaded columns show level (left = fundamentals).
             </p>
           </div>
-          <div className="min-h-[min(52vh,520px)] overflow-hidden rounded-lg border border-[#2c2418]/10 p-1 sm:p-2">
+          <div className="min-h-[min(68dvh,1400px)] overflow-hidden rounded-lg border border-[#2c2418]/10 p-1 sm:p-2">
             <KnowledgeGraphNew
               dataOverride={graphData}
               masteryMap={masteryMapForGraph}

@@ -1,6 +1,7 @@
 import React, {
   useCallback, useEffect, useMemo, useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { getConcepts } from '../api/axonai';
 import { buildPrerequisiteTreeDatum } from '../utils/prerequisiteTree';
 import { chainRootToSelected, layoutTidyTree, normId } from '../utils/tidyTreeLayout';
@@ -64,6 +65,7 @@ export default function KnowledgeGraphNew({
   /** Where cohort scores came from (for teacher copy). */
   cohortMasteryMeta = null,
 }) {
+  const [graphExpanded, setGraphExpanded] = useState(false);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -113,6 +115,20 @@ export default function KnowledgeGraphNew({
     setShowAllNodes(!mapOnly);
     load();
   }, [load, mapOnly]);
+
+  useEffect(() => {
+    if (!graphExpanded) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = e => {
+      if (e.key === 'Escape') setGraphExpanded(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [graphExpanded]);
 
   const concepts = data?.concepts || [];
   const edges = data?.prerequisites || [];
@@ -300,18 +316,62 @@ export default function KnowledgeGraphNew({
 
   if (loading) {
     return (
-      <div className="flex min-h-[min(78svh,920px)] w-full items-center justify-center">
+      <div className="flex min-h-[min(92dvh,1800px)] w-full items-center justify-center">
         <LoadingSpinner message="Loading graph..." />
       </div>
     );
   }
   if (error) {
     return (
-      <div className="flex min-h-[min(78svh,920px)] w-full items-center justify-center">
+      <div className="flex min-h-[min(92dvh,1800px)] w-full items-center justify-center">
         <ErrorState message={error} onRetry={load} />
       </div>
     );
   }
+
+  /** Overlay shell lives inside a portal wrapper (no second `fixed` — avoids broken layout / zero-size graph). */
+  const graphViewportShellClass = graphExpanded
+    ? 'shadow-[6px_6px_0_#2c2418] z-[240] flex w-full max-w-[min(100vw,3200px)] flex-col overflow-hidden rounded-lg border-2 border-[#2c2418] bg-[#fffef4] p-2 sm:p-3'
+    : 'axon-card-subtle relative flex w-full shrink-0 flex-col overflow-hidden p-2 sm:p-3';
+
+  /** Inline: scale with viewport (dvh) with a high pixel ceiling; expanded: nearly full screen minus safe areas. */
+  const graphViewportSizeClass = graphExpanded
+    ? 'h-[min(calc(100dvh-1.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom)),3200px)] min-h-[50dvh] max-h-[100dvh]'
+    : 'h-[min(92dvh,min(3200px,max(68dvh,calc(92*min(1vw,1vh)))))] max-h-[min(98dvh,3200px)] min-h-[min(62dvh,960px)]';
+
+  const diagramBlock = (
+    <div className={`${graphViewportShellClass} ${graphViewportSizeClass}`}>
+      {graphExpanded ? (
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-[#2c2418]/20 pb-2">
+          <span className="text-[11px] font-semibold text-[#2c2418]">Full screen graph</span>
+          <button
+            type="button"
+            className="axon-btn axon-btn-ghost text-[11px] !normal-case"
+            onClick={() => setGraphExpanded(false)}
+          >
+            Close
+          </button>
+        </div>
+      ) : null}
+      <div className="relative h-full min-h-[min(40dvh,320px)] flex-1 basis-0 overflow-hidden">
+        <KnowledgeTreeDiagram
+          concepts={displayConcepts}
+          edges={visibleEdges}
+          masteryMap={effectiveMasteryMap}
+          getNodeBasePresentation={getNodeBasePresentation}
+          selectedId={selectedId}
+          onNodeClick={onTreeNodeClick}
+          mapOnly={mapOnly}
+          showAllNodes={showAllNodes}
+          search={search}
+          onZoomOutExpand={undefined}
+          viewportLayoutKey={`${treeViewportKey}-${graphExpanded ? 'x' : 'n'}`}
+          showLegend={showColorLegend}
+          showMasteryInLegend={Boolean(effectiveMasteryMap)}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex min-h-0 flex-col gap-4">
@@ -368,8 +428,19 @@ export default function KnowledgeGraphNew({
         </div>
       )}
       <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div className="shrink-0 text-xs font-semibold uppercase tracking-[0.08em] text-slate-700">
-          {displayConcepts.length}{!showAllNodes && shouldFocusKeyNodes && exploration !== 'path' ? ` / ${filteredConcepts.length}` : ''} nodes · {visibleEdges.length} links
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-700">
+            {displayConcepts.length}{!showAllNodes && shouldFocusKeyNodes && exploration !== 'path' ? ` / ${filteredConcepts.length}` : ''} nodes · {visibleEdges.length} links
+          </div>
+          <button
+            type="button"
+            className="axon-btn axon-btn-primary px-3 py-1.5 text-[11px] !normal-case"
+            aria-expanded={graphExpanded}
+            aria-controls="knowledge-graph-viewport"
+            onClick={() => setGraphExpanded(v => !v)}
+          >
+            {graphExpanded ? 'Exit expanded' : 'Expand graph'}
+          </button>
         </div>
         <div className="flex w-full min-w-0 flex-col gap-3 sm:max-w-full sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           {showExplorationToggle && (
@@ -447,30 +518,37 @@ export default function KnowledgeGraphNew({
       <div
         className={`grid shrink-0 grid-cols-1 items-start gap-4 ${mapOnly ? '' : 'xl:grid-cols-[minmax(0,1fr)_320px]'}`}
       >
-        {/* Large viewport — teacher dashboard needs a tall map canvas on deploy */}
-        <div className="axon-card-subtle flex h-[min(82svh,960px)] max-h-[min(96svh,1100px)] min-h-[420px] w-full shrink-0 flex-col overflow-hidden p-2 sm:p-3">
-          {/* basis-0 + min-h-0: flex item must not size to SVG content. min-h ensures non-zero slot before flex lays out. */}
-          <div className="relative h-full min-h-[280px] flex-1 basis-0 overflow-hidden">
-            <KnowledgeTreeDiagram
-              concepts={displayConcepts}
-              edges={visibleEdges}
-              masteryMap={effectiveMasteryMap}
-              getNodeBasePresentation={getNodeBasePresentation}
-              selectedId={selectedId}
-              onNodeClick={onTreeNodeClick}
-              mapOnly={mapOnly}
-              showAllNodes={showAllNodes}
-              search={search}
-              onZoomOutExpand={undefined}
-              viewportLayoutKey={treeViewportKey}
-              showLegend={showColorLegend}
-              showMasteryInLegend={Boolean(effectiveMasteryMap)}
-            />
-          </div>
+        <div id="knowledge-graph-viewport" className="min-w-0">
+          {graphExpanded ? (
+            <>
+              {createPortal(
+                <>
+                  <button
+                    type="button"
+                    className="fixed inset-0 z-[230] cursor-default bg-[#2c2418]/45"
+                    aria-label="Close expanded graph"
+                    onClick={() => setGraphExpanded(false)}
+                  />
+                  <div className="pointer-events-none fixed inset-0 z-[235] flex items-start justify-center overflow-y-auto p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-4">
+                    <div className="pointer-events-auto my-auto w-full max-w-[100vw] sm:my-2">{diagramBlock}</div>
+                  </div>
+                </>,
+                document.body
+              )}
+              <div
+                className="flex min-h-[100px] items-center justify-center rounded-lg border border-dashed border-[#2c2418]/30 bg-[#efe4be]/50 px-3 py-4 text-center text-[11px] leading-snug text-[#2c2418]/80"
+                aria-hidden
+              >
+                Full screen map is open — use Close, Esc, or the dimmed backdrop to return.
+              </div>
+            </>
+          ) : (
+            diagramBlock
+          )}
         </div>
 
         {!mapOnly && (
-          <div className="axon-card-subtle max-h-[min(82svh,960px)] space-y-4 overflow-y-auto p-4 bg-[#fff8dc]">
+          <div className="axon-card-subtle max-h-[min(94dvh,1800px)] space-y-4 overflow-y-auto p-4 bg-[#fff8dc]">
             <div>
               <p className="axon-label mb-2">Selected Node</p>
               <p className="text-sm font-semibold text-slate-800 leading-6">

@@ -53,7 +53,7 @@ export function useClassMasteryMap(classId, subject, options = {}) {
       setStudentCount(0);
 
       try {
-        const summary = await getClassConceptSummary(classId).catch(() => null);
+        const summary = await getClassConceptSummary(classId);
         if (cancelled) return;
         const fromApi = masteryMapFromClassSummary(summary);
         if (fromApi && Object.keys(fromApi).length > 0) {
