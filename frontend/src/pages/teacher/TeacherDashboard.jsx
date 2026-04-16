@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   AlertCircle,
   Sparkles,
 } from 'lucide-react';
-import { getClassOverview, getClassConceptSummary } from '../../api/axonai';
+import { getClassConceptSummary } from '../../api/axonai';
+import { loadTeacherClassOverview } from '../../api/primedRequests';
 import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 import KnowledgeGraphNew from '../../components/KnowledgeGraphNew';
 import { useClassMasteryMap } from '../../hooks/useClassMasteryMap';
+import { useTimedProgress } from '../../hooks/useTimedProgress';
 import { DEMO_STUDENT_IDS, filterDemoStudents, sortWithArohaFirst } from '../../constants/demoStudents';
 
 /* ── HELPERS ── */
@@ -33,7 +35,7 @@ function MasteryRing({ value, label, size = 72, strokeWidth = 7 }) {
 
   useEffect(() => {
     const t = setTimeout(() => setOffset(circumference * (1 - value / 100)), 120);
-    const duration = 700;
+    const duration = 1600;
     const start = Date.now() + 120;
     let raf;
     function tick() {
@@ -61,7 +63,7 @@ function MasteryRing({ value, label, size = 72, strokeWidth = 7 }) {
             strokeDasharray={circumference} strokeDashoffset={offset}
             strokeLinecap="round"
             transform={`rotate(-90 ${size/2} ${size/2})`}
-            style={{ transition: 'stroke-dashoffset 700ms ease-out' }}
+            style={{ transition: 'stroke-dashoffset 1600ms cubic-bezier(0.22, 0.61, 0.36, 1)' }}
           />
         </svg>
         <div style={{
@@ -300,7 +302,7 @@ function ClassPulseSection({ students, navigate }) {
                 style={{
                   width: `${seg.pct}%`, background: seg.color,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'width 700ms ease-out',
+                  transition: 'width 1500ms cubic-bezier(0.22, 0.61, 0.36, 1)',
                   borderRadius: i === 0 ? '999px 0 0 999px' : i === segments.length - 1 ? '0 999px 999px 0' : 0,
                 }}
               >
@@ -547,18 +549,25 @@ function ConceptStrengthsSection({ navigate }) {
 
 /* ── MAIN DASHBOARD ── */
 
+const DASH_FILL_MS = 950;
+let dashboardCache = null;
+
 export default function TeacherDashboard() {
   const navigate = useNavigate();
-  const [classData, setClassData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const [classData, setClassData] = useState(dashboardCache);
+  const [loading, setLoading] = useState(!dashboardCache);
   const [error, setError] = useState(null);
+  const [barEpoch, setBarEpoch] = useState(0);
+  const progress = useTimedProgress(DASH_FILL_MS, barEpoch);
 
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    Promise.all([getClassOverview(1)])
-      .then(([classRes]) => {
+    loadTeacherClassOverview(1)
+      .then((classRes) => {
         setClassData(classRes);
+        dashboardCache = classRes;
         setLoading(false);
       })
       .catch(e => {
@@ -567,7 +576,14 @@ export default function TeacherDashboard() {
       });
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (dashboardCache) {
+      setClassData(dashboardCache);
+      setLoading(false);
+      return;
+    }
+    load();
+  }, [load]);
 
   const students = useMemo(
     () => sortWithArohaFirst(filterDemoStudents(classData?.students)),
@@ -585,21 +601,42 @@ export default function TeacherDashboard() {
     studentCount: cohortN,
   } = useClassMasteryMap(1, 'Mathematics', { studentIds: graphStudentIds });
 
-  if (loading) {
-    return (
-      <DashboardShell subtitle="Year 11 Mathematics · Mastery signal">
-        <div className="flex items-center justify-center py-16">
-          <LoadingSpinner message="Loading class data..." />
-        </div>
-      </DashboardShell>
-    );
-  }
+  const dataReady = Boolean(classData) && !loading;
+  const barComplete = progress >= 99.9;
+  const skipLoader = Boolean(dashboardCache) || location.state?.skipLoading;
+  const showMain = dataReady && (skipLoader || barComplete);
+  const waitingOnApi = progress >= 99.9 && !dataReady && !error;
 
   if (error) {
     return (
       <DashboardShell subtitle="Year 11 Mathematics · Mastery signal">
         <div className="flex items-center justify-center py-16">
-          <ErrorState message={error} onRetry={load} />
+          <ErrorState
+            message={error}
+            onRetry={() => {
+              setBarEpoch((e) => e + 1);
+              load();
+            }}
+          />
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  if (!showMain) {
+    return (
+      <DashboardShell subtitle="Year 11 Mathematics · Mastery signal">
+        <div className="flex items-center justify-center py-16">
+          <LoadingSpinner
+            message={
+              waitingOnApi
+                ? 'Still loading…'
+                : dataReady
+                  ? 'Preparing your dashboard…'
+                  : 'Loading class data...'
+            }
+            progress={progress}
+          />
         </div>
       </DashboardShell>
     );
@@ -629,7 +666,7 @@ export default function TeacherDashboard() {
             average with the same scaling. Shaded boxes group nodes by prerequisite depth (fundamentals on the left).
             Use Whole class vs Concepts to switch cohort colouring off.
           </p>
-          <div className="axon-card-subtle flex min-h-0 flex-col rounded-lg p-3 sm:p-4">
+          <div className="axon-card-subtle relative flex h-[min(74vh,810px)] min-h-[560px] flex-col overflow-hidden rounded-lg p-3 sm:p-4">
             <KnowledgeGraphNew
               subject="Mathematics"
               mapOnly

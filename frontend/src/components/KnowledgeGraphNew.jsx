@@ -298,8 +298,20 @@ export default function KnowledgeGraphNew({
     });
   }, [exploration, spineParentOf, edges, forwardRevealCount]);
 
-  if (loading) return <LoadingSpinner message="Loading graph..." />;
-  if (error) return <ErrorState message={error} onRetry={load} />;
+  if (loading) {
+    return (
+      <div className="flex min-h-[560px] w-full items-center justify-center">
+        <LoadingSpinner message="Loading graph..." />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="flex min-h-[560px] w-full items-center justify-center">
+        <ErrorState message={error} onRetry={load} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-col gap-4">

@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { getStudentDashboard, getStudentMastery, getStudentFlags, getStudentPedagogy } from '../../api/axonai';
+import { loadParentDashboardBundle } from '../../api/primedRequests';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 import DashboardShell from '../../components/DashboardShell';
+import { useTimedProgress } from '../../hooks/useTimedProgress';
+
+const DASH_FILL_MS = 4200;
 
 function StatusIndicator({ score }) {
   if (score < 0.2) return (
@@ -36,17 +39,15 @@ export default function ParentDashboard() {
   const [pedagogy, setPedagogy] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [barEpoch, setBarEpoch] = useState(0);
+  const progress = useTimedProgress(DASH_FILL_MS, barEpoch);
+  const studentIdFirst = useRef(true);
 
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    Promise.all([
-      getStudentDashboard(studentId),
-      getStudentMastery(studentId),
-      getStudentFlags(studentId),
-      getStudentPedagogy(studentId),
-    ])
-      .then(([d, m, f, p]) => {
+    loadParentDashboardBundle(studentId)
+      .then(({ dashboard: d, mastery: m, flags: f, pedagogy: p }) => {
         setDashboard(d);
         setMastery(m);
         setFlags(f);
@@ -58,20 +59,49 @@ export default function ParentDashboard() {
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading) {
-    return (
-      <DashboardShell subtitle="Parent / Whanau view">
-        <div className="flex items-center justify-center py-16">
-          <LoadingSpinner message="Loading your child's progress..." />
-        </div>
-      </DashboardShell>
-    );
-  }
+  useEffect(() => {
+    if (studentIdFirst.current) {
+      studentIdFirst.current = false;
+      return;
+    }
+    setBarEpoch((e) => e + 1);
+  }, [studentId]);
+
+  const dataReady = Boolean(dashboard) && !loading;
+  const barComplete = progress >= 99.9;
+  const showMain = dataReady && barComplete;
+  const waitingOnApi = progress >= 99.9 && !dataReady && !error;
+
   if (error) {
     return (
       <DashboardShell subtitle="Parent / Whanau view">
         <div className="flex items-center justify-center py-16">
-          <ErrorState message={error} onRetry={load} />
+          <ErrorState
+            message={error}
+            onRetry={() => {
+              setBarEpoch((e) => e + 1);
+              load();
+            }}
+          />
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  if (!showMain) {
+    return (
+      <DashboardShell subtitle="Parent / Whanau view">
+        <div className="flex items-center justify-center py-16">
+          <LoadingSpinner
+            message={
+              waitingOnApi
+                ? 'Still loading…'
+                : dataReady
+                  ? 'Preparing your dashboard…'
+                  : "Loading your child's progress..."
+            }
+            progress={progress}
+          />
         </div>
       </DashboardShell>
     );
