@@ -300,14 +300,14 @@ export default function KnowledgeGraphNew({
 
   if (loading) {
     return (
-      <div className="flex min-h-[560px] w-full items-center justify-center">
+      <div className="flex min-h-[min(78svh,920px)] w-full items-center justify-center">
         <LoadingSpinner message="Loading graph..." />
       </div>
     );
   }
   if (error) {
     return (
-      <div className="flex min-h-[560px] w-full items-center justify-center">
+      <div className="flex min-h-[min(78svh,920px)] w-full items-center justify-center">
         <ErrorState message={error} onRetry={load} />
       </div>
     );
@@ -447,10 +447,10 @@ export default function KnowledgeGraphNew({
       <div
         className={`grid shrink-0 grid-cols-1 items-start gap-4 ${mapOnly ? '' : 'xl:grid-cols-[minmax(0,1fr)_320px]'}`}
       >
-        {/* Fixed viewport height so toggles (explore hint, cohort banners) don’t stretch the SVG */}
-        <div className="axon-card-subtle flex h-[min(60svh,660px)] max-h-[72svh] min-h-[280px] w-full shrink-0 flex-col overflow-hidden p-2 sm:p-3">
+        {/* Large viewport — teacher dashboard needs a tall map canvas on deploy */}
+        <div className="axon-card-subtle flex h-[min(82svh,960px)] max-h-[min(96svh,1100px)] min-h-[420px] w-full shrink-0 flex-col overflow-hidden p-2 sm:p-3">
           {/* basis-0 + min-h-0: flex item must not size to SVG content. min-h ensures non-zero slot before flex lays out. */}
-          <div className="relative h-full min-h-[200px] flex-1 basis-0 overflow-hidden">
+          <div className="relative h-full min-h-[280px] flex-1 basis-0 overflow-hidden">
             <KnowledgeTreeDiagram
               concepts={displayConcepts}
               edges={visibleEdges}
@@ -470,7 +470,7 @@ export default function KnowledgeGraphNew({
         </div>
 
         {!mapOnly && (
-          <div className="axon-card-subtle max-h-[min(60svh,660px)] space-y-4 overflow-y-auto p-4 bg-[#fff8dc]">
+          <div className="axon-card-subtle max-h-[min(82svh,960px)] space-y-4 overflow-y-auto p-4 bg-[#fff8dc]">
             <div>
               <p className="axon-label mb-2">Selected Node</p>
               <p className="text-sm font-semibold text-slate-800 leading-6">

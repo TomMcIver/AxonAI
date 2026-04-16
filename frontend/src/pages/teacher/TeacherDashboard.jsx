@@ -666,7 +666,7 @@ export default function TeacherDashboard() {
             average with the same scaling. Shaded boxes group nodes by prerequisite depth (fundamentals on the left).
             Use Whole class vs Concepts to switch cohort colouring off.
           </p>
-          <div className="axon-card-subtle relative flex h-[min(74vh,810px)] min-h-[560px] flex-col overflow-hidden rounded-lg p-3 sm:p-4">
+          <div className="axon-card-subtle relative flex min-h-[min(88vh,1040px)] h-[min(90vh,1080px)] max-h-[min(96vh,1200px)] flex-col overflow-auto rounded-lg p-3 sm:p-4">
             <KnowledgeGraphNew
               subject="Mathematics"
               mapOnly
