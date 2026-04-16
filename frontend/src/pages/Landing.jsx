@@ -14,21 +14,66 @@ const featureRows = [
   'Parent visibility without adding admin burden to staff',
 ];
 
+function isInViewport(el) {
+  const rect = el.getBoundingClientRect();
+  const vh = window.innerHeight || document.documentElement.clientHeight;
+  return rect.top < vh && rect.bottom > 0;
+}
+
 export default function Landing() {
   useEffect(() => {
     const nodes = document.querySelectorAll('[data-lp2-reveal]');
+    const reveal = el => {
+      el.classList.add('is-visible');
+    };
+
     const observer = new IntersectionObserver(
       entries => {
         entries.forEach(entry => {
           if (!entry.isIntersecting) return;
-          entry.target.classList.add('is-visible');
+          reveal(entry.target);
           observer.unobserve(entry.target);
         });
       },
-      { threshold: 0.14, rootMargin: '0px 0px -8% 0px' }
+      { threshold: 0.05, rootMargin: '0px 0px -5% 0px' }
     );
+
+    const runFallback = () => {
+      document.querySelectorAll('[data-lp2-reveal]').forEach(n => {
+        if (n.classList.contains('is-visible')) return;
+        if (isInViewport(n)) {
+          reveal(n);
+          try {
+            observer.unobserve(n);
+          } catch {
+            /* ignore */
+          }
+        }
+      });
+    };
+
     nodes.forEach(n => observer.observe(n));
-    return () => observer.disconnect();
+
+    // Fix blank page on browser back / bfcache: IO sometimes skips already-visible nodes.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(runFallback);
+    });
+    const t = window.setTimeout(runFallback, 120);
+
+    const onPageShow = e => {
+      if (e.persisted) {
+        document.querySelectorAll('[data-lp2-reveal]').forEach(n => n.classList.add('is-visible'));
+      } else {
+        runFallback();
+      }
+    };
+    window.addEventListener('pageshow', onPageShow);
+
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener('pageshow', onPageShow);
+      observer.disconnect();
+    };
   }, []);
 
   const scrollTo = id => {
