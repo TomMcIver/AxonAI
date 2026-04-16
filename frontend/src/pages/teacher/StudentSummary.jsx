@@ -90,8 +90,7 @@ export default function StudentSummary() {
         setGraphData(g);
         setLoading(false);
       })
-      .catch(e => {
-        console.error('Failed to fetch:', e);
+      .catch((e) => {
         setError(e.message);
         setLoading(false);
       });
@@ -330,7 +329,9 @@ export default function StudentSummary() {
                 Background columns show depth (left = fundamentals).
               </p>
             </div>
-            <div className="axon-card-subtle overflow-hidden rounded-lg p-3 sm:p-4" style={{ minHeight: 'min(56vh, 560px)' }}>
+            <div
+              className="axon-card-subtle min-h-[min(72dvh,1600px)] overflow-hidden rounded-lg p-3 sm:p-4"
+            >
               <KnowledgeGraphNew
                 dataOverride={graphData}
                 masteryMap={masteryMap}

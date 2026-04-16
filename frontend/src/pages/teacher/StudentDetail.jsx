@@ -606,7 +606,7 @@ export default function StudentDetail() {
                 <span className="font-medium text-slate-600">Full map</span> for the full tree. Node colours follow this student&apos;s mastery; hover a node for the exact %.
               </p>
             </div>
-            <div className="min-h-[min(56vh,560px)] overflow-hidden rounded-lg border border-[#2c2418]/10 p-1 sm:p-2">
+            <div className="min-h-[min(72dvh,1600px)] overflow-hidden rounded-lg border border-[#2c2418]/10 p-1 sm:p-2">
               <KnowledgeGraphNew
                 dataOverride={graphData}
                 masteryMap={masteryMapForGraph}

@@ -31,14 +31,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
   /** Desktop: start with nav hidden so content isn’t squeezed; hamburger expands it. */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const previousPathRef = useRef(location.pathname);
-  const logNav = (event, details = {}) => {
-    const viewport = typeof window !== 'undefined' ? window.innerWidth : null;
-    console.debug('[DashboardShell nav]', event, {
-      pathname: location.pathname,
-      viewport,
-      ...details,
-    });
-  };
+  const logNav = () => {};
 
   const mode = useMemo(() => {
     if (modeProp) return modeProp;
