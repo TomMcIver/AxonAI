@@ -189,6 +189,21 @@ The app uses CSS variables for theming. Edit `/frontend/src/index.css` to custom
 - **Student**: Personal dashboard only
 - **Parent**: Summary view of child progress
 
+### Automated Video Walkthrough (Playwright)
+Run a single end-to-end "bot walkthrough" that navigates teacher, student, and parent views while recording video.
+
+```bash
+cd frontend
+npm install
+npm run e2e:install-browsers
+npm run e2e:video
+```
+
+Notes:
+- The walkthrough test is `frontend/e2e/ai-walkthrough.spec.js`
+- Video artifacts are written under `frontend/test-results/`
+- HTML report is written to `frontend/playwright-report/`
+
 ## 🛠️ Development Tips
 
 ### Adding a New Page

@@ -1,17 +1,14 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-  getStudentDashboard,
-  getStudentMastery,
-  getStudentPedagogy,
-  getStudentConversations,
-  getConcepts,
-} from '../../api/axonai';
+import { loadStudentDashboardBundle } from '../../api/primedRequests';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
 import ConversationThread from '../../components/ConversationThread';
 import DashboardShell from '../../components/DashboardShell';
 import KnowledgeGraphNew from '../../components/KnowledgeGraphNew';
+import { useTimedProgress } from '../../hooks/useTimedProgress';
+
+const DASH_FILL_MS = 4200;
 
 export default function StudentDashboard() {
   const { id } = useParams();
@@ -23,6 +20,9 @@ export default function StudentDashboard() {
   const [conversations, setConversations] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [barEpoch, setBarEpoch] = useState(0);
+  const progress = useTimedProgress(DASH_FILL_MS, barEpoch);
+  const studentIdFirst = useRef(true);
   const [activeConversation, setActiveConversation] = useState(null);
   const [chatSubjectFilter, setChatSubjectFilter] = useState('all');
   const [graphData, setGraphData] = useState(null);
@@ -30,14 +30,8 @@ export default function StudentDashboard() {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    Promise.all([
-      getStudentDashboard(studentId),
-      getStudentMastery(studentId),
-      getStudentPedagogy(studentId),
-      getStudentConversations(studentId, 44),
-      getConcepts('Mathematics').catch(() => null),
-    ])
-      .then(([d, m, p, c, g]) => {
+    loadStudentDashboardBundle(studentId)
+      .then(({ dashboard: d, mastery: m, pedagogy: p, conversations: c, graphData: g }) => {
         setDashboard(d);
         setMastery(m);
         setPedagogy(p);
@@ -50,6 +44,14 @@ export default function StudentDashboard() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (studentIdFirst.current) {
+      studentIdFirst.current = false;
+      return;
+    }
+    setBarEpoch((e) => e + 1);
+  }, [studentId]);
+
   const { convos, filteredConvos } = useMemo(() => {
     const allConvos = conversations?.conversations || [];
     const filtered = chatSubjectFilter === 'all'
@@ -58,20 +60,41 @@ export default function StudentDashboard() {
     return { convos: allConvos, filteredConvos: filtered };
   }, [conversations, chatSubjectFilter]);
 
-  if (loading) {
-    return (
-      <DashboardShell subtitle="Student view">
-        <div className="flex items-center justify-center py-16">
-          <LoadingSpinner message="Loading your dashboard..." />
-        </div>
-      </DashboardShell>
-    );
-  }
+  const dataReady = Boolean(dashboard) && !loading;
+  const barComplete = progress >= 99.9;
+  const showMain = dataReady && barComplete;
+  const waitingOnApi = progress >= 99.9 && !dataReady && !error;
+
   if (error) {
     return (
       <DashboardShell subtitle="Student view">
         <div className="flex items-center justify-center py-16">
-          <ErrorState message={error} onRetry={load} />
+          <ErrorState
+            message={error}
+            onRetry={() => {
+              setBarEpoch((e) => e + 1);
+              load();
+            }}
+          />
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  if (!showMain) {
+    return (
+      <DashboardShell subtitle="Student view">
+        <div className="flex items-center justify-center py-16">
+          <LoadingSpinner
+            message={
+              waitingOnApi
+                ? 'Still loading…'
+                : dataReady
+                  ? 'Preparing your dashboard…'
+                  : 'Loading your dashboard...'
+            }
+            progress={progress}
+          />
         </div>
       </DashboardShell>
     );

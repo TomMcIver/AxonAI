@@ -285,6 +285,17 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                 </div>
                 <ChevronDown size={16} className="text-slate-400" />
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  logNav('desktop nav click', { target: '/login', source: 'logout button' });
+                  navigate('/login');
+                  setSidebarCollapsed(true);
+                }}
+                className="axon-btn axon-btn-quiet mt-2 w-full justify-center"
+              >
+                Log out
+              </button>
             </div>
           </aside>
         </>
@@ -376,6 +387,17 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  onClick={() => {
+                    logNav('mobile nav click', { target: '/login', source: 'logout button' });
+                    navigate('/login');
+                    setMobileNavOpen(false);
+                  }}
+                  className="axon-btn axon-btn-quiet mt-2 w-full justify-center"
+                >
+                  Log out
+                </button>
               </nav>
             </div>
           <div

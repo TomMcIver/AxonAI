@@ -1,5 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  primeTeacherClassOverview,
+  primeStudentDashboard,
+  primeParentDashboard,
+} from '../api/primedRequests';
 
 const roles = [
   {
@@ -33,6 +38,15 @@ export default function Login() {
           className="axon-card pointer-events-none absolute inset-0 rounded-[20px]"
         />
         <div className="relative z-[1] px-[var(--ux-space-4)] py-[var(--ux-space-5)] sm:px-[var(--ux-space-5)] sm:py-[var(--ux-space-6)]">
+          <div className="mb-3">
+            <button
+              type="button"
+              className="axon-btn axon-btn-quiet"
+              onClick={() => navigate('/')}
+            >
+              ← Back
+            </button>
+          </div>
           <div className="mb-[var(--ux-space-5)] text-center">
             <div className="mb-[var(--ux-space-4)] inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500 text-xl font-semibold text-white shadow-sm">
               A
@@ -52,7 +66,12 @@ export default function Login() {
                 <div key={role.id} className="login-role-pop-wrap">
                   <button
                     type="button"
-                    onClick={() => navigate(role.path)}
+                    onClick={() => {
+                      if (role.id === 'teacher') primeTeacherClassOverview(1);
+                      else if (role.id === 'student') primeStudentDashboard(1);
+                      else if (role.id === 'parent') primeParentDashboard(1);
+                      navigate(role.path);
+                    }}
                     className={`login-role-axon-btn axon-btn w-full text-left ${
                       slab ? 'axon-btn-primary' : 'axon-btn-ghost'
                     }`}

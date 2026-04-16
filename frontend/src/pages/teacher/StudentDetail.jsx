@@ -265,7 +265,7 @@ export default function StudentDetail() {
         <div className="flex items-center justify-between gap-3">
           <button
             className="axon-btn axon-btn-quiet"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/teacher')}
           >
             ← Back
           </button>
