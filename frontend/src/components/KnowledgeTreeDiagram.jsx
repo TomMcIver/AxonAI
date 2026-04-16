@@ -11,36 +11,25 @@ import {
   normId,
   pathEdgeKeySet,
 } from '../utils/tidyTreeLayout';
+import { DEPTH_BAND_FILLS, DEPTH_LABELS } from '../constants/graphDepthBands';
+
+export { DEPTH_BAND_FILLS };
 
 const NODE_W = 132;
 const NODE_H = 58;
 const MARGIN = 24;
 /** Padding (CSS px) around each sibling-group hull; left/right use full pad; vertical target is this, shared when groups stack. */
 const DEPTH_CLUSTER_PAD_PX = 16;
-/** Minimum vertical pad (px) above/below the node hull inside a group tint — raised after layout gap so bands rarely collapse to flush. */
+/** Minimum vertical pad (px) above/below the node hull inside a group tint; raised after layout gap so bands rarely collapse to flush. */
 const DEPTH_CLUSTER_PAD_FLOOR_PX = 8;
 /** Small margin reserved between stacked group tints when splitting vertical pad. */
 const DEPTH_CLUSTER_SPLIT_EPS_PX = 1;
 
-/**
- * Distinct pastel fills per prerequisite depth (left → right). Solid hex so legend + SVG swatches read clearly.
- */
-export const DEPTH_BAND_FILLS = [
-  '#a8d4ff',
-  '#7ee0b8',
-  '#ffe566',
-  '#ffb8d9',
-  '#cdb8ff',
-  '#ffc9a3',
-];
-
-const DEPTH_LABELS = ['Fundamentals', 'Early', 'Core', 'Stretch', 'Advanced', 'Further'];
-
 /** Mastery swatches (same semantics as KnowledgeGraphNew / student detail). */
 export const MASTERY_LEGEND = [
   { fill: '#16a34a', label: 'Strong (≥70%)' },
-  { fill: '#f97316', label: 'Developing (40–69%)' },
-  { fill: '#dc2626', label: 'Focus (under 40%)' },
+  { fill: '#f97316', label: 'Developing (51–69%)' },
+  { fill: '#dc2626', label: 'Focus (≤50%)' },
   { fill: '#9ca3af', label: 'Not assessed' },
 ];
 
@@ -401,10 +390,10 @@ export default function KnowledgeTreeDiagram({
   /** Drop the click that often follows a pan (so it doesn’t clear selection). Timeout clears stale flags. */
   const eatNextBackgroundClearRef = useRef(false);
   const eatClearTimerRef = useRef(null);
-  /** Last camera refit key — skip refit when only selection expands the graph (same key, new layout). */
+  /** Last camera refit key: skip refit when only selection expands the graph (same key, new layout). */
   const lastFitKeyRef = useRef(null);
 
-  /** Layout identity only (no mastery) — avoids camera reset when colours/tooltips change. */
+  /** Layout identity only (no mastery): avoids camera reset when colours/tooltips change. */
   const dataSig = useMemo(() => {
     const ids = concepts.map((c) => c.id).join(',');
     const es = edges
@@ -613,7 +602,10 @@ export default function KnowledgeTreeDiagram({
   }
 
   return (
-    <div className="relative h-full min-h-[180px] max-h-full min-w-0 w-full overflow-hidden">
+    <div
+      className="relative h-full max-h-full min-w-0 w-full overflow-hidden"
+      style={{ minHeight: 'min(400px, 55vh)' }}
+    >
       <div
         ref={containerRef}
         className="absolute inset-0 min-h-0 min-w-0 overflow-hidden rounded-md border border-[#2c2418]/20 bg-[#fffef4] [touch-action:none] [overscroll-behavior:contain]"

@@ -6,18 +6,18 @@
 const DEFAULT_NODE_W = 132;
 const DEFAULT_NODE_H = 58;
 
-/** After tidy placement, scale all Y (must combine with vGap math so nodes never overlap — see layout). */
-export const DEFAULT_Y_COMPACT = 0.7;
+/** After tidy placement, scale all Y (must combine with vGap math so nodes never overlap; see layout). Lower = tighter vertical packing. */
+export const DEFAULT_Y_COMPACT = 0.62;
 
 /**
  * Minimum clear gap (CSS px) between two node rectangles after yCompact.
  * Larger values give adjacent depth-cluster bands room for vertical padding; too small and stacked single-node
  * groups share one narrow gap and tints collapse flush to the node (see KnowledgeTreeDiagram.solveSymmetricColumnPads).
  */
-export const MIN_NODE_BORDER_GAP_PX = 40;
+export const MIN_NODE_BORDER_GAP_PX = 34;
 
-/** Extra vertical space (CSS px) inserted between top-level subtrees — lower = less white gap between Early / Core / Stretch blocks. */
-export const REF_TOP_SUBTREE_GAP_PX = 11;
+/** Extra vertical space (CSS px) inserted between top-level subtrees; lower = less white gap between Early / Core / Stretch blocks. */
+export const REF_TOP_SUBTREE_GAP_PX = 7;
 
 /**
  * Added to node width for each depth step (x): Fundamentals → Core → Stretch, etc.
@@ -47,8 +47,8 @@ function sortChildren(nodes) {
 }
 
 /**
- * @param {object} rootDatum — from buildPrerequisiteTreeDatum
- * @param {{ nodeW?: number, nodeH?: number, yCompact?: number }} opts — yCompact scales all Y (default {@link DEFAULT_Y_COMPACT})
+ * @param {object} rootDatum from buildPrerequisiteTreeDatum
+ * @param {{ nodeW?: number, nodeH?: number, yCompact?: number }} opts: yCompact scales all Y (default {@link DEFAULT_Y_COMPACT})
  */
 export function layoutTidyTree(rootDatum, opts = {}) {
   const nodeW = opts.nodeW ?? DEFAULT_NODE_W;

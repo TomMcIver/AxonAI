@@ -68,7 +68,7 @@ export function getConcepts(subject) {
 
 /**
  * Class concept mastery summary (optional).
- * The hosted API may not expose this route yet — 404 returns null.
+ * The hosted API may not expose this route yet; 404 returns null.
  * The teacher UI falls back to aggregated /student/…/mastery.
  * Deploy the handler from `routes/lambda_new_routes.py` to enable the endpoint.
  */
@@ -91,7 +91,7 @@ export async function getClassConceptSummary(classId) {
   }
 }
 
-// Teacher AI insights — GPT-4o generated summaries
+// Teacher AI insights: GPT-4o generated summaries
 export const getTeacherAIInsights = async (studentId) => {
   try {
     const res = await fetch(`${BASE_URL}/student/${studentId}/ai-insights`);
@@ -121,7 +121,7 @@ export const getPedagogicalMemory = async (studentId) => {
   }
 };
 
-// Student summary — per-class concept mastery breakdown from live API
+// Student summary: per-class concept mastery breakdown from live API
 export const getStudentSummary = async (studentId) => {
   try {
     const res = await fetch(`${BASE_URL}/student/${studentId}/summary`);

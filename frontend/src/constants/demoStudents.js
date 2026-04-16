@@ -1,6 +1,6 @@
 // The 26 demo students in class_id=1 that have full ML data seeded.
 // This is the ONLY source of truth. Every component that filters, counts,
-// or displays students must import from here — never hardcode elsewhere.
+// or displays students must import from here. Never hardcode elsewhere.
 // ML training excludes these ids (see ml/excluded_students.py FRONTEND_DEMO_STUDENT_IDS).
 
 export const DEMO_STUDENT_IDS = [

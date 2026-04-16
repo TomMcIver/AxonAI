@@ -34,7 +34,7 @@ function countLongAlphaWords(s) {
   return (String(s).match(/\b[a-zA-Z]{5,}\b/g) || []).length;
 }
 
-/** True if this line is mostly prose (must NOT be wrapped entirely in math mode — spaces would collapse). */
+/** True if this line is mostly prose (must NOT be wrapped entirely in math mode; spaces would collapse). */
 function isProseHeavyLine(tr) {
   if (!tr) return true;
   if (tr.length > 220) return true;
@@ -160,7 +160,7 @@ function applyCaretRulesToPlainChunk(chunk) {
 }
 
 /**
- * Lines that are already LaTeX (\\lim, \\frac, …) but have no $ on that line — wrap in $$ so the tokenizer + KaTeX run.
+ * Lines that are already LaTeX (\\lim, \\frac, …) but have no $ on that line: wrap in $$ so the tokenizer + KaTeX run.
  * Never wrap long / prose-heavy lines (entire paragraph would render as math and eat spaces).
  */
 function wrapBareLatexDisplayLines(s) {
@@ -228,7 +228,7 @@ function preprocessPlainMathForDelimiters(raw) {
     const tr = t.trim();
     const words = tr.split(/\s+/).filter(Boolean).length;
 
-    // One-line equation (e.g. f(x) = x^n) — only short, non-prose lines (never a full tutor paragraph)
+    // One-line equation (e.g. f(x) = x^n): only short, non-prose lines (never a full tutor paragraph)
     if (
       !/\$/.test(tr) &&
       words <= 28 &&
@@ -363,7 +363,7 @@ function pushInlineSegments(text, out) {
 }
 
 /**
- * Last resort: small text segment still contains raw \\frac / \\lim — never KaTeX an English paragraph.
+ * Last resort: small text segment still contains raw \\frac / \\lim; never KaTeX an English paragraph.
  */
 function TextSpan({ text }) {
   const { html, asBlock } = useMemo(() => {

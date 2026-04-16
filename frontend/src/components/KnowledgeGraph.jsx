@@ -15,7 +15,7 @@ function DifficultyBadge({ level }) {
   const cfg = DIFFICULTY_CONFIG[level] || DIFFICULTY_CONFIG[3];
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
-      Level {level} — {cfg.label}
+      Level {level}: {cfg.label}
     </span>
   );
 }
@@ -227,7 +227,7 @@ export default function KnowledgeGraph({ subject }) {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-300">No prerequisites — foundational concept</p>
+                    <p className="text-xs text-slate-300">No prerequisites (foundational concept)</p>
                   )}
                 </div>
                 <div className="p-4">

@@ -102,7 +102,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
 
   return (
     <div className="app-shell flex min-h-screen flex-col pb-[max(var(--ux-space-3),env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
-      {/* Full-bleed header — scrolls with the page (not fixed/sticky). Overlay z-500 still covers it when nav is open. */}
+      {/* Full-bleed header: scrolls with the page (not fixed/sticky). Overlay z-500 still covers it when nav is open. */}
       <header className="relative z-20 w-full shrink-0 border-b-2 border-[#2c2418] bg-[#fff8dc]">
         <div
           className="mx-auto flex w-full max-w-7xl flex-col gap-[var(--ux-space-3)] px-2 pb-2.5 pt-0 sm:flex-row sm:items-center sm:justify-between sm:px-3 sm:pb-3 lg:px-4 pl-[max(var(--ux-space-2),env(safe-area-inset-left))] pr-[max(var(--ux-space-2),env(safe-area-inset-right))]"
@@ -140,7 +140,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
       </header>
 
       <div className="flex min-h-0 w-full min-w-0 flex-1 px-[max(var(--ux-space-2),env(safe-area-inset-left))] pr-[max(var(--ux-space-2),env(safe-area-inset-right))]">
-        {/* Main region — full width; desktop nav is a fixed overlay */}
+        {/* Main region: full width; desktop nav is a fixed overlay */}
         <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
           <main
             className="app-shell-main flex-1 px-2 sm:px-3 lg:px-4 py-[var(--ux-space-4)] lg:py-[var(--ux-space-5)]"
@@ -153,7 +153,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
         </div>
       </div>
 
-      {/* Desktop (lg+): modal-style nav — dimmed full-screen backdrop (above header), drawer flush to top */}
+      {/* Desktop (lg+): modal-style nav, dimmed full-screen backdrop (above header), drawer flush to top */}
       {!sidebarCollapsed && (
         <>
           <div
@@ -294,7 +294,7 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
         </>
       )}
 
-      {/* Mobile drawer — frosted glass */}
+      {/* Mobile drawer: frosted glass */}
       {mobileNavOpen && (
         <div className="fixed inset-0 z-[4000] flex lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
             <div

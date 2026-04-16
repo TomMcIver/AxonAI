@@ -10,10 +10,12 @@ import { loadTeacherClassOverview } from '../../api/primedRequests';
 import DashboardShell from '../../components/DashboardShell';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
-import KnowledgeGraphNew from '../../components/KnowledgeGraphNew';
+import ClassMasteryTopicStrip from '../../components/ClassMasteryTopicStrip';
 import { useClassMasteryMap } from '../../hooks/useClassMasteryMap';
 import { useTimedProgress } from '../../hooks/useTimedProgress';
 import { DEMO_STUDENT_IDS, filterDemoStudents, sortWithArohaFirst } from '../../constants/demoStudents';
+import { masteryBandKey } from '../../constants/masteryBands';
+import { clampDepthIndex, depthLabel } from '../../constants/graphDepthBands';
 
 /* ── HELPERS ── */
 
@@ -223,7 +225,7 @@ function NeedsAttentionSection({ students, navigate }) {
 /* ── CLASS PULSE SECTION ── */
 
 function ClassPulseSection({ students, navigate }) {
-  // Compute groups from live demo data — nothing hardcoded
+  // Compute groups from live demo data (nothing hardcoded)
   const low  = students.filter(s => (s.avg_mastery || 0) < 0.50);
   const mid  = students.filter(s => (s.avg_mastery || 0) >= 0.50 && (s.avg_mastery || 0) <= 0.75);
   const high = students.filter(s => (s.avg_mastery || 0) > 0.75);
@@ -368,10 +370,34 @@ const SORT_OPTIONS = [
   { key: 'questions', label: 'By Questions' },
 ];
 
+/** Align bar colours with knowledge graph mastery legend (#16a34a / #f97316 / #dc2626). */
 function masteryBarColor(pct) {
-  if (pct >= 0.7) return '#059669';
-  if (pct >= 0.4) return '#D97706';
-  return '#DC2626';
+  const band = masteryBandKey(pct);
+  if (band === 'strong') return '#16a34a';
+  if (band === 'developing') return '#f97316';
+  return '#dc2626';
+}
+
+const SNAPSHOT_DIFF_LABELS = {
+  1: 'Foundational',
+  2: 'Easy',
+  3: 'Medium',
+  4: 'Hard',
+  5: 'Very hard',
+};
+
+function formatSnapshotDifficulty(level) {
+  const n = Math.min(5, Math.max(1, Math.round(Number(level) || 3)));
+  return `D${n}/5 (${SNAPSHOT_DIFF_LABELS[n] ?? 'Medium'})`;
+}
+
+function masteryTierLabel(score01) {
+  if (score01 == null || Number.isNaN(score01)) return '-';
+  const k = masteryBandKey(score01);
+  if (k === 'strong') return 'Strong (≥70%)';
+  if (k === 'developing') return 'Developing (51–69%)';
+  if (k === 'focus') return 'Focus (≤50%)';
+  return '-';
 }
 
 function SkeletonBar() {
@@ -390,7 +416,7 @@ function SkeletonBar() {
   );
 }
 
-function ConceptStrengthsSection({ navigate }) {
+function ConceptStrengthsSection({ navigate, conceptSelection, onConceptSelectionChange }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState('mastery');
@@ -411,6 +437,21 @@ function ConceptStrengthsSection({ navigate }) {
     return 0;
   }).slice(0, 10);
 
+  const summaryRowForSelection = useMemo(() => {
+    if (!conceptSelection) return null;
+    return concepts.find((c) => String(c.concept_id) === String(conceptSelection.id)) ?? null;
+  }, [concepts, conceptSelection]);
+
+  const detailName = summaryRowForSelection?.name ?? conceptSelection?.fromSnapshot?.name ?? 'Concept';
+  const detailMastery01 = summaryRowForSelection?.avg_mastery ?? conceptSelection?.fromSnapshot?.score ?? null;
+  const detailPct = detailMastery01 != null ? Math.round(detailMastery01 * 100) : null;
+  const detailBarColor = detailMastery01 != null ? masteryBarColor(detailMastery01) : '#94a3b8';
+  const snap = conceptSelection?.fromSnapshot;
+  const depthLine = snap?.depthIdx != null
+    ? depthLabel(clampDepthIndex(snap.depthIdx))
+    : null;
+  const diffLine = snap?.difficulty_level != null ? formatSnapshotDifficulty(snap.difficulty_level) : null;
+
   return (
     <section>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -420,34 +461,32 @@ function ConceptStrengthsSection({ navigate }) {
         }}>
           Class Concept Strengths
         </h2>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {SORT_OPTIONS.map(opt => (
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-2.5">
+          {SORT_OPTIONS.map((opt) => (
             <button
               key={opt.key}
+              type="button"
               onClick={() => setSort(opt.key)}
-              style={{
-                padding: '4px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                fontFamily: "'Lexend', sans-serif", fontSize: 11, fontWeight: 500,
-                background: sort === opt.key ? '#0F766E' : 'rgba(148,163,184,0.12)',
-                color: sort === opt.key ? '#fff' : '#64748B',
-                transition: 'all 140ms',
-              }}
+              className={`axon-btn min-h-[2rem] rounded-lg border-2 border-[#2c2418] px-3 py-1.5 text-[11px] !normal-case shadow-[2px_2px_0_#2c2418] transition hover:-translate-y-px hover:shadow-[3px_3px_0_#2c2418] active:translate-y-px active:shadow-[1px_1px_0_#2c2418] ${
+                sort === opt.key ? 'axon-btn-primary' : 'bg-[#fffef4] text-[#2c2418] hover:bg-[#efe4be]'
+              }`}
             >
               {opt.label}
             </button>
           ))}
           <button
+            type="button"
             onClick={() => navigate('/teacher/knowledge-graph')}
-            style={{
-              fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 12, color: '#0f766e',
-              textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
-              background: 'none', border: 'none', marginLeft: 8,
-            }}
+            className="axon-btn axon-btn-ghost ml-1 min-h-[2rem] rounded-lg border-2 border-transparent px-2 py-1.5 text-[11px] !normal-case text-[#0f766e] hover:border-[#2c2418]/20"
           >
-            Full Graph &#8594;
+            Full map →
           </button>
         </div>
       </div>
+
+      <p className="mb-3 max-w-3xl text-[11px] leading-relaxed text-slate-500">
+        Click a concept in the list (or a topic tile in the snapshot above) to see cohort stats and graph context here.
+      </p>
 
       <div style={{
         background: 'rgba(255,255,255,0.5)',
@@ -462,14 +501,27 @@ function ConceptStrengthsSection({ navigate }) {
           <div>
             {[...Array(5)].map((_, i) => <SkeletonBar key={i} />)}
           </div>
-        ) : sorted.length === 0 ? (
-          <p style={{
-            textAlign: 'center', color: '#94A3B8', fontSize: 13,
-            fontFamily: "'Inter', sans-serif", padding: '20px 0',
-          }}>
-            Concept mastery data unavailable — deploy the <code>/class/&#123;id&#125;/concept-summary</code> endpoint to enable this widget.
-          </p>
         ) : (
+          <div>
+            {sorted.length === 0 && !conceptSelection && (
+              <p style={{
+                textAlign: 'center', color: '#94A3B8', fontSize: 13,
+                fontFamily: "'Inter', sans-serif", padding: '20px 0',
+              }}>
+                Concept mastery data unavailable. Deploy the <code>/class/&#123;id&#125;/concept-summary</code> endpoint
+                to enable the ranked list. You can still open details from a topic tile in the class mastery snapshot above.
+              </p>
+            )}
+            {sorted.length === 0 && conceptSelection && (
+              <p
+                className="mb-4 text-[12px] leading-relaxed text-slate-600"
+                style={{ fontFamily: "'Inter', sans-serif" }}
+              >
+                The ranked table needs the <code>/class/&#123;id&#125;/concept-summary</code> API. Details below come from
+                the snapshot tile you selected.
+              </p>
+            )}
+            {sorted.length > 0 && (
           <div>
             {/* Column headers */}
             <div style={{
@@ -497,17 +549,37 @@ function ConceptStrengthsSection({ navigate }) {
               const pct = concept.avg_mastery ?? 0;
               const barColor = masteryBarColor(pct);
               const isHov = hoveredRow === i;
+              const isSelected = conceptSelection && String(concept.concept_id) === String(conceptSelection.id);
               return (
                 <div
                   key={concept.concept_id || i}
-                  onClick={() => navigate('/teacher/knowledge-graph')}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    const id = concept.concept_id;
+                    onConceptSelectionChange?.((prev) => ({
+                      id,
+                      fromSnapshot: prev && String(prev.id) === String(id) ? prev.fromSnapshot : undefined,
+                    }));
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      const id = concept.concept_id;
+                      onConceptSelectionChange?.((prev) => ({
+                        id,
+                        fromSnapshot: prev && String(prev.id) === String(id) ? prev.fromSnapshot : undefined,
+                      }));
+                    }
+                  }}
                   onMouseEnter={() => setHoveredRow(i)}
                   onMouseLeave={() => setHoveredRow(null)}
-                  title={`${concept.students_mastered ?? '?'} mastered · ${concept.students_struggling ?? '?'} struggling · ${concept.question_count ?? 0} Q`}
+                  title={`${concept.students_mastered ?? '?'} mastered · ${concept.students_struggling ?? '?'} struggling · ${concept.question_count ?? 0} Q · Click for details`}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                     padding: '9px 8px', borderRadius: 8, cursor: 'pointer',
-                    background: isHov ? 'rgba(15,118,110,0.05)' : 'transparent',
+                    background: isSelected ? 'rgba(15,118,110,0.1)' : isHov ? 'rgba(15,118,110,0.05)' : 'transparent',
+                    outline: isSelected ? '2px solid #0f766e' : 'none',
                     borderBottom: i < sorted.length - 1 ? '1px solid rgba(148,163,184,0.07)' : 'none',
                     transition: 'background 120ms',
                   }}
@@ -540,6 +612,106 @@ function ConceptStrengthsSection({ navigate }) {
                 </div>
               );
             })}
+          </div>
+            )}
+
+            {conceptSelection && (
+              <div
+                style={{
+                  marginTop: sorted.length > 0 ? 16 : 0,
+                  paddingTop: sorted.length > 0 ? 16 : 0,
+                  borderTop: sorted.length > 0 ? '1px solid rgba(148,163,184,0.2)' : 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ minWidth: 0, flex: '1 1 220px' }}>
+                    <p style={{
+                      margin: '0 0 6px 0',
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      fontWeight: 600,
+                      fontSize: 16,
+                      color: '#0f172a',
+                      lineHeight: 1.3,
+                    }}>
+                      {detailName}
+                    </p>
+                    {detailPct != null && (
+                      <p style={{ margin: '0 0 8px 0', fontFamily: "'Lexend', sans-serif", fontSize: 13, color: '#475569' }}>
+                        <span style={{ fontWeight: 700, color: detailBarColor }}>{detailPct}%</span>
+                        {' '}
+                        class mastery · {masteryTierLabel(detailMastery01)}
+                      </p>
+                    )}
+                    {summaryRowForSelection ? (
+                      <ul style={{
+                        margin: 0,
+                        paddingLeft: 18,
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: 12,
+                        color: '#475569',
+                        lineHeight: 1.65,
+                      }}>
+                        <li>
+                          Students on track (≥80%): <strong style={{ color: '#334155' }}>{summaryRowForSelection.students_mastered ?? '-'}</strong>
+                        </li>
+                        <li>
+                          Students needing support (&lt;50%): <strong style={{ color: '#334155' }}>{summaryRowForSelection.students_struggling ?? '-'}</strong>
+                        </li>
+                        <li>
+                          Quiz questions linked: <strong style={{ color: '#334155' }}>{summaryRowForSelection.question_count ?? 0}</strong>
+                        </li>
+                      </ul>
+                    ) : (
+                      <p style={{
+                        margin: 0,
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: 12,
+                        color: '#64748b',
+                        lineHeight: 1.55,
+                      }}>
+                        Cohort breakdown (mastered / struggling / quiz count) appears when this concept is returned by the class concept-summary API. Snapshot tiles still show fair class % from the graph.
+                      </p>
+                    )}
+                    {(depthLine || diffLine) && (
+                      <p style={{
+                        margin: '10px 0 0 0',
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: 12,
+                        color: '#475569',
+                        lineHeight: 1.55,
+                      }}>
+                        {depthLine && (
+                          <span style={{ display: 'block' }}>
+                            Graph depth: <strong style={{ color: '#334155' }}>{depthLine}</strong>
+                          </span>
+                        )}
+                        {diffLine && (
+                          <span style={{ display: 'block', marginTop: 4 }}>
+                            Difficulty: <strong style={{ color: '#334155' }}>{diffLine}</strong>
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onConceptSelectionChange?.(null)}
+                      className="axon-btn min-h-[2rem] rounded-lg border-2 border-[#94a3b8] bg-white/90 px-3 py-1.5 text-[11px] !normal-case text-slate-600 shadow-[2px_2px_0_#cbd5e1] hover:bg-[#fffef4]"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/teacher/knowledge-graph')}
+                      className="axon-btn axon-btn-primary min-h-[2rem] rounded-lg border-2 border-[#2c2418] px-3 py-1.5 text-[11px] !normal-case shadow-[2px_2px_0_#2c2418]"
+                    >
+                      Open in map
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -597,9 +769,10 @@ export default function TeacherDashboard() {
 
   const {
     masteryMap: classFairMasteryMap,
-    source: cohortSource,
-    studentCount: cohortN,
+    loading: cohortMasteryLoading,
   } = useClassMasteryMap(1, 'Mathematics', { studentIds: graphStudentIds });
+
+  const [conceptSelection, setConceptSelection] = useState(null);
 
   const dataReady = Boolean(classData) && !loading;
   const barComplete = progress >= 99.9;
@@ -651,40 +824,45 @@ export default function TeacherDashboard() {
         </div>
         <section className="space-y-3 sm:space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <h2 className="axon-h2 text-base text-slate-800">Knowledge Graph</h2>
+            <h2 className="axon-h2 text-base text-slate-800">Class mastery snapshot</h2>
             <button
               type="button"
               onClick={() => navigate('/teacher/knowledge-graph')}
               className="axon-btn axon-btn-ghost shrink-0 self-start sm:self-auto"
             >
-              Full View
+              Full map
             </button>
           </div>
           <p className="text-[11px] text-slate-500 max-w-3xl leading-relaxed">
-            Class overview shows the full concept map. Cohort colours use a median across learners when built from
-            individual mastery (and a softened display scale) so outliers don’t dominate; class-summary uses the API
-            average with the same scaling. Shaded boxes group nodes by prerequisite depth (fundamentals on the left).
-            Use Whole class vs Concepts to switch cohort colouring off.
+            Snapshot uses the same <span className="font-medium text-slate-700">depth columns</span> as the map
+            (Fundamentals → Further); topic tiles show graph mastery colours. Open{' '}
+            <span className="font-medium text-slate-700">Full map</span> for the interactive graph.
           </p>
-          <div className="axon-card-subtle relative flex min-h-[min(72dvh,1800px)] h-[min(88dvh,2800px)] max-h-[min(96dvh,3200px)] flex-col overflow-hidden rounded-lg p-3 sm:p-4">
-            <KnowledgeGraphNew
+          <div className="axon-card-subtle rounded-lg p-3 sm:p-4">
+            <ClassMasteryTopicStrip
               subject="Mathematics"
-              mapOnly
-              focusKeyNodes={false}
-              defaultExploration="canvas"
-              masteryMap={classFairMasteryMap || undefined}
-              showTeacherViewToggle
-              cohortMasteryMeta={
-                cohortSource === 'student-aggregate' && cohortN > 0
-                  ? { source: 'student-aggregate', studentCount: cohortN }
-                  : cohortSource === 'class-summary'
-                    ? { source: 'class-summary' }
-                    : null
-              }
+              masteryMap={classFairMasteryMap}
+              masteryLoading={cohortMasteryLoading}
+              selectedConceptId={conceptSelection?.id}
+              onConceptSelect={(detail) => {
+                setConceptSelection({
+                  id: detail.id,
+                  fromSnapshot: {
+                    name: detail.name,
+                    score: detail.score,
+                    depthIdx: detail.depthIdx,
+                    difficulty_level: detail.difficulty_level,
+                  },
+                });
+              }}
             />
           </div>
         </section>
-        <ConceptStrengthsSection navigate={navigate} />
+        <ConceptStrengthsSection
+          navigate={navigate}
+          conceptSelection={conceptSelection}
+          onConceptSelectionChange={setConceptSelection}
+        />
       </div>
     </DashboardShell>
   );

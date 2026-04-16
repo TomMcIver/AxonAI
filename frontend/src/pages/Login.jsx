@@ -55,7 +55,7 @@ export default function Login() {
               Choose how you&apos;re signing in
             </h1>
             <p className="mx-auto max-w-[min(100%,var(--ux-max-read))] text-sm leading-[var(--ux-line-relaxed)] text-slate-500">
-              This demo skips passwords — pick the view that matches you.
+              This demo skips passwords. Pick the view that matches you.
             </p>
           </div>
 
@@ -86,7 +86,7 @@ export default function Login() {
 
           <div className="mt-[var(--ux-space-5)] border-t border-slate-200/60 pt-[var(--ux-space-4)]">
             <p className="text-center text-xs leading-[var(--ux-line-relaxed)] text-slate-400">
-              AxonAI demo — no real student data is used here.
+              AxonAI demo: no real student data is used here.
             </p>
           </div>
         </div>

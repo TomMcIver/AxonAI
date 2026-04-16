@@ -118,7 +118,7 @@ export default function Landing() {
             The intelligence layer your school is missing.
           </h1>
           <p className="lp2-copy lp2-reveal-up" data-lp2-reveal>
-            AxonAI gives teachers predictive insight, students a Socratic AI tutor, and parents real-time visibility —
+            AxonAI gives teachers predictive insight, students a Socratic AI tutor, and parents real-time visibility,
             grounded in the NCEA curriculum.
           </p>
           <div className="lp2-cta lp2-reveal-up" data-lp2-reveal>
@@ -152,7 +152,7 @@ export default function Landing() {
           <h2>Teacher-first, NCEA-aligned, research-backed.</h2>
           <p className="lp2-copy">
             We build with New Zealand schools, inside the NCEA framework, in partnership with University of Auckland
-            researchers. AxonAI augments teachers — it does not replace them.
+            researchers. AxonAI augments teachers; it does not replace them.
           </p>
         </section>
       </main>

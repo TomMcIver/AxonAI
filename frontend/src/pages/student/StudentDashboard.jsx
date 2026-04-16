@@ -147,7 +147,7 @@ export default function StudentDashboard() {
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-slate-700">Overall mastery</p>
               <span className="axon-pill text-[0.7rem]">
-                {profile?.overall_mastery_trend === 'improving' ? "You're improving" : (profile?.overall_mastery_trend || '—')}
+                {profile?.overall_mastery_trend === 'improving' ? "You're improving" : (profile?.overall_mastery_trend || '-')}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -210,7 +210,7 @@ export default function StudentDashboard() {
             <p className="text-[0.72rem] text-slate-500 mb-2 leading-relaxed">
               Recently with the AxonAI tutor.{' '}
               <span className="text-slate-600">
-                Click a session to open that conversation — it appears directly below the row.
+                Click a session to open that conversation. It appears directly below the row.
               </span>
             </p>
             <div className="space-y-2 max-h-[min(28rem,70vh)] overflow-y-auto pr-1">
@@ -253,7 +253,7 @@ export default function StudentDashboard() {
           <div className="space-y-2">
             <p className="text-sm font-semibold text-slate-700">Your learning map (Mathematics)</p>
             <p className="text-xs leading-relaxed text-slate-500">
-              Switch between the full prerequisite tree and explore mode — click to open the path and see what comes next.
+              Switch between the full prerequisite tree and explore mode. Click to open the path and see what comes next.
               Shaded columns show level (left = fundamentals).
             </p>
           </div>
