@@ -39,12 +39,14 @@ export function primeStudentDashboard(studentId = 1) {
       getStudentDashboard(studentId),
       getStudentMastery(studentId),
       getStudentPedagogy(studentId),
-      getStudentConversations(studentId, 44),
+      getStudentFlags(studentId),
+      getStudentConversations(studentId, 20),
       getConcepts('Mathematics').catch(() => null),
-    ]).then(([dashboard, mastery, pedagogy, conversations, graphData]) => ({
+    ]).then(([dashboard, mastery, pedagogy, flags, conversations, graphData]) => ({
       dashboard,
       mastery,
       pedagogy,
+      flags,
       conversations,
       graphData,
     })),

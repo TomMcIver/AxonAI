@@ -580,6 +580,7 @@ export default function StudentDetail() {
                           <div className="rounded-lg border border-slate-200 overflow-hidden">
                             <ConversationThread
                               conversationId={c.id}
+                              studentId={Number(id)}
                               onClose={() => toggleConversation(c.id)}
                             />
                           </div>

@@ -10,6 +10,7 @@ import {
   X,
   ChevronDown,
   PanelLeftClose,
+  MessageSquare,
 } from 'lucide-react';
 
 const NAVS = {
@@ -20,7 +21,6 @@ const NAVS = {
     { icon: Network, label: 'Knowledge Graph', path: '/teacher/knowledge-graph' },
     { icon: Settings, label: 'Settings', path: '/teacher/settings' },
   ],
-  student: [{ icon: LayoutDashboard, label: 'Overview', path: '/student' }],
   parent: [{ icon: LayoutDashboard, label: 'Overview', path: '/parent' }],
 };
 
@@ -40,7 +40,20 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
     return 'teacher';
   }, [location.pathname, modeProp]);
 
-  const navItems = NAVS[mode] || NAVS.teacher;
+  const navItems = useMemo(() => {
+    if (mode === 'student') {
+      const m = location.pathname.match(/^\/student\/(\d+)(?:\/|$)/);
+      const studentBase = m ? `/student/${m[1]}` : '/student';
+      const graphPath =
+        studentBase === '/student' ? '/student/knowledge-graph' : `${studentBase}/knowledge-graph`;
+      return [
+        { icon: LayoutDashboard, label: 'Overview', path: studentBase },
+        { icon: Network, label: 'Learning map', path: graphPath },
+        { icon: MessageSquare, label: 'AI Tutor', path: '/student/chat' },
+      ];
+    }
+    return NAVS[mode] || NAVS.teacher;
+  }, [mode, location.pathname]);
 
   useEffect(() => {
     const previousPath = previousPathRef.current;
@@ -223,9 +236,10 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
               {navItems.map(item => {
                 const Icon = item.icon;
                 const isActive =
-                  location.pathname === item.path ||
-                  (item.path !== '/teacher' &&
-                    location.pathname.startsWith(item.path));
+                  mode === 'student'
+                    ? location.pathname === item.path
+                    : location.pathname === item.path ||
+                      (item.path !== '/teacher' && location.pathname.startsWith(item.path));
 
                 return (
                   <button
@@ -348,9 +362,10 @@ export default function DashboardShell({ children, subtitle, mode: modeProp }) {
                 {navItems.map(item => {
                   const Icon = item.icon;
                   const isActive =
-                    location.pathname === item.path ||
-                    (item.path !== '/teacher' &&
-                      location.pathname.startsWith(item.path));
+                    mode === 'student'
+                      ? location.pathname === item.path
+                      : location.pathname === item.path ||
+                        (item.path !== '/teacher' && location.pathname.startsWith(item.path));
                   return (
                     <button
                       key={item.path}

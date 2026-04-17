@@ -505,11 +505,32 @@ body {
 
 .app-shell input,
 .app-shell select,
-.app-shell textarea {
+.app-shell textarea:not(.math-composer-overlay) {
   border: 2px solid #2c2418 !important;
   background: #fffef4 !important;
   border-radius: 8px !important;
   color: #2c2418 !important;
+}
+
+/*
+ * AI Tutor math composer: excluded from the retro textarea rule above, so without an explicit
+ * `color` the field inherits `color` from `.app-shell` / body — that beats layered Tailwind
+ * `text-transparent` and hides the KaTeX mirror. Lock transparency with !important.
+ */
+.app-shell textarea.math-composer-overlay,
+.app-shell textarea.math-composer-overlay:focus,
+.app-shell textarea.math-composer-overlay:focus-visible {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  background-color: transparent !important;
+  caret-color: rgb(30 41 59) !important;
+  outline: none !important;
+}
+
+.app-shell textarea.math-composer-overlay::placeholder {
+  color: rgb(148 163 184) !important;
+  -webkit-text-fill-color: rgb(148 163 184) !important;
+  opacity: 1 !important;
 }
 
 .app-shell table th,

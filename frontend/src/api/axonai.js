@@ -51,9 +51,21 @@ export function getStudentPredictions(studentId) {
   return fetchAPI(`/student/${studentId}/predictions`);
 }
 
-// Conversation messages
-export function getConversationMessages(conversationId) {
-  return fetchAPI(`/conversation/${conversationId}/messages`);
+export function sendChatMessage(studentId, message, conceptId = null, conversationId = null) {
+  return fetchAPI(`/student/${studentId}/chat`, {
+    method: 'POST',
+    body: JSON.stringify({
+      message,
+      concept_id: conceptId,
+      ...(conversationId != null ? { conversation_id: conversationId } : {}),
+    }),
+  });
+}
+
+// Conversation messages (optional studentId enforces ownership on the API)
+export function getConversationMessages(conversationId, studentId = null) {
+  const q = studentId != null ? `?student_id=${encodeURIComponent(studentId)}` : '';
+  return fetchAPI(`/conversation/${conversationId}/messages${q}`);
 }
 
 // Class endpoints
