@@ -362,6 +362,214 @@ function pushInlineSegments(text, out) {
   }
 }
 
+/** Raw-string segments with [start,end) indices into the textarea value (no preprocess) — for caret + mirror. */
+function pushInlineSegmentsWithRanges(text, base, out) {
+  if (!text) return;
+  let pos = 0;
+  while (pos < text.length) {
+    const paren = text.indexOf('\\(', pos);
+    let dollar = text.indexOf('$', pos);
+    while (dollar !== -1 && text[dollar + 1] === '$') {
+      dollar = text.indexOf('$', dollar + 2);
+    }
+
+    let next = -1;
+    let mode = null;
+    if (paren === -1 && dollar === -1) {
+      out.push({ type: 'text', value: text.slice(pos), start: base + pos, end: base + text.length });
+      return;
+    }
+    if (paren === -1) {
+      next = dollar;
+      mode = 'dollar';
+    } else if (dollar === -1) {
+      next = paren;
+      mode = 'paren';
+    } else if (paren < dollar) {
+      next = paren;
+      mode = 'paren';
+    } else {
+      next = dollar;
+      mode = 'dollar';
+    }
+
+    if (next > pos) {
+      out.push({ type: 'text', value: text.slice(pos, next), start: base + pos, end: base + next });
+    }
+
+    if (mode === 'paren') {
+      const end = text.indexOf('\\)', next + 2);
+      if (end === -1) {
+        out.push({ type: 'text', value: text.slice(next), start: base + next, end: base + text.length });
+        return;
+      }
+      out.push({
+        type: 'inline',
+        value: text.slice(next + 2, end),
+        start: base + next,
+        end: base + end + 2,
+      });
+      pos = end + 2;
+    } else {
+      const end = text.indexOf('$', next + 1);
+      if (end === -1) {
+        out.push({ type: 'text', value: text.slice(next), start: base + next, end: base + text.length });
+        return;
+      }
+      out.push({
+        type: 'inline',
+        value: text.slice(next + 1, end),
+        start: base + next,
+        end: base + end + 1,
+      });
+      pos = end + 1;
+    }
+  }
+}
+
+function segmentComposerWithRanges(content) {
+  const s = String(content ?? '');
+  if (s === '') return [];
+
+  const out = [];
+  let pos = 0;
+
+  while (pos < s.length) {
+    const dd = s.indexOf('$$', pos);
+    const bb = s.indexOf('\\[', pos);
+    let pick = -1;
+    let kind = null;
+    if (dd !== -1 && (bb === -1 || dd <= bb)) {
+      pick = dd;
+      kind = 'dd';
+    } else if (bb !== -1) {
+      pick = bb;
+      kind = 'bb';
+    }
+
+    if (pick === -1) {
+      pushInlineSegmentsWithRanges(s.slice(pos), pos, out);
+      break;
+    }
+
+    if (pick > pos) {
+      pushInlineSegmentsWithRanges(s.slice(pos, pick), pos, out);
+    }
+
+    if (kind === 'dd') {
+      const end = s.indexOf('$$', pick + 2);
+      if (end === -1) {
+        pushInlineSegmentsWithRanges(s.slice(pick), pick, out);
+        break;
+      }
+      out.push({ type: 'block', value: s.slice(pick + 2, end), start: pick, end: end + 2 });
+      pos = end + 2;
+    } else {
+      const end = s.indexOf('\\]', pick + 2);
+      if (end === -1) {
+        pushInlineSegmentsWithRanges(s.slice(pick), pick, out);
+        break;
+      }
+      out.push({ type: 'block', value: s.slice(pick + 2, end), start: pick, end: end + 2 });
+      pos = end + 2;
+    }
+  }
+
+  return out;
+}
+
+function ComposerCaret() {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none"
+      style={{
+        display: 'inline-block',
+        width: '1px',
+        height: '1.12em',
+        verticalAlign: 'text-bottom',
+        backgroundColor: 'rgb(30 41 59)',
+        animation: 'axonComposerCaretBlink 1.05s steps(1, end) infinite',
+      }}
+    />
+  );
+}
+
+function renderComposerSegmentNode(seg, idx) {
+  if (seg.type === 'block') {
+    return (
+      <div key={`b-${idx}`} className="my-1 w-full overflow-x-auto py-0.5">
+        <div
+          className="katex-display text-center"
+          dangerouslySetInnerHTML={{ __html: renderKatexHtml(seg.value, true) }}
+        />
+      </div>
+    );
+  }
+  if (seg.type === 'inline') {
+    return (
+      <span
+        key={`i-${idx}`}
+        className="katex-wrap mx-0.5 inline-block align-baseline"
+        dangerouslySetInnerHTML={{ __html: renderKatexHtml(seg.value, false) }}
+      />
+    );
+  }
+  return <TextSpan key={`t-${idx}`} text={seg.value} />;
+}
+
+function renderMirrorWithCaret(segments, caret, len) {
+  if (len === 0) {
+    return [<ComposerCaret key="caret-0" />];
+  }
+
+  const elems = [];
+  let k = 0;
+  let caretDone = false;
+
+  const pushCaret = () => {
+    if (caretDone) return;
+    elems.push(<ComposerCaret key={`caret-${k++}`} />);
+    caretDone = true;
+  };
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+
+    if (!caretDone && caret <= seg.start) {
+      pushCaret();
+    }
+
+    if (!caretDone && seg.type === 'text' && caret > seg.start && caret < seg.end) {
+      const off = caret - seg.start;
+      elems.push(<TextSpan key={`tx-${i}a`} text={seg.value.slice(0, off)} />);
+      pushCaret();
+      elems.push(<TextSpan key={`tx-${i}b`} text={seg.value.slice(off)} />);
+      continue;
+    }
+
+    if (!caretDone && (seg.type === 'inline' || seg.type === 'block') && caret > seg.start && caret < seg.end) {
+      const mid = (seg.start + seg.end) / 2;
+      if (caret < mid) {
+        pushCaret();
+        elems.push(renderComposerSegmentNode(seg, i));
+      } else {
+        elems.push(renderComposerSegmentNode(seg, i));
+        pushCaret();
+      }
+      continue;
+    }
+
+    elems.push(renderComposerSegmentNode(seg, i));
+  }
+
+  if (!caretDone && caret >= len) {
+    pushCaret();
+  }
+
+  return elems;
+}
+
 /**
  * Last resort: small text segment still contains raw \\frac / \\lim; never KaTeX an English paragraph.
  */
@@ -394,7 +602,69 @@ function TextSpan({ text }) {
   return <span className="inline-block max-w-full align-baseline">{inner}</span>;
 }
 
-function MessageBody({ content }) {
+/**
+ * Single flowing block (whitespace-pre-wrap) for overlay editors where the textarea
+ * must align with rendered math — same segments as MessageBody but no paragraph splits.
+ */
+export function MessageBodyFlat({ content }) {
+  const segments = useMemo(() => segmentMessageContent(content), [content]);
+
+  const nodes = useMemo(() => {
+    return segments.map((seg, idx) => {
+      if (seg.type === 'block') {
+        return (
+          <div key={`b-${idx}`} className="my-1 w-full overflow-x-auto py-0.5">
+            <div
+              className="katex-display text-center"
+              dangerouslySetInnerHTML={{ __html: renderKatexHtml(seg.value, true) }}
+            />
+          </div>
+        );
+      }
+      if (seg.type === 'text') {
+        return <TextSpan key={`t-${idx}`} text={seg.value} />;
+      }
+      if (seg.type === 'inline') {
+        return (
+          <span
+            key={`i-${idx}`}
+            className="katex-wrap mx-0.5 inline-block align-baseline"
+            dangerouslySetInnerHTML={{ __html: renderKatexHtml(seg.value, false) }}
+          />
+        );
+      }
+      return null;
+    });
+  }, [segments]);
+
+  return (
+    <div className="conversation-math whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-800 [&_.katex]:text-[0.98em] [&_.katex-display]:my-0.5">
+      {nodes}
+    </div>
+  );
+}
+
+/**
+ * Composer mirror: KaTeX + a fake caret at `caretOffset` (textarea selectionStart).
+ * The native caret tracks raw LaTeX width and misaligns vs rendered math — hide it in CSS.
+ */
+export function MessageBodyComposerMirror({ content, caretOffset }) {
+  const raw = String(content ?? '');
+  const len = raw.length;
+  const caret = Math.max(0, Math.min(Number.isFinite(caretOffset) ? caretOffset : 0, len));
+
+  const segments = useMemo(() => segmentComposerWithRanges(content), [content]);
+
+  const nodes = useMemo(() => renderMirrorWithCaret(segments, caret, len), [segments, caret, len]);
+
+  return (
+    <div className="conversation-math whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-800 [&_.katex]:text-[0.98em] [&_.katex-display]:my-0.5">
+      {nodes}
+    </div>
+  );
+}
+
+export function MessageBody({ content }) {
   const segments = useMemo(() => segmentMessageContent(content), [content]);
 
   const blocks = useMemo(() => {
@@ -451,7 +721,7 @@ function MessageBody({ content }) {
   );
 }
 
-export default function ConversationThread({ conversationId, onClose, variant = 'panel' }) {
+export default function ConversationThread({ conversationId, studentId = null, onClose, variant = 'panel' }) {
   const [messages, setMessages] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -460,10 +730,10 @@ export default function ConversationThread({ conversationId, onClose, variant = 
   useEffect(() => {
     if (!conversationId) return;
     setLoading(true);
-    getConversationMessages(conversationId)
+    getConversationMessages(conversationId, studentId)
       .then(data => { setMessages(data.messages || data); setLoading(false); })
       .catch(err => { setError(err.message); setLoading(false); });
-  }, [conversationId]);
+  }, [conversationId, studentId]);
 
   if (loading) {
     return (

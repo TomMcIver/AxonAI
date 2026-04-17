@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
@@ -11,6 +11,8 @@ import StudentsPage from './pages/teacher/StudentsPage';
 import SubjectsPage from './pages/teacher/SubjectsPage';
 import SettingsPage from './pages/teacher/SettingsPage';
 import StudentDashboard from './pages/student/StudentDashboard';
+import StudentKnowledgeGraphPage from './pages/student/StudentKnowledgeGraphPage';
+import AITutorPage from './pages/student/AITutorPage';
 import ParentDashboard from './pages/parent/ParentDashboard';
 
 export default function App() {
@@ -29,7 +31,10 @@ export default function App() {
         <Route path="/teacher/student/:id" element={<StudentDetail />} />
         <Route path="/teacher/knowledge-graph" element={<KnowledgeGraphPage />} />
         <Route path="/teacher/knowledge-graph/:subject" element={<KnowledgeGraphPage />} />
+        <Route path="/student/knowledge-graph" element={<StudentKnowledgeGraphPage />} />
+        <Route path="/student/:id/knowledge-graph" element={<StudentKnowledgeGraphPage />} />
         <Route path="/student" element={<StudentDashboard />} />
+        <Route path="/student/chat" element={<AITutorPage />} />
         <Route path="/student/:id" element={<StudentDashboard />} />
         <Route path="/parent" element={<ParentDashboard />} />
         <Route path="/parent/:id" element={<ParentDashboard />} />

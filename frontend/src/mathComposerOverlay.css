@@ -1,0 +1,36 @@
+/**
+ * AI Tutor math composer: textarea over a KaTeX mirror (MessageBodyComposerMirror draws a logical caret).
+ * Typed characters must be invisible so rendered math shows through.
+ *
+ * Imported directly from index.jsx (not via the Tailwind → compiled.css pipeline)
+ * so these rules always ship; id selector beats inheritance and utility-layer quirks.
+ */
+#axon-math-composer-input,
+#axon-math-composer-input:focus,
+#axon-math-composer-input:focus-visible {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  /* Native caret follows raw LaTeX width; mirror draws a logical caret — hide the real one */
+  caret-color: transparent !important;
+}
+
+#axon-math-composer-input::placeholder {
+  color: rgb(148 163 184) !important;
+  -webkit-text-fill-color: rgb(148 163 184) !important;
+  opacity: 1 !important;
+}
+
+@keyframes axonComposerCaretBlink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
