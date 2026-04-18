@@ -1,1 +1,1 @@
-"""ML package — legacy training pipeline removed; simulator v2 rebuild pending."""
+"""ML package root — see ``ml.simulator`` for the current simulator code."""
