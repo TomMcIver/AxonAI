@@ -53,9 +53,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report.to_dict(), indent=2))
     print(f"[validation] wrote {out}")
-    print(f"  2PL: a ρ={report.recovery_2pl['a_pearson']:.2f} "
-          f"| b ρ={report.recovery_2pl['b_pearson']:.2f}")
-    print(f"  θ  : ρ={report.recovery_theta['theta_pearson']:.2f} "
+    print(f"  2PL: a rho={report.recovery_2pl['a_pearson']:.2f} "
+          f"| b rho={report.recovery_2pl['b_pearson']:.2f}")
+    print(f"  theta: rho={report.recovery_theta['theta_pearson']:.2f} "
           f"MAE={report.recovery_theta['theta_mae']:.2f}")
     print(f"  KS : D={report.correct_rate_ks['ks_statistic']:.3f} "
           f"p={report.correct_rate_ks['ks_pvalue']:.3g}")
