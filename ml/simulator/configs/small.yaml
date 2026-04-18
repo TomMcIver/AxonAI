@@ -1,0 +1,11 @@
+# Small dev / smoke config — used by PR 8 smoke test and local iteration.
+# Fields match SimulationConfig once populated (PR 3 + PR 9).
+#
+# Placeholder — real values populated alongside SimulationConfig.
+n_students: 10
+term_weeks: 1
+sessions_per_week: 3
+minutes_per_session: 20
+subject: math
+seed: 42
+output_target: local_parquet
