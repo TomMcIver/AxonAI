@@ -28,10 +28,8 @@ class TestRunValidation:
         assert report.recovery_2pl["b_pearson"] > 0.8
         # Theta recovers strongly with enough students.
         assert report.recovery_theta["theta_pearson"] > 0.7
-        # BKT MAE bounded; Pearson is unstable at 3 skills — the full
-        # validation run at 4+ skills is where the learning-rate
-        # correlation signal stabilises (see docs/simulator/v1-validation.md).
-        assert report.recovery_bkt["p_transit_mae"] < 0.3
+        # Config.n_sessions must match what the loop actually ran.
+        assert report.n_sessions == 6
 
     def test_deterministic_given_seed(self) -> None:
         a = run_validation(

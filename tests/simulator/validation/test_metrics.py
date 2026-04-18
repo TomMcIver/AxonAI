@@ -26,6 +26,22 @@ class TestRecovery2PL:
         assert out["b_pearson"] > 0.99
         assert out["a_mae"] < 1e-9
 
+    def test_pearson_is_nan_with_single_item(self) -> None:
+        truth = pd.DataFrame({"problem_id": [1], "a": [1.0], "b": [0.0]})
+        fitted = pd.DataFrame({"item_id": [1], "a": [1.0], "b": [0.0]})
+        out = metrics.recovery_2pl(truth, fitted)
+        assert out["n_items"] == 1
+        assert np.isnan(out["a_pearson"])
+        assert np.isnan(out["b_pearson"])
+        assert out["a_mae"] == 0.0
+
+    def test_pearson_is_nan_when_truth_is_constant(self) -> None:
+        truth = pd.DataFrame({"problem_id": [1, 2, 3], "a": [1.0, 1.0, 1.0], "b": [0.0, 1.0, -1.0]})
+        fitted = pd.DataFrame({"item_id": [1, 2, 3], "a": [1.0, 1.2, 0.9], "b": [0.1, 0.9, -0.8]})
+        out = metrics.recovery_2pl(truth, fitted)
+        assert np.isnan(out["a_pearson"])
+        assert not np.isnan(out["b_pearson"])
+
 
 class TestRecoveryTheta:
     def test_joins_on_user_id(self) -> None:
@@ -35,19 +51,19 @@ class TestRecoveryTheta:
         assert out["n_users"] == 3
         assert out["theta_pearson"] > 0.9
 
+    def test_pearson_is_nan_with_single_user(self) -> None:
+        truth = pd.DataFrame({"user_id": [1], "theta": [0.0]})
+        fitted = pd.DataFrame({"user_id": [1], "theta": [0.5]})
+        out = metrics.recovery_theta(truth, fitted)
+        assert out["n_users"] == 1
+        assert np.isnan(out["theta_pearson"])
+        assert out["theta_mae"] == 0.5
 
-class TestRecoveryBKT:
-    def test_per_param_mae_when_all_match(self) -> None:
-        truth = pd.DataFrame({
-            "skill_id": [1, 2],
-            "p_init": [0.1, 0.2],
-            "p_transit": [0.1, 0.2],
-            "p_slip": [0.05, 0.1],
-            "p_guess": [0.2, 0.25],
-        })
-        out = metrics.recovery_bkt(truth, truth.copy())
-        for p in ("p_init", "p_transit", "p_slip", "p_guess"):
-            assert out[f"{p}_mae"] < 1e-9
+    def test_pearson_is_nan_when_fit_is_constant(self) -> None:
+        truth = pd.DataFrame({"user_id": [1, 2, 3], "theta": [-1.0, 0.0, 1.0]})
+        fitted = pd.DataFrame({"user_id": [1, 2, 3], "theta": [0.5, 0.5, 0.5]})
+        out = metrics.recovery_theta(truth, fitted)
+        assert np.isnan(out["theta_pearson"])
 
 
 class TestKSCorrectRate:

@@ -2,8 +2,10 @@
 
 Two families:
 
-1. **Parameter recovery** — how close are fitted (a, b, BKT params) to
-   the known truth? Pearson correlation + mean absolute error.
+1. **Parameter recovery** — how close are fitted (a, b, θ) to the known
+   truth? Pearson correlation + mean absolute error. BKT recovery is
+   deferred to Phase 2 because the Phase 1 synthetic truth does not
+   simulate a BKT-generating process (see docs/simulator/v1-validation.md).
 2. **Distribution fidelity** — KS test on simulated vs reference
    correct-rate and response-time distributions.
 
@@ -24,7 +26,8 @@ def recovery_2pl(
 ) -> dict:
     """Join on `problem_id` (truth) vs `item_id` (fit) and compare a, b.
 
-    Returns correlations + MAE + sample size.
+    Returns MAE + sample size. Pearson is `nan` when the merged set has
+    fewer than 2 items or either column is constant.
     """
     fit = fitted_params.rename(columns={"item_id": "problem_id"})
     merged = true_params.merge(
@@ -32,55 +35,49 @@ def recovery_2pl(
         on="problem_id",
         how="inner",
     )
-    return {
+    out = {
         "n_items": int(len(merged)),
-        "a_pearson": float(stats.pearsonr(merged["a"], merged["a_fit"]).statistic),
-        "a_mae": float(np.mean(np.abs(merged["a"] - merged["a_fit"]))),
-        "b_pearson": float(stats.pearsonr(merged["b"], merged["b_fit"]).statistic),
-        "b_mae": float(np.mean(np.abs(merged["b"] - merged["b_fit"]))),
+        "a_pearson": float("nan"),
+        "a_mae": float(np.mean(np.abs(merged["a"] - merged["a_fit"]))) if len(merged) else float("nan"),
+        "b_pearson": float("nan"),
+        "b_mae": float(np.mean(np.abs(merged["b"] - merged["b_fit"]))) if len(merged) else float("nan"),
     }
+    if len(merged) >= 2:
+        if float(merged["a"].std()) > 1e-12 and float(merged["a_fit"].std()) > 1e-12:
+            out["a_pearson"] = float(stats.pearsonr(merged["a"], merged["a_fit"]).statistic)
+        if float(merged["b"].std()) > 1e-12 and float(merged["b_fit"].std()) > 1e-12:
+            out["b_pearson"] = float(stats.pearsonr(merged["b"], merged["b_fit"]).statistic)
+    return out
 
 
 def recovery_theta(
     true_theta: pd.DataFrame,
     fitted_theta: pd.DataFrame,
 ) -> dict:
-    """Correlation of fitted theta vs true theta per user."""
+    """Correlation of fitted theta vs true theta per user.
+
+    Pearson is `nan` when the merged set has fewer than 2 users or
+    either theta column is constant.
+    """
     merged = true_theta.merge(
         fitted_theta.rename(columns={"theta": "theta_fit"}),
         on="user_id",
         how="inner",
     )
+    theta_true = merged["theta"] if len(merged) else pd.Series(dtype=float)
+    theta_fit = merged["theta_fit"] if len(merged) else pd.Series(dtype=float)
+    theta_pearson = float("nan")
+    if (
+        len(merged) >= 2
+        and float(np.std(theta_true)) > 1e-12
+        and float(np.std(theta_fit)) > 1e-12
+    ):
+        theta_pearson = float(stats.pearsonr(theta_true, theta_fit).statistic)
     return {
         "n_users": int(len(merged)),
-        "theta_pearson": float(stats.pearsonr(merged["theta"], merged["theta_fit"]).statistic),
-        "theta_mae": float(np.mean(np.abs(merged["theta"] - merged["theta_fit"]))),
+        "theta_pearson": theta_pearson,
+        "theta_mae": float(np.mean(np.abs(theta_true - theta_fit))) if len(merged) else float("nan"),
     }
-
-
-def recovery_bkt(
-    true_bkt: pd.DataFrame,
-    fitted_bkt: pd.DataFrame,
-) -> dict:
-    """Per-param MAE + correlation across skills."""
-    merged = true_bkt.merge(
-        fitted_bkt,
-        on="skill_id",
-        how="inner",
-        suffixes=("_true", "_fit"),
-    )
-    out: dict = {"n_skills": int(len(merged))}
-    for p in ("p_init", "p_transit", "p_slip", "p_guess"):
-        true_col = f"{p}_true"
-        fit_col = f"{p}_fit"
-        if true_col in merged.columns and fit_col in merged.columns:
-            out[f"{p}_mae"] = float(np.mean(np.abs(merged[true_col] - merged[fit_col])))
-            # Pearson on a constant array is undefined; skip quietly.
-            if float(merged[true_col].std()) > 1e-12 and float(merged[fit_col].std()) > 1e-12:
-                out[f"{p}_pearson"] = float(
-                    stats.pearsonr(merged[true_col], merged[fit_col]).statistic
-                )
-    return out
 
 
 def ks_correct_rate(

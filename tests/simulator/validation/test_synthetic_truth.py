@@ -15,7 +15,6 @@ class TestGenerateGroundTruth:
         )
         assert len(truth.theta_true) == 40
         assert len(truth.item_params) == 15
-        assert len(truth.bkt_params) == 3
         assert len(truth.responses) == 40 * 15
 
     def test_schema_matches_calibrator_contract(self) -> None:
@@ -29,11 +28,6 @@ class TestGenerateGroundTruth:
         b = generate_ground_truth(n_students=20, n_skills=2, items_per_skill=4, seed=7)
         pd.testing.assert_frame_equal(a.responses, b.responses)
         pd.testing.assert_frame_equal(a.item_params, b.item_params)
-
-    def test_bkt_params_obey_degeneracy_bound(self) -> None:
-        truth = generate_ground_truth(n_students=10, n_skills=5, items_per_skill=3, seed=2)
-        for row in truth.bkt_params.itertuples(index=False):
-            assert row.p_slip + row.p_guess < 1.0
 
     def test_harder_items_lower_correct_rate(self) -> None:
         truth = generate_ground_truth(n_students=400, n_skills=1, items_per_skill=10, seed=3)

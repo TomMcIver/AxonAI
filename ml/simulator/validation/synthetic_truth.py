@@ -1,21 +1,29 @@
-"""Synthetic ground truth for self-consistency validation.
+"""Synthetic ground truth for self-consistency validation (Phase 1).
 
 Generates a population of students + a pool of items with *known* 2PL
-IRT discrimination/difficulty (a, b) and *known* BKT params per skill.
-Each student answers each item once, outcome drawn from the 2PL model.
+IRT discrimination/difficulty (a, b). Each student answers each item
+once, outcome drawn from the 2PL model:
+
+    outcome ~ Bernoulli( sigmoid( a_j · (theta_i − b_j) ) )
 
 The resulting responses DataFrame matches the schema calibrators expect
-(`user_id, problem_id, correct, skill_id`), so the full calibration
-pipeline can recover these params from the synthetic responses.
+(`user_id, problem_id, correct, skill_id`), so `fit_2pl` can recover
+(a, b) and student θ from the synthetic responses.
 
-Recovery of known params from a model's own draws is a necessary
-(not sufficient) condition for the math to be right: if the simulator
-cannot learn its own ground truth, it cannot possibly learn reality.
+**BKT is intentionally not modelled here.** Phase 1 tests the IRT half
+of the stack; BKT recovery requires per-skill attempt *sequences* with
+hidden-state transitions and slip/guess emissions, which in turn
+requires real longitudinal student data (or a purpose-built BKT
+generator). Both land in Phase 2. See docs/simulator/v1-validation.md §4.
+
+Recovery of known params from a model's own draws is a necessary (not
+sufficient) condition for the math to be right: if the simulator cannot
+learn its own ground truth, it cannot possibly learn reality.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -29,7 +37,6 @@ def _logistic(z: np.ndarray) -> np.ndarray:
 class GroundTruth:
     theta_true: pd.DataFrame        # user_id, theta
     item_params: pd.DataFrame       # problem_id, a, b, skill_id
-    bkt_params: pd.DataFrame        # skill_id, p_init, p_transit, p_slip, p_guess
     responses: pd.DataFrame         # user_id, problem_id, correct, skill_id
 
 
@@ -39,13 +46,13 @@ def generate_ground_truth(
     items_per_skill: int = 20,
     seed: int = 0,
 ) -> GroundTruth:
-    """Draw students, items, and responses under known 2PL + BKT params.
+    """Draw students, items, and 2PL responses.
 
     - theta_i  ~ N(0, 1)
     - a_j      ~ Uniform(0.6, 2.0)        (discrimination)
     - b_j      ~ N(0, 1)                   (difficulty)
     - skill_id: items are partitioned equally across skills.
-    - outcome  ~ Bernoulli( 2PL(theta, a, b) )
+    - outcome  ~ Bernoulli( sigmoid( a_j · (theta_i − b_j) ) )
     """
     rng = np.random.default_rng(seed)
 
@@ -58,23 +65,10 @@ def generate_ground_truth(
     b = rng.normal(0.0, 1.0, size=n_items)
     skill_ids = np.repeat(np.arange(1, n_skills + 1), items_per_skill)
 
-    # Known BKT params per skill. Chosen wide enough that the EM fit
-    # has room to move without crossing the Beck-Chang boundary.
-    bkt_rows = []
-    for s in range(1, n_skills + 1):
-        bkt_rows.append({
-            "skill_id": s,
-            "p_init": float(rng.uniform(0.10, 0.30)),
-            "p_transit": float(rng.uniform(0.10, 0.25)),
-            "p_slip": float(rng.uniform(0.05, 0.15)),
-            "p_guess": float(rng.uniform(0.15, 0.30)),
-        })
-    bkt_params = pd.DataFrame(bkt_rows)
-
-    # Draw responses: each student answers each item once. For the IRT
-    # fit we don't need the BKT-ordered longitudinal structure — the
-    # calibration test is that fit_2pl recovers (a, b) and fit_bkt
-    # recovers the per-skill BKT params from the observed correct rates.
+    # One response per (student, item). This is enough for IRT
+    # (fit_2pl only needs the aggregate correct rate per (item,
+    # student)); it is deliberately *not* enough for BKT, which needs
+    # ordered attempt sequences per skill.
     rows = []
     theta_grid = theta[:, None]
     a_grid = a[None, :]
@@ -102,6 +96,5 @@ def generate_ground_truth(
     return GroundTruth(
         theta_true=theta_true,
         item_params=item_params,
-        bkt_params=bkt_params,
         responses=responses,
     )

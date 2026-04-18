@@ -4,16 +4,18 @@
 
 Stages:
     1. `generate_ground_truth` draws N_TRUTH students answering a known
-       item pool, each item tagged with a known skill. Yields a
+       2PL item pool, each item tagged with a skill. Yields a
        `responses_df` in the calibrators' expected schema.
     2. `fit_2pl` + `fit_bkt` + `derive_priors` turn the raw responses
-       into calibrated artefacts.
+       into calibrated artefacts. `fit_bkt` runs because later stages
+       need per-skill BKT params for the `TermRunner`; its *recovery*
+       is not measured in Phase 1 (see synthetic_truth.py).
     3. A small `ItemBank` + `ConceptGraph` are built from the calibrated
        item params (one concept per skill, a linear prerequisite chain).
     4. `TermRunner` simulates `n_sim_students` across the term using the
        fitted params + priors, writing events through the PR 9 writer.
     5. `metrics` compares fitted vs true params and simulated vs truth
-       distributions.
+       distributions (IRT + θ + correct-rate + RT + learning curve).
 
 Returns a `ValidationReport` dict suitable for JSON dumping.
 """
@@ -21,10 +23,9 @@ Returns a `ValidationReport` dict suitable for JSON dumping.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import networkx as nx
 import numpy as np
@@ -38,7 +39,6 @@ from ml.simulator.data.concept_graph import ConceptGraph
 from ml.simulator.data.item_bank import Item, ItemBank
 from ml.simulator.io.local_writer import LocalParquetWriter
 from ml.simulator.loop.runner import TermRunner
-from ml.simulator.loop.teach import TeachRecord
 from ml.simulator.psychometrics.bkt import BKTParams, BKTState
 from ml.simulator.student.profile import AttemptRecord, StudentProfile
 from ml.simulator.validation import metrics
@@ -52,10 +52,10 @@ class ValidationReport:
     n_items: int
     n_skills: int
     n_sim_students: int
+    n_sessions: int
     fit_2pl_converged: bool
     recovery_2pl: dict
     recovery_theta: dict
-    recovery_bkt: dict
     truth_correct_rate_summary: dict
     sim_correct_rate_summary: dict
     correct_rate_ks: dict
@@ -69,10 +69,10 @@ class ValidationReport:
             "n_items": self.n_items,
             "n_skills": self.n_skills,
             "n_sim_students": self.n_sim_students,
+            "n_sessions": self.n_sessions,
             "fit_2pl_converged": self.fit_2pl_converged,
             "recovery_2pl": self.recovery_2pl,
             "recovery_theta": self.recovery_theta,
-            "recovery_bkt": self.recovery_bkt,
             "truth_correct_rate_summary": self.truth_correct_rate_summary,
             "sim_correct_rate_summary": self.sim_correct_rate_summary,
             "correct_rate_ks": self.correct_rate_ks,
@@ -82,9 +82,6 @@ class ValidationReport:
 
 
 def _build_concept_graph_from_skills(skill_ids: list[int]) -> ConceptGraph:
-    """Linear prerequisite chain: skill_1 → skill_2 → … so the
-    TermRunner's topological_next advances across the chain.
-    """
     g = nx.DiGraph()
     ordered = sorted(skill_ids)
     g.add_nodes_from(ordered)
@@ -154,6 +151,36 @@ def _build_student(
     )
 
 
+def _sim_config_from_sessions(
+    n_students: int, n_sessions: int, seed: int,
+) -> SimulationConfig:
+    """Build a SimulationConfig whose n_sessions == the value we will run.
+
+    Keeps `sessions_per_week = 3` (the project default) and chooses the
+    smallest `term_weeks` that spans `n_sessions`; then writes the extra
+    sessions into `sessions_per_week` so the product matches exactly.
+    """
+    if n_sessions <= 0:
+        return SimulationConfig(
+            n_students=n_students, term_weeks=0, sessions_per_week=0,
+            minutes_per_session=20, subject="math", seed=seed,
+        )
+    sessions_per_week = 3
+    term_weeks = (n_sessions + sessions_per_week - 1) // sessions_per_week
+    # Widen sessions_per_week if term_weeks * 3 overshoots, so product == n_sessions.
+    if term_weeks * sessions_per_week != n_sessions:
+        term_weeks = 1
+        sessions_per_week = n_sessions
+    return SimulationConfig(
+        n_students=n_students,
+        term_weeks=term_weeks,
+        sessions_per_week=sessions_per_week,
+        minutes_per_session=20,
+        subject="math",
+        seed=seed,
+    )
+
+
 def run_validation(
     n_truth_students: int = 400,
     n_skills: int = 4,
@@ -194,12 +221,15 @@ def run_validation(
     # Stage 4: simulate a fresh cohort.
     master_rng = np.random.default_rng(seed + 1)
     start_time = datetime(2024, 1, 1, 9, 0, 0)
-    sim_config = SimulationConfig(
-        n_students=n_sim_students, term_weeks=n_sessions // 3 or 1,
-        sessions_per_week=3, minutes_per_session=20,
-        subject="math", seed=seed,
+    sim_config = _sim_config_from_sessions(
+        n_students=n_sim_students, n_sessions=n_sessions, seed=seed,
+    )
+    assert sim_config.n_sessions == n_sessions, (
+        f"SimulationConfig mismatch: config.n_sessions={sim_config.n_sessions} "
+        f"but loop will run {n_sessions}"
     )
 
+    per_student_correct_rates: list[float] = []
     all_attempts: list[AttemptRecord] = []
     writer_ctx = (
         LocalParquetWriter(parquet_output_dir, run_id, sim_config)
@@ -225,11 +255,15 @@ def run_validation(
                 revise_items_per_concept=1,
                 seed=student_seed,
             )
+            student_outcomes: list[bool] = []
             for event in runner.run():
                 if writer_ctx is not None:
                     writer_ctx.write(event)
                 if isinstance(event, AttemptRecord):
                     all_attempts.append(event)
+                    student_outcomes.append(bool(event.is_correct))
+            if student_outcomes:
+                per_student_correct_rates.append(float(np.mean(student_outcomes)))
     finally:
         if writer_ctx is not None:
             writer_ctx.close()
@@ -248,29 +282,19 @@ def run_validation(
     truth_per_user = (
         truth.responses.groupby("user_id")["correct"].mean().to_numpy()
     )
-    if len(sim_attempts_df):
-        # Synthesise a per-student correct rate from the parquet-equivalent data.
-        # We grouped events without student_id above; rebuild by running again
-        # would be wasteful. Instead bucket every `k` attempts as one student.
-        rates = []
-        attempts_per_student = max(1, len(all_attempts) // max(1, n_sim_students))
-        for i in range(n_sim_students):
-            slice_ = all_attempts[i * attempts_per_student : (i + 1) * attempts_per_student]
-            if slice_:
-                rates.append(np.mean([a.is_correct for a in slice_]))
-        sim_per_user = np.array(rates) if rates else np.array([0.0])
-    else:
-        sim_per_user = np.array([0.0])
-
-    recovery_2pl_ = metrics.recovery_2pl(
-        truth.item_params.rename(columns={}),  # already problem_id, a, b
-        fit2pl.item_params,
+    sim_per_user = (
+        np.array(per_student_correct_rates)
+        if per_student_correct_rates
+        else np.array([0.0])
     )
+
+    recovery_2pl_ = metrics.recovery_2pl(truth.item_params, fit2pl.item_params)
     recovery_theta_ = metrics.recovery_theta(truth.theta_true, fit2pl.theta_estimates)
-    recovery_bkt_ = metrics.recovery_bkt(truth.bkt_params, fitted_bkt)
     ks = metrics.ks_correct_rate(sim_per_user, truth_per_user)
     rt_fit = metrics.response_time_fit(
-        sim_attempts_df["response_time_ms"].to_numpy() if len(sim_attempts_df) else np.array([0])
+        sim_attempts_df["response_time_ms"].to_numpy()
+        if len(sim_attempts_df)
+        else np.array([0])
     )
     curve = metrics.learning_curve_slope(sim_attempts_df)
 
@@ -289,10 +313,10 @@ def run_validation(
         n_items=len(truth.item_params),
         n_skills=n_skills,
         n_sim_students=n_sim_students,
+        n_sessions=n_sessions,
         fit_2pl_converged=fit2pl.converged,
         recovery_2pl=recovery_2pl_,
         recovery_theta=recovery_theta_,
-        recovery_bkt=recovery_bkt_,
         truth_correct_rate_summary=_summary(truth_per_user),
         sim_correct_rate_summary=_summary(sim_per_user),
         correct_rate_ks=ks,
