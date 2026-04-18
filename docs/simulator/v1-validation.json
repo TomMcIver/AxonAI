@@ -1,0 +1,51 @@
+{
+  "seed": 42,
+  "n_truth_students": 400,
+  "n_items": 48,
+  "n_skills": 4,
+  "n_sim_students": 200,
+  "n_sessions": 15,
+  "fit_2pl_converged": true,
+  "recovery_2pl": {
+    "n_items": 48,
+    "a_pearson": 0.8792174732483131,
+    "a_mae": 0.20833737558440313,
+    "b_pearson": 0.97050625213235,
+    "b_mae": 0.1618751966649109
+  },
+  "recovery_theta": {
+    "n_users": 400,
+    "theta_pearson": 0.9461829309762594,
+    "theta_mae": 0.25252444816682296
+  },
+  "truth_correct_rate_summary": {
+    "n": 400,
+    "mean": 0.4634895833333333,
+    "median": 0.4375,
+    "p10": 0.1875,
+    "p90": 0.75
+  },
+  "sim_correct_rate_summary": {
+    "n": 200,
+    "mean": 0.5296820943109661,
+    "median": 0.516578947368421,
+    "p10": 0.29333333333333333,
+    "p90": 0.8006451612903226
+  },
+  "correct_rate_ks": {
+    "ks_statistic": 0.165,
+    "ks_pvalue": 0.0013272765649306566,
+    "sim_mean": 0.5296820943109661,
+    "ref_mean": 0.4634895833333333
+  },
+  "response_time_fit": {
+    "n": 12891,
+    "mu": 8.987597655507898,
+    "sigma": 0.2977846621014582
+  },
+  "learning_curve": {
+    "n": 12891,
+    "slope": -3.064657840766278e-05,
+    "intercept": 0.5573850393483797
+  }
+}
