@@ -1,7 +1,6 @@
-# Small dev / smoke config — used by PR 8 smoke test and local iteration.
-# Fields match SimulationConfig once populated (PR 3 + PR 9).
-#
-# Placeholder — real values populated alongside SimulationConfig.
+# Small dev / smoke config — exercises the full config → runner → writer
+# pipeline without needing calibration artefacts. 10 students × 1 week
+# finishes in seconds.
 n_students: 10
 term_weeks: 1
 sessions_per_week: 3
@@ -9,3 +8,9 @@ minutes_per_session: 20
 subject: math
 seed: 42
 output_target: local_parquet
+output_dir: data/processed/runs
+zpd_band: [0.60, 0.85]
+mastery_threshold: 0.85
+session_interval_hours: 24.0
+quiz_items_per_session: 5
+revise_items_per_concept: 1
