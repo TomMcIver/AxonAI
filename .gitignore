@@ -1,3 +1,15 @@
 __pycache__/
 .env
 *.db
+
+# Simulator: raw datasets are large / licensed; processed artefacts are rebuilt.
+data/raw/
+data/processed/*
+!data/processed/.gitkeep
+
+# Simulator validation outputs rebuilt by PR 5 / PR 10.
+validation/*
+!validation/.gitkeep
+
+# pytest
+.pytest_cache/

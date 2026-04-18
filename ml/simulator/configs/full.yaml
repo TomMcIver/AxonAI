@@ -1,0 +1,9 @@
+# Full validation config — used by PR 10 (3000 students × 10 weeks).
+# Placeholder — real values populated alongside SimulationConfig.
+n_students: 3000
+term_weeks: 10
+sessions_per_week: 3
+minutes_per_session: 20
+subject: math
+seed: 42
+output_target: local_parquet
