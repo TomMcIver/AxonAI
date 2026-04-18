@@ -38,6 +38,14 @@ simulator-dev = [
     "pytest-xdist>=3.5",
 ]
 
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["ml*", "core*", "config*", "models*", "routes*", "utils*"]
+exclude = ["tests*", "docs*", "frontend*", "scripts*", "templates*", "data*", "schema*", "validation*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
