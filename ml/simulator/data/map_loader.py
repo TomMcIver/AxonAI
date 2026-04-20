@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from ml.simulator.data.s3_io import is_s3_uri, materialise, materialise_prefix
+
 
 _REQUIRED_COLUMNS = (
     "row_id",
@@ -41,8 +43,20 @@ def load_explanations(path: Path | str) -> pd.DataFrame:
     Returns one row per student explanation with the expected columns.
     `Misconception == 'NA'` (the MAP sentinel for untagged rows) is
     converted to pandas NA.
+
+    Accepts a local path, an `s3://bucket/key` URI pointing at a CSV, or
+    an `s3://bucket/prefix/` URI in which case `train.csv` is selected.
     """
-    df = pd.read_csv(path, low_memory=False)
+    if is_s3_uri(str(path)):
+        p_str = str(path)
+        if p_str.endswith(".csv"):
+            local = materialise(p_str)
+        else:
+            folder = materialise_prefix(p_str.rstrip("/") + "/")
+            local = folder / "train.csv"
+    else:
+        local = Path(path)
+    df = pd.read_csv(local, low_memory=False)
     _require_columns(df, _REQUIRED_COLUMNS)
 
     df = df[list(_REQUIRED_COLUMNS)].copy()

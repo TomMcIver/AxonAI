@@ -6,10 +6,18 @@ __pycache__/
 data/raw/
 data/processed/*
 !data/processed/.gitkeep
+# Phase 2 Gate A calibration outputs: small, reviewable, downstream inputs.
+!data/processed/real_item_params.parquet
+!data/processed/real_theta_estimates.parquet
+!data/processed/real_bkt_params.parquet
+!data/processed/real_student_priors.json
 
 # Simulator validation outputs rebuilt by PR 5 / PR 10.
 validation/*
 !validation/.gitkeep
+# Phase 2 Gate A diagnostic reports.
+!validation/phase_2/
+!validation/phase_2/**
 
 # pytest
 .pytest_cache/

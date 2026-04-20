@@ -81,10 +81,11 @@ def _split_heldout(
         shuffled = group.sample(frac=1.0, random_state=int(rng.integers(2**31)))
         test_parts.append(shuffled.iloc[:n_test])
         train_parts.append(shuffled.iloc[n_test:])
-    return (
-        pd.concat(train_parts).reset_index(drop=True),
-        pd.concat(test_parts).reset_index(drop=True),
-    )
+    # Keep the source DataFrame index so leakage checks can assert that
+    # no source row appears on both sides of the split. Downstream code
+    # in this module uses `.map(...).to_numpy()` and `.groupby(...)` so
+    # the index-preserving change is safe.
+    return pd.concat(train_parts), pd.concat(test_parts)
 
 
 def _fit_jml(
