@@ -34,6 +34,10 @@ import numpy as np
 
 from ml.simulator.data.concept_graph import ConceptGraph
 from ml.simulator.psychometrics.bkt import BKTParams, BKTState
+from ml.simulator.student.misconceptions import (
+    SusceptibilitySampler,
+    scalar_theta_from_profile_thetas,
+)
 from ml.simulator.student.profile import StudentProfile
 
 # Correlation between a concept's true theta and the mean of its direct
@@ -63,6 +67,7 @@ class StudentGenerator:
     correlation: float = _THETA_CORRELATION
     default_half_life_hours: float = _DEFAULT_HALF_LIFE_HOURS
     initial_elo: float = _INITIAL_ELO
+    susceptibility_sampler: SusceptibilitySampler | None = None
 
     def draw(self, student_id: int, rng: np.random.Generator) -> StudentProfile:
         theta_mean = float(self.priors.get("theta_mean", 0.0))
@@ -80,6 +85,13 @@ class StudentGenerator:
         recall_half_life = {c: self.default_half_life_hours for c in true_theta}
         last_retrieval: dict = {}
 
+        if self.susceptibility_sampler is not None:
+            misconception_susceptibility = self.susceptibility_sampler.draw(
+                scalar_theta_from_profile_thetas(true_theta.values()), rng
+            )
+        else:
+            misconception_susceptibility = {}
+
         return StudentProfile(
             student_id=student_id,
             true_theta=true_theta,
@@ -94,7 +106,7 @@ class StudentGenerator:
             engagement_decay=0.95,
             response_time_lognorm_params=rt_params,
             attempts_history=[],
-            misconception_susceptibility={},
+            misconception_susceptibility=misconception_susceptibility,
         )
 
     def _bkt_for(self, concept_id: int) -> BKTParams:
