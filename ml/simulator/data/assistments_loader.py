@@ -34,6 +34,8 @@ from typing import Iterable, Optional
 
 import pandas as pd
 
+from ml.simulator.data.s3_io import is_s3_uri, materialise
+
 # Spec default — 2PL IRT stability lower bound per G. Brown.
 DEFAULT_MIN_RESPONSES_PER_ITEM = 150
 
@@ -95,8 +97,12 @@ def load_responses(
 
     Items with fewer than `min_responses_per_item` responses are dropped
     (spec: IRT stability).
+
+    Accepts either a local path or an `s3://bucket/key` URI. S3 objects
+    are downloaded into the local cache before parsing.
     """
-    df = pd.read_csv(path, low_memory=False)
+    local = materialise(path) if is_s3_uri(str(path)) else Path(path)
+    df = pd.read_csv(local, low_memory=False)
     df = _canonicalise_columns(df)
 
     _require_columns(df, ("user_id", "problem_id", "correct"))

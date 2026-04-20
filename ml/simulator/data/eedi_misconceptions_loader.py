@@ -27,6 +27,8 @@ from typing import Optional
 
 import pandas as pd
 
+from ml.simulator.data.s3_io import is_s3_uri, materialise, materialise_prefix
+
 
 @dataclass(frozen=True)
 class EediFrames:
@@ -65,8 +67,31 @@ def load(
     questions_path: Path | str,
     misconception_mapping_path: Optional[Path | str] = None,
 ) -> EediFrames:
-    """Parse the Eedi 2024 question CSV (and optional mapping file)."""
-    df = pd.read_csv(questions_path, low_memory=False)
+    """Parse the Eedi 2024 question CSV (and optional mapping file).
+
+    Accepts local paths or `s3://` URIs for both arguments. For the
+    questions path the loader additionally accepts an S3 *prefix* URI
+    pointing at the Kaggle folder; it will pick `train.csv` as the
+    questions file and fall back to `misconception_mapping.csv` for the
+    catalogue unless one is passed explicitly.
+    """
+    q_path: Path
+    mm_path: Optional[Path] = (
+        materialise(misconception_mapping_path)
+        if misconception_mapping_path is not None and is_s3_uri(str(misconception_mapping_path))
+        else (Path(misconception_mapping_path) if misconception_mapping_path else None)
+    )
+    if is_s3_uri(str(questions_path)) and str(questions_path).rstrip("/").endswith("/") is False and str(questions_path).endswith(".csv"):
+        q_path = materialise(questions_path)
+    elif is_s3_uri(str(questions_path)):
+        folder = materialise_prefix(str(questions_path).rstrip("/") + "/")
+        q_path = folder / "train.csv"
+        if mm_path is None and (folder / "misconception_mapping.csv").exists():
+            mm_path = folder / "misconception_mapping.csv"
+    else:
+        q_path = Path(questions_path)
+
+    df = pd.read_csv(q_path, low_memory=False)
     _require_columns(df, _REQUIRED_COLUMNS)
 
     questions_df = df[
@@ -128,8 +153,8 @@ def load(
 
     # Catalogue: prefer the shipped mapping file; fall back to the unique
     # IDs seen in this questions CSV with no name.
-    if misconception_mapping_path is not None:
-        cat = pd.read_csv(misconception_mapping_path)
+    if mm_path is not None:
+        cat = pd.read_csv(mm_path)
         cat.columns = [c.strip() for c in cat.columns]
         if {"MisconceptionId", "MisconceptionName"} - set(cat.columns):
             raise KeyError(
