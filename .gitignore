@@ -12,6 +12,7 @@ data/processed/*
 !data/processed/real_bkt_params.parquet
 !data/processed/real_student_priors.json
 !data/processed/concept_graph_validation_edges.parquet
+!data/processed/bkt_recovery_details.parquet
 
 # Simulator validation outputs rebuilt by PR 5 / PR 10.
 validation/*
