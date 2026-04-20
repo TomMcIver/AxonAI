@@ -16,6 +16,7 @@ import pytest
 from ml.simulator.data.concept_graph import ConceptGraph
 from ml.simulator.psychometrics.bkt import BKTParams
 from ml.simulator.student.generator import StudentGenerator
+from ml.simulator.student.misconceptions import SusceptibilitySampler
 
 
 @pytest.fixture
@@ -138,3 +139,50 @@ class TestDraw:
         p = gen.draw(0, np.random.default_rng(0))
         assert p.attempts_history == []
         assert p.last_retrieval == {}
+
+    def test_misconception_susceptibility_empty_without_sampler(
+        self, chain_graph, priors, bkt_params
+    ):
+        gen = StudentGenerator(
+            priors=priors,
+            concept_graph=chain_graph,
+            bkt_params_by_concept=bkt_params,
+        )
+        p = gen.draw(0, np.random.default_rng(0))
+        assert p.misconception_susceptibility == {}
+
+    def test_misconception_susceptibility_populated_with_sampler(
+        self, chain_graph, priors, bkt_params
+    ):
+        catalogue = np.arange(200, dtype=np.int64)
+        sampler = SusceptibilitySampler(misconception_ids=catalogue)
+        gen = StudentGenerator(
+            priors=priors,
+            concept_graph=chain_graph,
+            bkt_params_by_concept=bkt_params,
+            susceptibility_sampler=sampler,
+        )
+        # Aggregate across seeds: at least one draw must be non-empty
+        # (p(empty) = (1-r)^N → vanishingly small for N=200, r>0.02).
+        any_non_empty = False
+        for seed in range(5):
+            p = gen.draw(seed, np.random.default_rng(seed))
+            assert set(p.misconception_susceptibility).issubset(set(int(x) for x in catalogue))
+            if p.misconception_susceptibility:
+                any_non_empty = True
+        assert any_non_empty
+
+    def test_misconception_susceptibility_deterministic_with_sampler(
+        self, chain_graph, priors, bkt_params
+    ):
+        catalogue = np.arange(200, dtype=np.int64)
+        sampler = SusceptibilitySampler(misconception_ids=catalogue)
+        gen = StudentGenerator(
+            priors=priors,
+            concept_graph=chain_graph,
+            bkt_params_by_concept=bkt_params,
+            susceptibility_sampler=sampler,
+        )
+        p1 = gen.draw(0, np.random.default_rng(7))
+        p2 = gen.draw(0, np.random.default_rng(7))
+        assert p1.misconception_susceptibility == p2.misconception_susceptibility
