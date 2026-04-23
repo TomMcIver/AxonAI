@@ -21,6 +21,7 @@ import math
 import numpy as np
 
 from ml.simulator.data.item_bank import Item, ItemBank
+from ml.simulator.misconception.response_model import select_distractor
 from ml.simulator.psychometrics.irt_2pl import prob_correct
 from ml.simulator.student.profile import StudentProfile
 
@@ -63,8 +64,14 @@ def simulate_response(
     profile: StudentProfile,
     item: Item,
     rng: np.random.Generator,
-) -> tuple[bool, int]:
-    """Draw a 2PL response + a log-normal response time in milliseconds."""
+) -> tuple[bool, int, int | None]:
+    """Draw a 2PL response + log-normal RT + triggered misconception ID.
+
+    Returns `(is_correct, response_time_ms, triggered_misconception_id)`.
+    `triggered_misconception_id` is the misconception ID of the distractor
+    chosen when wrong (B2 misconception-weighted selection), or None when
+    the student is correct or the item has no distractor metadata.
+    """
     theta = profile.true_theta.get(item.concept_id, 0.0)
     p = prob_correct(theta, item.a, item.b)
     is_correct = bool(rng.random() < p)
@@ -73,5 +80,9 @@ def simulate_response(
         response_time_ms = int(np.exp(rng.normal(mu, sigma)))
     else:
         response_time_ms = int(np.exp(mu))
+    # B2: when wrong, select a distractor weighted by misconception susceptibility.
+    triggered_misconception_id: int | None = None
+    if not is_correct:
+        _, triggered_misconception_id = select_distractor(item, profile, rng)
     # Guard: response time should never be zero or negative.
-    return is_correct, max(response_time_ms, 1)
+    return is_correct, max(response_time_ms, 1), triggered_misconception_id

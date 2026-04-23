@@ -63,6 +63,7 @@ def apply_practice(
     now: datetime,
     response_time_ms: int = 0,
     explanation_style: str | None = None,
+    triggered_misconception_id: int | None = None,
 ) -> tuple[StudentProfile, float]:
     """Apply every practice-driven update. Returns (profile', item_rating')."""
     # true theta bump.
@@ -102,6 +103,7 @@ def apply_practice(
             time=now,
             response_time_ms=response_time_ms,
             explanation_style=explanation_style,
+            triggered_misconception_id=triggered_misconception_id,
         )
     )
 
