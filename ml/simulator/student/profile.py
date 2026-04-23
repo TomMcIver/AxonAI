@@ -35,6 +35,10 @@ class AttemptRecord:
     is_correct: bool
     time: datetime
     response_time_ms: int
+    # Pedagogical style the tutor framed the item in before the student
+    # answered (see `ml.simulator.loop.explanation_style`). Optional for
+    # Phase 1 fixtures that predate the B6 selector.
+    explanation_style: Optional[str] = None
 
 
 @dataclass

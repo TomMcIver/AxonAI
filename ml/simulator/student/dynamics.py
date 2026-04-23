@@ -62,6 +62,7 @@ def apply_practice(
     bkt_params: BKTParams,
     now: datetime,
     response_time_ms: int = 0,
+    explanation_style: str | None = None,
 ) -> tuple[StudentProfile, float]:
     """Apply every practice-driven update. Returns (profile', item_rating')."""
     # true theta bump.
@@ -100,6 +101,7 @@ def apply_practice(
             is_correct=is_correct,
             time=now,
             response_time_ms=response_time_ms,
+            explanation_style=explanation_style,
         )
     )
 
