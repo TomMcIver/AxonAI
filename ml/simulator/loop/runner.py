@@ -166,7 +166,7 @@ class TermRunner:
             detector_hint=self._detector_hint_for(profile, item),
             config=self.explanation_style_config,
         )
-        is_correct, response_time_ms = simulate_response(profile, item, rng)
+        is_correct, response_time_ms, triggered_misconception_id = simulate_response(profile, item, rng)
         current_rating = item_ratings.get(item.item_id, INITIAL_ITEM_ELO)
         bkt = self.bkt_params_by_concept.get(item.concept_id)
         if bkt is None:
@@ -182,6 +182,7 @@ class TermRunner:
             now=now,
             response_time_ms=response_time_ms,
             explanation_style=explanation_style,
+            triggered_misconception_id=triggered_misconception_id,
         )
         item_ratings = dict(item_ratings)
         item_ratings[item.item_id] = new_rating
