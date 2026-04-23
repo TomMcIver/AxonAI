@@ -201,6 +201,43 @@ class TestTermRunner:
         assert final.true_theta[1] > starting_theta
         assert final.bkt_state[1].p_known > profile.bkt_state[1].p_known
 
+    def test_every_attempt_has_an_explanation_style(self) -> None:
+        """B6: the runner must stamp every AttemptRecord with a style."""
+        from ml.simulator.loop.explanation_style import STYLES
+        runner = TermRunner(
+            student=_profile(),
+            concept_graph=_graph(),
+            item_bank=_bank(),
+            bkt_params_by_concept=_bkt_params(),
+            start_time=datetime(2024, 1, 1, 9, 0, 0),
+            n_sessions=3,
+            seed=1,
+        )
+        events = list(runner.run())
+        attempts = [e for e in events if isinstance(e, AttemptRecord)]
+        assert attempts
+        for a in attempts:
+            assert a.explanation_style in STYLES
+
+    def test_initial_attempts_use_worked_example_for_not_learned_concept(self) -> None:
+        """BKT p_known starts at 0.2 everywhere → first attempts hit rule 2."""
+        from ml.simulator.loop.explanation_style import WORKED_EXAMPLE
+        runner = TermRunner(
+            student=_profile(),
+            concept_graph=_graph(),
+            item_bank=_bank(),
+            bkt_params_by_concept=_bkt_params(),
+            start_time=datetime(2024, 1, 1, 9, 0, 0),
+            n_sessions=1,
+            seed=0,
+        )
+        events = list(runner.run())
+        attempts = [e for e in events if isinstance(e, AttemptRecord)]
+        assert attempts
+        # The very first attempt on the first quizzed concept starts
+        # with BKT p_known = 0.2 < 0.4 threshold.
+        assert attempts[0].explanation_style == WORKED_EXAMPLE
+
     def test_revise_record_emitted_once_candidates_exist(self) -> None:
         # Run long enough for earlier concepts to slide into the HLR band.
         profile = _profile()

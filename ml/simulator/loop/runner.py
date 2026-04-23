@@ -28,6 +28,11 @@ import numpy as np
 
 from ml.simulator.data.concept_graph import ConceptGraph
 from ml.simulator.data.item_bank import ItemBank
+from ml.simulator.loop.explanation_style import (
+    DetectorHint,
+    ExplanationStyleConfig,
+    select_explanation_style,
+)
 from ml.simulator.loop.quiz import select_next_item, simulate_response
 from ml.simulator.loop.revise import ReviseRecord, select_revision_concepts
 from ml.simulator.loop.teach import TeachRecord, teach
@@ -70,6 +75,9 @@ class TermRunner:
     quiz_items_per_session: int = QUIZ_ITEMS_PER_SESSION
     revise_items_per_concept: int = REVISE_ITEMS_PER_CONCEPT
     seed: int = 0
+    # B6: pedagogical-style selector config. The `None` default means
+    # `select_explanation_style` uses its module-level defaults.
+    explanation_style_config: ExplanationStyleConfig | None = None
 
     def run(self) -> Iterator[Event]:
         rng = np.random.default_rng(self.seed)
@@ -149,6 +157,15 @@ class TermRunner:
         rng: np.random.Generator,
         item_ratings: dict[int, float],
     ) -> tuple[StudentProfile, AttemptRecord, dict[int, float]]:
+        # Pick the explanation style BEFORE the attempt is resolved — the
+        # tutor decides how to frame the item from prior state alone.
+        # Detector hint stays None until B5 wires the detector in.
+        explanation_style = select_explanation_style(
+            profile,
+            item.concept_id,
+            detector_hint=self._detector_hint_for(profile, item),
+            config=self.explanation_style_config,
+        )
         is_correct, response_time_ms = simulate_response(profile, item, rng)
         current_rating = item_ratings.get(item.item_id, INITIAL_ITEM_ELO)
         bkt = self.bkt_params_by_concept.get(item.concept_id)
@@ -164,8 +181,15 @@ class TermRunner:
             bkt_params=bkt,
             now=now,
             response_time_ms=response_time_ms,
+            explanation_style=explanation_style,
         )
         item_ratings = dict(item_ratings)
         item_ratings[item.item_id] = new_rating
         record = new_profile.attempts_history[-1]
         return new_profile, record, item_ratings
+
+    def _detector_hint_for(
+        self, profile: StudentProfile, item
+    ) -> DetectorHint | None:
+        """Seam for B5 (detector integration). Returns None until B5 wires it."""
+        return None
