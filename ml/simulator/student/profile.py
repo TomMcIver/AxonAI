@@ -39,6 +39,10 @@ class AttemptRecord:
     # answered (see `ml.simulator.loop.explanation_style`). Optional for
     # Phase 1 fixtures that predate the B6 selector.
     explanation_style: Optional[str] = None
+    # Misconception ID of the distractor the student chose when wrong
+    # (see `ml.simulator.misconception.response_model`). None when the
+    # student was correct, or when the item has no distractor metadata.
+    triggered_misconception_id: Optional[int] = None
 
 
 @dataclass
