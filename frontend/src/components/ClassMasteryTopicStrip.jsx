@@ -44,9 +44,9 @@ function masteryGraphTileStyle(score01, options = {}) {
   const { maxWidth = 176 } = options;
   const base = {
     borderRadius: 12,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderStyle: 'solid',
-    boxShadow: '2px 2px 0 #2c2418',
+    boxShadow: '0 4px 12px rgba(61, 43, 31, 0.12)',
     padding: '6px 10px',
     maxWidth,
     fontSize: 11,
@@ -68,38 +68,37 @@ function masteryGraphTileStyle(score01, options = {}) {
   if (band === 'strong') {
     return {
       ...base,
-      borderColor: '#16a34a',
-      background: '#dcfce7',
-      backgroundColor: '#dcfce7',
-      color: '#14532d',
+      borderColor: '#89B39F',
+      background: '#EFF7F3',
+      backgroundColor: '#EFF7F3',
+      color: '#4A7362',
     };
   }
   if (band === 'developing') {
     return {
       ...base,
-      borderColor: '#f97316',
-      background: '#ffedd5',
-      backgroundColor: '#ffedd5',
-      color: '#9a3412',
+      borderColor: '#D4A785',
+      background: '#FAF2EA',
+      backgroundColor: '#FAF2EA',
+      color: '#8B6348',
     };
   }
-  /* Focus band: darker red than graph stroke so it reads clearly on cream UI */
+  /* Focus band in blossom pink family. */
   return {
     ...base,
-    borderColor: '#7f1d1d',
-    background: '#fecaca',
-    backgroundColor: '#fecaca',
-    color: '#450a0a',
+    borderColor: '#D59AA9',
+    background: '#FBEFF3',
+    backgroundColor: '#FBEFF3',
+    color: '#8A5563',
   };
 }
 
-/** Full chip fill = graph depth legend colour (Fundamentals … Further); mastery band is shown by section heading. */
 function strandChipStyle(row) {
   const fill = DEPTH_BAND_FILLS[clampDepthIndex(row.depthIndex)] || '#e2e8f0';
   return {
     borderRadius: 12,
-    border: '2px solid #2c2418',
-    boxShadow: '2px 2px 0 #2c2418',
+    border: '1px solid rgba(61, 43, 31, 0.2)',
+    boxShadow: 'none',
     padding: '6px 10px',
     maxWidth: 200,
     fontSize: 11,
@@ -220,11 +219,12 @@ function StrandTypeChip({ row: s, selected, onToggle }) {
       }
       style={style}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '1px 1px 0 #2c2418';
-        e.currentTarget.style.transform = 'translateY(1px)';
+        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.filter = 'brightness(0.97) saturate(0.94)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = '2px 2px 0 #2c2418';
+        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.filter = 'none';
         e.currentTarget.style.transform = 'none';
       }}
       title={
@@ -303,11 +303,11 @@ function TopicMasteryTile({ topic: c, selected, onSelect }) {
       }
       style={style}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '1px 1px 0 #2c2418';
-        e.currentTarget.style.transform = 'translateY(1px)';
+        e.currentTarget.style.boxShadow = '0 8px 20px rgba(61, 43, 31, 0.16)';
+        e.currentTarget.style.transform = 'translateY(-1px)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = '2px 2px 0 #2c2418';
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(61, 43, 31, 0.12)';
         e.currentTarget.style.transform = 'none';
       }}
       title={
@@ -564,9 +564,9 @@ export default function ClassMasteryTopicStrip({
     <div className="space-y-4">
       <p className="text-[11px] leading-relaxed text-slate-500">
         Colours match the knowledge graph:{' '}
-        <span style={{ color: '#14532d', fontWeight: 600 }}>Strong (≥70%)</span>,{' '}
-        <span style={{ color: '#9a3412', fontWeight: 600 }}>Developing (51–69%)</span>,{' '}
-        <span style={{ color: '#450a0a', fontWeight: 600 }}>Focus (≤50%)</span>. Difficulty (D1–D5) is shown as
+        <span style={{ color: '#355E4C', fontWeight: 600 }}>Strong (≥70%)</span>,{' '}
+        <span style={{ color: '#7F5336', fontWeight: 600 }}>Developing (51–69%)</span>,{' '}
+        <span style={{ color: '#7E3E4D', fontWeight: 600 }}>Focus (≤50%)</span>. Difficulty (D1–D5) is shown as
         text. Each tile shows the <span style={{ fontWeight: 600 }}>graph column</span> (Fundamentals … Further) and{' '}
         <span style={{ fontWeight: 600 }}>skill difficulty</span> (D1–D5). At most {maxPerBand} per colour and{' '}
         {maxTopics} in total. You only see rows that have topics in that band.
@@ -577,7 +577,7 @@ export default function ClassMasteryTopicStrip({
           <p className="axon-label mb-1">Depth (same as graph)</p>
           <p className="mb-2 text-[10px] leading-snug text-slate-500">
             Each chip is a <span style={{ fontWeight: 600 }}>depth column</span> (Fundamentals → Further, same pastels as
-            the map legend). The <span style={{ fontWeight: 600 }}>whole chip</span> uses that column’s colour.{' '}
+            the map legend). The <span style={{ fontWeight: 600 }}>whole chip</span> uses that column colour.{' '}
             <span style={{ fontWeight: 600 }}>X of Y</span> is “concepts with class mastery” vs “all concepts in that
             graph column” (the rest are not in the cohort map yet). <span style={{ fontWeight: 600 }}>Click a chip</span>{' '}
             to filter the Topics section
@@ -589,7 +589,7 @@ export default function ClassMasteryTopicStrip({
           <div className="flex flex-col gap-3">
             {strandBands.strong.length > 0 && (
               <div>
-                <p className="mb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: '#14532d' }}>
+                <p className="mb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: '#355E4C' }}>
                   Strong (≥70%), depth bands
                 </p>
                 <div className="flex flex-wrap gap-2" style={{ alignItems: 'stretch' }}>
@@ -606,7 +606,7 @@ export default function ClassMasteryTopicStrip({
             )}
             {strandBands.developing.length > 0 && (
               <div>
-                <p className="mb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: '#9a3412' }}>
+                <p className="mb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: '#7F5336' }}>
                   Developing (51–69%), depth bands
                 </p>
                 <div className="flex flex-wrap gap-2" style={{ alignItems: 'stretch' }}>
@@ -623,7 +623,7 @@ export default function ClassMasteryTopicStrip({
             )}
             {strandBands.focus.length > 0 ? (
               <div>
-                <p className="mb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: '#450a0a' }}>
+                <p className="mb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: '#7E3E4D' }}>
                   Focus (≤50%), depth bands
                 </p>
                 <div className="flex flex-wrap gap-2" style={{ alignItems: 'stretch' }}>
@@ -758,7 +758,7 @@ export default function ClassMasteryTopicStrip({
               <>
                 {topicBands.strong.length > 0 && (
                   <div>
-                    <p className="mb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: '#14532d' }}>
+                    <p className="mb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: '#355E4C' }}>
                       Strong (≥70%)
                     </p>
                     <div className="flex flex-wrap gap-2" style={{ alignItems: 'stretch' }}>
@@ -775,7 +775,7 @@ export default function ClassMasteryTopicStrip({
                 )}
                 {topicBands.developing.length > 0 && (
                   <div>
-                    <p className="mb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: '#9a3412' }}>
+                    <p className="mb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: '#7F5336' }}>
                       Developing (51–69%)
                     </p>
                     <div className="flex flex-wrap gap-2" style={{ alignItems: 'stretch' }}>
@@ -792,7 +792,7 @@ export default function ClassMasteryTopicStrip({
                 )}
                 {topicBands.focus.length > 0 && (
                   <div>
-                    <p className="mb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: '#450a0a' }}>
+                    <p className="mb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: '#7E3E4D' }}>
                       Focus (≤50%)
                     </p>
                     <div className="flex flex-wrap gap-2" style={{ alignItems: 'stretch' }}>

@@ -254,14 +254,15 @@ function ClassPulseSection({ students, navigate }) {
   const highPct = total ? 100 - lowPct - midPct : 0; // avoids rounding gap
 
   const segments = [
-    { pct: lowPct,  color: '#DC2626', label: 'At Risk',   count: low.length },
-    { pct: midPct,  color: '#D97706', label: 'On Track',  count: mid.length },
-    { pct: highPct, color: '#059669', label: 'Excelling', count: high.length },
+    { pct: lowPct,  color: 'var(--at-risk)', label: 'At Risk',   count: low.length },
+    { pct: midPct,  color: 'var(--needs-attention)', label: 'On Track',  count: mid.length },
+    { pct: highPct, color: 'var(--mastered)', label: 'Excelling', count: high.length },
   ].filter(s => s.pct > 0);
 
   return (
     <section style={{
-      background: 'var(--surface-card)',
+      // Base grid sits on #FDF6EE; this is a slightly darker companion tone.
+      background: '#F8EFE4',
       borderRadius: 'var(--radius-lg)',
       boxShadow: 'var(--shadow-2)',
       padding: '32px 36px',
@@ -370,12 +371,12 @@ const SORT_OPTIONS = [
   { key: 'questions', label: 'By Questions' },
 ];
 
-/** Align bar colours with knowledge graph mastery legend (#16a34a / #f97316 / #dc2626). */
+/** Use blossom palette while preserving mastery semantics. */
 function masteryBarColor(pct) {
   const band = masteryBandKey(pct);
-  if (band === 'strong') return '#16a34a';
-  if (band === 'developing') return '#f97316';
-  return '#dc2626';
+  if (band === 'strong') return 'var(--mastered)';
+  if (band === 'developing') return 'var(--needs-attention)';
+  return 'var(--at-risk)';
 }
 
 const SNAPSHOT_DIFF_LABELS = {
@@ -824,7 +825,7 @@ export default function TeacherDashboard() {
         </div>
         <section className="space-y-3 sm:space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <h2 className="axon-h2 text-base text-slate-800">Class mastery snapshot</h2>
+            <h2 className="axon-h2 text-base" style={{ color: '#3D2B1F' }}>Class mastery snapshot</h2>
             <button
               type="button"
               onClick={() => navigate('/teacher/knowledge-graph')}
