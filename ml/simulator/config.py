@@ -20,6 +20,10 @@ Fields:
     session_interval_hours  — gap between sessions (drives forgetting).
     quiz_items_per_session  — attempts per newly-taught concept.
     revise_items_per_concept — attempts per revised concept.
+    detector_enabled        — Phase 2 B5 misconception detector on/off.
+    tutor_enabled           — Phase 2 B7 LLM tutor on/off.
+    rewriter_enabled        — Phase 2 B8 question rewriter (harness) on/off.
+    response_model          — "uniform" (v1) | "misconception_weighted" (v2).
 
 See `docs/simulator_v1_plan.md §3` for the rationale behind each default.
 """
@@ -33,6 +37,7 @@ from typing import Any, Literal
 import yaml
 
 OutputTarget = Literal["local_parquet", "postgres"]
+ResponseModel = Literal["uniform", "misconception_weighted"]
 
 
 @dataclass(frozen=True)
@@ -50,6 +55,15 @@ class SimulationConfig:
     session_interval_hours: float = 24.0
     quiz_items_per_session: int = 5
     revise_items_per_concept: int = 1
+    # Phase 2 feature toggles. Defaults preserve v2 behaviour; set to False
+    # (and response_model to "uniform") to reproduce the v1_uniform ablation
+    # condition. `rewriter_enabled` is consumed by the validation-pipeline
+    # harness layer, not the runtime loop (rewritten items never enter the
+    # live quiz path — see docs/simulator/phase_2_plan.md §4.3).
+    detector_enabled: bool = True
+    tutor_enabled: bool = True
+    rewriter_enabled: bool = True
+    response_model: ResponseModel = "misconception_weighted"
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> "SimulationConfig":
