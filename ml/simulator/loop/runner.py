@@ -33,6 +33,7 @@ from ml.simulator.loop.explanation_style import (
     ExplanationStyleConfig,
     select_explanation_style,
 )
+from ml.simulator.loop.llm_tutor import LLMTutor
 from ml.simulator.loop.quiz import select_next_item, simulate_response
 from ml.simulator.loop.revise import ReviseRecord, select_revision_concepts
 from ml.simulator.loop.teach import TeachRecord, teach
@@ -78,6 +79,9 @@ class TermRunner:
     # B6: pedagogical-style selector config. The `None` default means
     # `select_explanation_style` uses its module-level defaults.
     explanation_style_config: ExplanationStyleConfig | None = None
+    # B7: LLM tutor. When set, the teach step generates an explanation
+    # in the B6-selected style and stores it in TeachRecord.llm_explanation.
+    llm_tutor: LLMTutor | None = None
 
     def run(self) -> Iterator[Event]:
         rng = np.random.default_rng(self.seed)
@@ -95,7 +99,14 @@ class TermRunner:
             # Teach.
             next_concept = self._pick_next_teach_concept(profile)
             if next_concept is not None:
-                profile, teach_rec = teach(profile, next_concept, now)
+                teach_style = select_explanation_style(
+                    profile, next_concept, config=self.explanation_style_config
+                )
+                profile, teach_rec = teach(
+                    profile, next_concept, now,
+                    explanation_style=teach_style,
+                    llm_tutor=self.llm_tutor,
+                )
                 yield teach_rec
 
             # Quiz on newly-taught concept.
