@@ -33,6 +33,7 @@ from ml.simulator.loop.explanation_style import (
     ExplanationStyleConfig,
     select_explanation_style,
 )
+from ml.simulator.misconception.detector import MisconceptionDetector
 from ml.simulator.loop.quiz import select_next_item, simulate_response
 from ml.simulator.loop.revise import ReviseRecord, select_revision_concepts
 from ml.simulator.loop.teach import TeachRecord, teach
@@ -78,6 +79,9 @@ class TermRunner:
     # B6: pedagogical-style selector config. The `None` default means
     # `select_explanation_style` uses its module-level defaults.
     explanation_style_config: ExplanationStyleConfig | None = None
+    # B5: misconception detector. When set, _detector_hint_for delegates
+    # here instead of returning None.
+    misconception_detector: MisconceptionDetector | None = None
 
     def run(self) -> Iterator[Event]:
         rng = np.random.default_rng(self.seed)
@@ -192,5 +196,7 @@ class TermRunner:
     def _detector_hint_for(
         self, profile: StudentProfile, item
     ) -> DetectorHint | None:
-        """Seam for B5 (detector integration). Returns None until B5 wires it."""
-        return None
+        """Return a detector hint from the B5 misconception detector, or None."""
+        if self.misconception_detector is None:
+            return None
+        return self.misconception_detector.predict(profile, item)
