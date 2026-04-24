@@ -1,0 +1,21 @@
+# Phase 2 validation config — drives the comprehensive 500-student × 12-week
+# v2_full integration run. Every Phase 2 feature is enabled; ablation
+# variants override the four toggles below (see the Phase 2 validation PR).
+n_students: 500
+term_weeks: 12
+sessions_per_week: 5
+minutes_per_session: 45
+subject: math
+seed: 42
+output_target: postgres
+output_dir: data/processed/runs
+zpd_band: [0.60, 0.85]
+mastery_threshold: 0.85
+session_interval_hours: 24.0
+quiz_items_per_session: 5
+revise_items_per_concept: 1
+# Feature toggles (Phase 2).
+detector_enabled: true
+tutor_enabled: true
+rewriter_enabled: true
+response_model: misconception_weighted

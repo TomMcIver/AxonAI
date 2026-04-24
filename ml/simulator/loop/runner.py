@@ -86,6 +86,9 @@ class TermRunner:
     # B7: LLM tutor. When set, the teach step generates an explanation
     # in the B6-selected style and stores it in TeachRecord.llm_explanation.
     llm_tutor: LLMTutor | None = None
+    # B2 response model: "misconception_weighted" (v2) or "uniform" (v1).
+    # Threaded into `simulate_response` on every quiz/revise attempt.
+    response_model: str = "misconception_weighted"
 
     def run(self) -> Iterator[Event]:
         rng = np.random.default_rng(self.seed)
@@ -180,7 +183,9 @@ class TermRunner:
             detector_hint=self._detector_hint_for(profile, item),
             config=self.explanation_style_config,
         )
-        is_correct, response_time_ms, triggered_misconception_id = simulate_response(profile, item, rng)
+        is_correct, response_time_ms, triggered_misconception_id = simulate_response(
+            profile, item, rng, response_model=self.response_model
+        )
         current_rating = item_ratings.get(item.item_id, INITIAL_ITEM_ELO)
         bkt = self.bkt_params_by_concept.get(item.concept_id)
         if bkt is None:
