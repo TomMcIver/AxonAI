@@ -349,10 +349,15 @@ function ClassPulseSection({ students, navigate }) {
         </div>
 
         {/* 4 mastery rings */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(4, auto)',
-          gap: '16px 20px', flexShrink: 0,
-        }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(72px, 1fr))',
+            gap: '12px 14px',
+            flex: '1 1 260px',
+            minWidth: 0,
+          }}
+        >
           <MasteryRing value={lowAvg}     label="Low"     size={72} strokeWidth={7} />
           <MasteryRing value={midAvg}     label="Mid"     size={72} strokeWidth={7} />
           <MasteryRing value={highAvg}    label="High"    size={72} strokeWidth={7} />

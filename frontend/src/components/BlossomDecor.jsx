@@ -104,17 +104,23 @@ function BlossomTree({ style }) {
   );
 }
 
-export default function BlossomDecor({ petals = 24 }) {
+export default function BlossomDecor({ petals = 24, compact = false, singleTree = false }) {
+  const treeWidth = compact ? 360 : 620;
+  const treeHeight = compact ? 520 : 980;
+  const treeTop = compact ? -30 : -140;
+  const leftOffset = singleTree ? -130 : compact ? -170 : -90;
+  const rightOffset = compact ? -210 : -110;
+
   return (
     <>
       <BlossomTree
         style={{
           position: 'fixed',
-          left: -110,
-          top: -70,
-          width: 560,
-          height: 760,
-          opacity: 0.24,
+          left: leftOffset,
+          top: treeTop,
+          width: treeWidth,
+          height: treeHeight,
+          opacity: compact ? 0.16 : 0.24,
           pointerEvents: 'none',
           zIndex: 0,
           transform: 'scaleX(-1)',
@@ -123,11 +129,12 @@ export default function BlossomDecor({ petals = 24 }) {
       <BlossomTree
         style={{
           position: 'fixed',
-          right: -110,
-          top: -70,
-          width: 560,
-          height: 760,
-          opacity: 0.26,
+          right: rightOffset,
+          top: treeTop,
+          width: treeWidth,
+          height: treeHeight,
+          opacity: compact ? 0.12 : 0.26,
+          display: compact || singleTree ? 'none' : 'block',
           pointerEvents: 'none',
           zIndex: 0,
         }}

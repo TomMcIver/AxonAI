@@ -170,7 +170,7 @@ export default function StudentsPage() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Desktop table */}
         <div style={{
           background: 'rgba(255, 255, 255, 0.5)',
           backdropFilter: 'blur(16px) saturate(140%)',
@@ -179,7 +179,7 @@ export default function StudentsPage() {
           borderRadius: 20,
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
           overflow: 'hidden',
-        }}>
+        }} className="hidden sm:block">
           <div style={{ overflowX: 'auto' }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 0.7fr 0.7fr 40px',
@@ -259,6 +259,69 @@ export default function StudentsPage() {
             </div>
           ))}
           </div>
+        </div>
+
+        {/* Mobile cards */}
+        <div className="grid gap-3 sm:hidden">
+          {students.map((student) => (
+            <button
+              key={student.student_id}
+              type="button"
+              onClick={() => navigate(`/teacher/student/${student.student_id}/summary`)}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                background: 'rgba(255, 255, 255, 0.75)',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                borderRadius: 14,
+                padding: '12px',
+                display: 'grid',
+                gap: 10,
+              }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div style={{
+                    width: 30, height: 30, borderRadius: '50%',
+                    background: 'rgba(20, 184, 166, 0.1)', color: '#0f766e',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 10, flexShrink: 0,
+                  }}>
+                    {getInitials(`${student.first_name} ${student.last_name}`)}
+                  </div>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }} className="truncate">
+                    {student.first_name} {student.last_name}
+                  </span>
+                </div>
+                <ChevronRight size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#94a3b8' }}>Mastery</div>
+                  <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 15, color: masteryColor(student.avg_mastery) }}>
+                    {(student.avg_mastery * 100).toFixed(0)}%
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#94a3b8' }}>Engagement</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-secondary)' }}>
+                    {(student.overall_engagement_score * 100).toFixed(0)}%
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                {riskPill(student.overall_risk_score)}
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)' }}>
+                  Flags:{' '}
+                  {student.active_flags > 0
+                    ? <span style={{ color: '#dc2626', fontWeight: 700 }}>{student.active_flags}</span>
+                    : '-'}
+                </span>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
     </DashboardShell>
