@@ -160,6 +160,10 @@ class TermRunner:
         self.final_time = now
         self.final_item_ratings = item_ratings
 
+        # Emit LLM cache statistics once per student term.
+        if self.llm_tutor is not None:
+            self.llm_tutor.log_cache_stats()
+
     def _pick_next_teach_concept(self, profile: StudentProfile) -> int | None:
         mastered = {
             c for c, state in profile.bkt_state.items()

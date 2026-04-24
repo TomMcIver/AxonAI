@@ -8,10 +8,22 @@ Token budget: Phase 2 spec caps the full B11 run (≈90k sessions) at $500.
 With claude-haiku-4-5 at ~$0.25/1M input tokens and max_tokens=150, one
 teach call ≈ 200 input + 150 output tokens ≈ $0.000044/call.
 One call per session: 90k × $0.000044 ≈ $4 — well within budget.
+
+Response cache
+--------------
+`LLMTutor` ships with an in-process response cache keyed on an MD5 digest
+of `(profile_hash, concept_id, explanation_style, seed, concept_description,
+misconception_id)`.  Identical inputs always return the same text without
+a second API call, which is both cheaper and deterministic.
+
+Callers retrieve live statistics via `cache_stats()` and `log_cache_stats()`.
+`TermRunner` calls `log_cache_stats()` at the end of every simulation run.
 """
 
 from __future__ import annotations
 
+import hashlib
+import logging
 import warnings
 from dataclasses import dataclass, field
 from typing import Any
@@ -23,6 +35,8 @@ from ml.simulator.loop.explanation_style import (
     HINT,
     WORKED_EXAMPLE,
 )
+
+log = logging.getLogger(__name__)
 
 _DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 _MAX_TOKENS = 150
@@ -62,6 +76,10 @@ class LLMTutor:
     Inject a mock `client` for tests; leave it None to use the live API.
     The client is lazily constructed on first use so the module imports
     cleanly even when the anthropic package is unavailable.
+
+    The instance-level `_response_cache` is intentionally not a dataclass
+    field (excluded from `__repr__` and `__eq__`) so it doesn't interfere
+    with dataclass semantics.  It is populated in `__post_init__`.
     """
 
     model: str = _DEFAULT_MODEL
@@ -69,11 +87,64 @@ class LLMTutor:
     # Pre-built client for dependency injection / testing.
     client: Any = field(default=None, repr=False)
 
+    def __post_init__(self) -> None:
+        self._response_cache: dict[str, str] = {}
+        self._cache_hits: int = 0
+        self._cache_misses: int = 0
+
     def _get_client(self) -> Any:
         if self.client is not None:
             return self.client
         import anthropic  # lazy — keeps module importable without the SDK
         return anthropic.Anthropic()
+
+    # ------------------------------------------------------------------
+    # Cache helpers
+    # ------------------------------------------------------------------
+
+    def _make_cache_key(
+        self,
+        concept_id: int,
+        explanation_style: str,
+        concept_description: str | None,
+        misconception_id: int | None,
+        profile_hash: str | None,
+        seed: int | None,
+    ) -> str:
+        raw = "|".join([
+            profile_hash or "",
+            str(concept_id),
+            explanation_style,
+            str(seed if seed is not None else ""),
+            concept_description or "",
+            str(misconception_id if misconception_id is not None else ""),
+        ])
+        return hashlib.md5(raw.encode()).hexdigest()
+
+    def cache_stats(self) -> dict[str, int | float]:
+        """Return current hit/miss counts and hit rate."""
+        total = self._cache_hits + self._cache_misses
+        return {
+            "hits": self._cache_hits,
+            "misses": self._cache_misses,
+            "total": total,
+            "hit_rate": self._cache_hits / total if total > 0 else 0.0,
+        }
+
+    def log_cache_stats(self) -> None:
+        """Emit cache statistics at INFO level."""
+        stats = self.cache_stats()
+        log.info(
+            "LLMTutor cache — hits: %d  misses: %d  total: %d  hit_rate: %.1f%%",
+            stats["hits"],
+            stats["misses"],
+            stats["total"],
+            stats["hit_rate"] * 100,
+        )
+
+    # ------------------------------------------------------------------
+    # Main generate method
+    # ------------------------------------------------------------------
 
     def generate_explanation(
         self,
@@ -81,8 +152,10 @@ class LLMTutor:
         explanation_style: str,
         concept_description: str | None = None,
         misconception_id: int | None = None,
+        profile_hash: str | None = None,
+        seed: int | None = None,
     ) -> str:
-        """Return a teaching explanation string.
+        """Return a teaching explanation string (served from cache when possible).
 
         Parameters
         ----------
@@ -96,7 +169,35 @@ class LLMTutor:
         misconception_id:
             When provided alongside CONTRAST_WITH_MISCONCEPTION style, the
             prompt asks the model to focus the contrast on that misconception.
+        profile_hash:
+            Short digest from `StudentProfile.profile_hash()`.  Included in
+            the cache key so that two students with different state never share
+            a cache entry (future-proofs personalised explanations).
+        seed:
+            Optional integer threaded through from the caller for cache-key
+            namespacing.  Does not affect LLM sampling (caching provides
+            determinism instead).
         """
+        cache_key = self._make_cache_key(
+            concept_id, explanation_style, concept_description, misconception_id,
+            profile_hash, seed,
+        )
+
+        if cache_key in self._response_cache:
+            self._cache_hits += 1
+            log.debug(
+                "LLMTutor cache HIT — key=%s concept=%d style=%s",
+                cache_key[:8], concept_id, explanation_style,
+            )
+            return self._response_cache[cache_key]
+
+        # Cache miss — call the LLM.
+        self._cache_misses += 1
+        log.debug(
+            "LLMTutor cache MISS — key=%s concept=%d style=%s",
+            cache_key[:8], concept_id, explanation_style,
+        )
+
         desc = concept_description or f"mathematical concept #{concept_id}"
         style_instr = _STYLE_INSTRUCTIONS.get(
             explanation_style, _STYLE_INSTRUCTIONS[CONCISE_ANSWER]
@@ -113,7 +214,7 @@ class LLMTutor:
                 system=_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": user_content}],
             )
-            return message.content[0].text
+            response = message.content[0].text
         except Exception as exc:
             warnings.warn(
                 f"LLMTutor failed for concept {concept_id} (style={explanation_style}): "
@@ -121,3 +222,6 @@ class LLMTutor:
                 stacklevel=2,
             )
             return ""
+
+        self._response_cache[cache_key] = response
+        return response

@@ -19,6 +19,7 @@ making every nested dict frozen.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
@@ -71,3 +72,26 @@ class StudentProfile:
         if concept_id is None:
             return len(self.attempts_history)
         return sum(1 for r in self.attempts_history if r.concept_id == concept_id)
+
+    def profile_hash(self) -> str:
+        """Return a short deterministic hex digest of observable student state.
+
+        Captures the features that would meaningfully change the tutor's
+        explanation if the simulator were to personalise by student state:
+        per-concept θ, BKT p_known, attempt count, and the top-5
+        misconception susceptibility weights.  Used as part of the
+        LLMTutor cache key so that the cache never conflates two students
+        whose state has diverged.
+        """
+        theta_part = "|".join(
+            f"{c}:{v:.4f}" for c, v in sorted(self.true_theta.items())
+        )
+        bkt_part = "|".join(
+            f"{c}:{s.p_known:.4f}" for c, s in sorted(self.bkt_state.items())
+        )
+        top5 = sorted(
+            self.misconception_susceptibility.items(), key=lambda kv: -kv[1]
+        )[:5]
+        misc_part = "|".join(f"{k}:{v:.4f}" for k, v in top5)
+        raw = f"{self.student_id}:{theta_part}:{bkt_part}:{len(self.attempts_history)}:{misc_part}"
+        return hashlib.md5(raw.encode()).hexdigest()[:16]
