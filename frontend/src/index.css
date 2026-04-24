@@ -2,6 +2,7 @@
 @import "pixel-retroui/dist/index.css";
 
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Shippori+Mincho:wght@600;700;800&display=swap');
 
 :root {
   /* Brand: light mode */
@@ -1898,4 +1899,139 @@ html body {
     transform: none !important;
     transition: none !important;
   }
+}
+
+/* Blueprint button system override (replaces pixel buttons) */
+.axon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(61, 43, 31, 0.2);
+  font-family: 'Lora', serif !important;
+  font-size: 14px !important;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: none !important;
+  color: #6b4a3a;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 16px rgba(61, 43, 31, 0.12);
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.axon-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(61, 43, 31, 0.16);
+}
+
+.axon-btn-primary {
+  background: #3d2b1f;
+  border-color: transparent;
+  color: #fdf6ee;
+}
+
+.axon-btn-primary:hover {
+  background: #2d7d6f;
+  color: #fdf6ee;
+}
+
+.axon-btn-ghost {
+  background: rgba(255, 255, 255, 0.9);
+  color: #6b4a3a;
+  border-color: rgba(61, 43, 31, 0.16);
+}
+
+.axon-btn-ghost:hover {
+  background: #ffffff;
+  color: #3d2b1f;
+}
+
+.axon-btn-quiet {
+  background: transparent;
+  border-color: rgba(61, 43, 31, 0.14);
+  color: #6b4a3a;
+}
+
+.axon-btn-quiet:hover {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+/* Final theme lock: remove pixel styles and align to blossom palette */
+body,
+#root,
+.app-shell,
+.ux-auth-surface {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif !important;
+}
+
+.app-shell *:not(.katex):not(.katex *),
+.ux-auth-surface *:not(.katex):not(.katex *) {
+  font-family: inherit;
+}
+
+.axon-h1,
+.axon-h2,
+.axon-label,
+h1,
+h2,
+h3,
+h4 {
+  font-family: 'Shippori Mincho', 'Plus Jakarta Sans', serif !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+button,
+.axon-btn,
+.axon-btn-primary,
+.axon-btn-ghost,
+.axon-btn-quiet {
+  font-family: 'Lora', serif !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+:root {
+  --surface-app: #fdf6ee;
+  --surface-card: rgba(255, 255, 255, 0.9);
+  --surface-muted: rgba(253, 246, 238, 0.72);
+  --text-primary: #3d2b1f;
+  --text-secondary: #6b4a3a;
+  --text-tertiary: #8a6551;
+  --text-faint: #b08c77;
+}
+
+.app-shell [style*='box-shadow: 4px 4px 0'],
+.app-shell [style*='box-shadow:4px 4px 0'],
+.app-shell [style*='2c2418'] {
+  box-shadow: none !important;
+}
+
+.axon-card,
+.glass-card,
+.axon-card-subtle,
+.glass-card-subtle,
+.axon-card-ghost,
+.glass-card-ghost {
+  background: var(--surface-card) !important;
+  border: 1px solid rgba(61, 43, 31, 0.12) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 24px rgba(61, 43, 31, 0.08) !important;
+}
+
+/* Unified blossom mastery palette (used everywhere) */
+:root {
+  --mastered: #89b39f;
+  --mastered-bg: rgba(137, 179, 159, 0.2);
+  --on-track: #89b39f;
+  --on-track-bg: rgba(137, 179, 159, 0.18);
+  --in-progress: #d4a785;
+  --in-progress-bg: rgba(212, 167, 133, 0.2);
+  --needs-attention: #d4a785;
+  --needs-attention-bg: rgba(212, 167, 133, 0.2);
+  --at-risk: #d59aa9;
+  --at-risk-bg: rgba(213, 154, 169, 0.2);
 }

@@ -5,6 +5,7 @@ import {
   primeStudentDashboard,
   primeParentDashboard,
 } from '../api/primedRequests';
+import BlossomDecor from '../components/BlossomDecor';
 
 const roles = [
   {
@@ -31,65 +32,37 @@ export default function Login() {
   const navigate = useNavigate();
 
   return (
-    <div className="app-shell ux-auth-surface min-h-screen flex items-center justify-center px-[max(var(--ux-space-3),env(safe-area-inset-left))] py-[var(--ux-space-5)] pr-[max(var(--ux-space-3),env(safe-area-inset-right))] pb-[max(var(--ux-space-4),env(safe-area-inset-bottom))] pt-[max(var(--ux-space-4),env(safe-area-inset-top))] sm:px-[max(var(--ux-space-4),env(safe-area-inset-left))] sm:pr-[max(var(--ux-space-4),env(safe-area-inset-right))]">
-      <div className="relative mx-auto w-full max-w-sm sm:max-w-md">
-        <div
-          aria-hidden
-          className="axon-card pointer-events-none absolute inset-0 rounded-[20px]"
-        />
-        <div className="relative z-[1] px-[var(--ux-space-4)] py-[var(--ux-space-5)] sm:px-[var(--ux-space-5)] sm:py-[var(--ux-space-6)]">
-          <div className="mb-3">
-            <button
-              type="button"
-              className="axon-btn axon-btn-quiet"
-              onClick={() => navigate('/')}
-            >
-              ← Back
-            </button>
-          </div>
-          <div className="mb-[var(--ux-space-5)] text-center">
-            <div className="mb-[var(--ux-space-4)] inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500 text-xl font-semibold text-white shadow-sm">
-              A
-            </div>
-            <h1 className="axon-h2 mb-[var(--ux-space-3)] text-xl tracking-tight text-slate-800 sm:text-2xl">
-              Choose how you&apos;re signing in
-            </h1>
-            <p className="mx-auto max-w-[min(100%,var(--ux-max-read))] text-sm leading-[var(--ux-line-relaxed)] text-slate-500">
-              This demo skips passwords. Pick the view that matches you.
-            </p>
-          </div>
-
-          <div className="login-role-stack flex flex-col gap-3 overflow-visible sm:gap-4">
-            {roles.map((role, index) => {
-              const slab = index % 2 === 0;
-              return (
-                <div key={role.id} className="login-role-pop-wrap">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (role.id === 'teacher') primeTeacherClassOverview(1);
-                      else if (role.id === 'student') primeStudentDashboard(1);
-                      else if (role.id === 'parent') primeParentDashboard(1);
-                      navigate(role.path);
-                    }}
-                    className={`login-role-axon-btn axon-btn w-full text-left ${
-                      slab ? 'axon-btn-primary' : 'axon-btn-ghost'
-                    }`}
-                  >
-                    <span className="login-role-title text-[#2c2418]">{role.label}</span>
-                    <span className="login-role-desc text-[#3d3429]">{role.description}</span>
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-[var(--ux-space-5)] border-t border-slate-200/60 pt-[var(--ux-space-4)]">
-            <p className="text-center text-xs leading-[var(--ux-line-relaxed)] text-slate-400">
-              AxonAI demo: no real student data is used here.
-            </p>
-          </div>
+    <div style={{ minHeight: '100vh', background: '#FDF6EE', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', fontFamily: "'Lora', serif", padding: 20 }}>
+      <BlossomDecor petals={52} />
+      <div style={{ width: '100%', maxWidth: 760, position: 'relative', zIndex: 5 }}>
+        <div style={{ marginBottom: 18 }}>
+          <button type="button" className="axon-btn axon-btn-quiet" onClick={() => navigate('/')}>
+            ← Back
+          </button>
         </div>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <h1 style={{ fontFamily: "'Shippori Mincho', serif", fontSize: 42, margin: '0 0 6px', color: '#3D2B1F' }}>AxonAI</h1>
+          <p style={{ margin: 0, color: '#6B4A3A', fontStyle: 'italic' }}>Who are you learning with today?</p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14 }}>
+          {roles.map((role) => (
+            <button
+              key={role.id}
+              type="button"
+              onClick={() => {
+                if (role.id === 'teacher') primeTeacherClassOverview(1);
+                else if (role.id === 'student') primeStudentDashboard(1);
+                else if (role.id === 'parent') primeParentDashboard(1);
+                navigate(role.path);
+              }}
+              style={{ border: '1.5px solid rgba(61,43,31,0.15)', borderRadius: 20, background: 'rgba(255,255,255,0.8)', textAlign: 'left', padding: '24px 18px', cursor: 'pointer', boxShadow: '0 4px 16px rgba(61,43,31,0.08)' }}
+            >
+              <div style={{ fontFamily: "'Shippori Mincho', serif", fontWeight: 700, fontSize: 23, color: '#3D2B1F', marginBottom: 8 }}>{role.label}</div>
+              <div style={{ fontSize: 13, color: '#6B4A3A', lineHeight: 1.55 }}>{role.description}</div>
+            </button>
+          ))}
+        </div>
+        <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: '#6B4A3A' }}>AxonAI demo: no real student data is used here.</div>
       </div>
     </div>
   );

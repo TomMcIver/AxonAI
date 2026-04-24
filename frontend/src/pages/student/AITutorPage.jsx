@@ -260,8 +260,8 @@ export default function AITutorPage() {
     <DashboardShell subtitle="AI Tutor">
       <MathInsertModal open={mathModalOpen} onClose={() => setMathModalOpen(false)} onInsert={insertAtCursor} />
 
-      <div className="flex min-h-[min(85vh,900px)] flex-col gap-4 lg:flex-row lg:gap-6">
-        <aside className="axon-card-subtle hidden min-h-0 w-64 shrink-0 flex-col p-4 sm:p-5 lg:flex">
+      <div className="flex min-h-[560px] flex-col gap-4 lg:h-[min(85vh,900px)] lg:min-h-0 lg:flex-row lg:gap-6">
+        <aside className="axon-card-subtle hidden min-h-0 w-64 shrink-0 flex-col overflow-hidden p-4 sm:p-5 lg:flex">
           <p className="axon-label mb-1">Concepts</p>
           <h2 className="axon-h2 text-base text-slate-800">Your topics</h2>
           <p className="mb-3 text-xs leading-relaxed text-slate-500">
@@ -275,37 +275,39 @@ export default function AITutorPage() {
             className="mb-3 w-full rounded-lg border border-slate-200 bg-white/90 px-2 py-1.5 text-sm text-slate-800 placeholder:text-slate-400"
             aria-label="Filter concepts"
           />
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
-            {filteredConcepts.map((c) => {
-              const pct = masteryPct(c.mastery_score);
-              const active = activeConcept?.concept_id === c.concept_id;
-              return (
-                <button
-                  key={c.concept_id}
-                  type="button"
-                  onClick={() => setActiveConcept(c)}
-                  className={`flex w-full flex-col items-start gap-1 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
-                    active
-                      ? 'border-teal-400/80 bg-teal-50/70 ring-1 ring-teal-200/60'
-                      : 'border-slate-200 bg-white/50 hover:bg-white/80'
-                  }`}
-                >
-                  <span className="font-medium text-slate-800 line-clamp-2">{c.concept_name}</span>
-                  <span
-                    className={`inline-flex rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums ${badgeClassForPct(pct)}`}
+          <div className="min-h-0 flex-1 rounded-xl border border-[#2c2418]/15 bg-white/65 p-2">
+            <div className="h-full space-y-2 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
+              {filteredConcepts.map((c) => {
+                const pct = masteryPct(c.mastery_score);
+                const active = activeConcept?.concept_id === c.concept_id;
+                return (
+                  <button
+                    key={c.concept_id}
+                    type="button"
+                    onClick={() => setActiveConcept(c)}
+                    className={`flex w-full flex-col items-start gap-1 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
+                      active
+                        ? 'border-teal-400/80 bg-teal-50/70 ring-1 ring-teal-200/60'
+                        : 'border-slate-200 bg-white/70 hover:bg-white'
+                    }`}
                   >
-                    {pct.toFixed(0)}%
-                  </span>
-                </button>
-              );
-            })}
-            {filteredConcepts.length === 0 && (
-              <p className="text-xs text-slate-500">No concepts match your search.</p>
-            )}
+                    <span className="font-medium text-slate-800 line-clamp-2">{c.concept_name}</span>
+                    <span
+                      className={`inline-flex rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums ${badgeClassForPct(pct)}`}
+                    >
+                      {pct.toFixed(0)}%
+                    </span>
+                  </button>
+                );
+              })}
+              {filteredConcepts.length === 0 && (
+                <p className="text-xs text-slate-500">No concepts match your search.</p>
+              )}
+            </div>
           </div>
         </aside>
 
-        <section className="axon-card-subtle flex min-h-[480px] min-w-0 flex-1 flex-col p-0 sm:min-h-[520px]">
+        <section className="axon-card-subtle flex min-h-[480px] min-w-0 flex-1 flex-col overflow-hidden p-0 sm:min-h-[520px] lg:min-h-0">
           <div className="shrink-0 space-y-1 border-b border-slate-200/80 px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
             <p className="axon-label mb-0">Tutor</p>
             <div className="flex flex-wrap items-start justify-between gap-2">

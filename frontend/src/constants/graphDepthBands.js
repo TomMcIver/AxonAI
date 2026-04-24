@@ -5,12 +5,12 @@
 export const DEPTH_LABELS = ['Fundamentals', 'Early', 'Core', 'Stretch', 'Advanced', 'Further'];
 
 export const DEPTH_BAND_FILLS = [
-  '#a8d4ff',
-  '#7ee0b8',
-  '#ffe566',
-  '#ffb8d9',
-  '#cdb8ff',
-  '#ffc9a3',
+  '#d8e9ff',
+  '#d9f2e6',
+  '#fff2c8',
+  '#f9ddeb',
+  '#e6ddfb',
+  '#fde3cf',
 ];
 
 export const DEPTH_COUNT = DEPTH_LABELS.length;

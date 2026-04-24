@@ -10,19 +10,19 @@ const DASH_FILL_MS = 4200;
 
 function StatusIndicator({ score }) {
   if (score < 0.2) return (
-    <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50/80 border border-emerald-200/50 px-4 py-3 rounded-xl">
+    <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ color: 'var(--mastered)', background: 'var(--mastered-bg)', border: '1px solid color-mix(in srgb, var(--mastered) 35%, white)' }}>
       <span className="text-2xl">&#10003;</span>
       <span className="font-medium">Your child is on track</span>
     </div>
   );
   if (score < 0.4) return (
-    <div className="flex items-center gap-2 text-amber-700 bg-amber-50/80 border border-amber-200/50 px-4 py-3 rounded-xl">
+    <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ color: 'var(--needs-attention)', background: 'var(--needs-attention-bg)', border: '1px solid color-mix(in srgb, var(--needs-attention) 35%, white)' }}>
       <span className="text-2xl">&#9888;</span>
       <span className="font-medium">Some areas need attention</span>
     </div>
   );
   return (
-    <div className="flex items-center gap-2 text-red-700 bg-red-50/80 border border-red-200/50 px-4 py-3 rounded-xl">
+    <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ color: 'var(--at-risk)', background: 'var(--at-risk-bg)', border: '1px solid color-mix(in srgb, var(--at-risk) 35%, white)' }}>
       <span className="text-2xl">&#9888;</span>
       <span className="font-medium">Your child may need additional support</span>
     </div>
@@ -143,6 +143,13 @@ export default function ParentDashboard() {
     ? `${student.first_name} is moderately engaged with their learning`
     : `${student.first_name} could benefit from more encouragement to engage`;
 
+  const attendanceColor =
+    (wellbeing?.attendance_percentage ?? 0) >= 90
+      ? 'var(--mastered)'
+      : (wellbeing?.attendance_percentage ?? 0) >= 80
+        ? 'var(--needs-attention)'
+        : 'var(--at-risk)';
+
   return (
     <DashboardShell subtitle={`Parent · ${student.first_name}'s overview`}>
       <div className="mx-auto w-full max-w-3xl space-y-5">
@@ -155,10 +162,7 @@ export default function ParentDashboard() {
             </div>
             <div className="text-right">
               <p className="text-[0.7rem] text-slate-400 mb-1">Attendance</p>
-              <p className={`text-xl font-semibold ${
-                (wellbeing?.attendance_percentage ?? 0) >= 90 ? 'text-emerald-600' :
-                (wellbeing?.attendance_percentage ?? 0) >= 80 ? 'text-amber-600' : 'text-rose-600'
-              }`}>
+              <p className="text-xl font-semibold" style={{ color: attendanceColor }}>
                 {wellbeing?.attendance_percentage ?? '-'}%
               </p>
             </div>
@@ -174,7 +178,7 @@ export default function ParentDashboard() {
           <div className="flex items-center gap-3">
             <span className="text-xs text-slate-500 w-16">Overall</span>
             <div className="flex-1 h-2.5 rounded-full bg-slate-200 overflow-hidden">
-              <div className="h-full rounded-full bg-teal-500" style={{ width: `${((summary?.mastery?.avg_mastery ?? 0) * 100).toFixed(1)}%` }} />
+              <div className="h-full rounded-full" style={{ width: `${((summary?.mastery?.avg_mastery ?? 0) * 100).toFixed(1)}%`, background: 'var(--mastered)' }} />
             </div>
             <span className="text-sm font-semibold text-slate-800 w-14 text-right">
               {((summary?.mastery?.avg_mastery ?? 0) * 100).toFixed(1)}%
@@ -186,7 +190,7 @@ export default function ParentDashboard() {
               <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-400">Mathematics</p>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
-                  <div className="h-full rounded-full bg-sky-500" style={{ width: `${(mathMastery * 100).toFixed(1)}%` }} />
+                  <div className="h-full rounded-full" style={{ width: `${(mathMastery * 100).toFixed(1)}%`, background: 'var(--needs-attention)' }} />
                 </div>
                 <span className="text-sm font-medium text-slate-700">{(mathMastery * 100).toFixed(0)}%</span>
               </div>
@@ -196,7 +200,7 @@ export default function ParentDashboard() {
               <p className="text-[0.72rem] tracking-[0.16em] uppercase text-slate-400">Biology</p>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
-                  <div className="h-full rounded-full bg-emerald-500" style={{ width: `${(bioMastery * 100).toFixed(1)}%` }} />
+                  <div className="h-full rounded-full" style={{ width: `${(bioMastery * 100).toFixed(1)}%`, background: 'var(--mastered)' }} />
                 </div>
                 <span className="text-sm font-medium text-slate-700">{(bioMastery * 100).toFixed(0)}%</span>
               </div>
@@ -210,15 +214,15 @@ export default function ParentDashboard() {
           <p className="text-xs text-slate-500">{engagementMessage}</p>
           <div className="grid grid-cols-3 gap-3 text-center text-[0.75rem]">
             <div>
-              <p className="text-base font-semibold text-teal-600">{summary?.conversations?.total_conversations ?? '-'}</p>
+              <p className="text-base font-semibold" style={{ color: 'var(--mastered)' }}>{summary?.conversations?.total_conversations ?? '-'}</p>
               <p className="text-slate-400">Learning sessions</p>
             </div>
             <div>
-              <p className="text-base font-semibold text-amber-600">{summary?.conversations?.lightbulb_count ?? '-'}</p>
+              <p className="text-base font-semibold" style={{ color: 'var(--needs-attention)' }}>{summary?.conversations?.lightbulb_count ?? '-'}</p>
               <p className="text-slate-400">Lightbulb moments</p>
             </div>
             <div>
-              <p className="text-base font-semibold text-emerald-600">{(summary?.quizzes?.avg_score ?? 0).toFixed(0)}%</p>
+              <p className="text-base font-semibold" style={{ color: 'var(--mastered)' }}>{(summary?.quizzes?.avg_score ?? 0).toFixed(0)}%</p>
               <p className="text-slate-400">Quiz average</p>
             </div>
           </div>
@@ -241,8 +245,8 @@ export default function ParentDashboard() {
             <p className="text-xs text-slate-500">A few concepts {student.first_name} is finding harder right now.</p>
             <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
               {flags.flags.map(f => (
-                <div key={f.id} className="flex items-start gap-3 rounded-lg bg-amber-50/60 border border-amber-300/30 px-3 py-2">
-                  <div className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                <div key={f.id} className="flex items-start gap-3 rounded-lg px-3 py-2" style={{ background: 'var(--needs-attention-bg)', border: '1px solid color-mix(in srgb, var(--needs-attention) 30%, white)' }}>
+                  <div className="mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--needs-attention)' }} />
                   <div>
                     <p className="text-xs font-medium text-slate-700">{f.concept_name}</p>
                     <p className="text-[0.7rem] text-slate-400">{f.subject}: {f.flag_detail}</p>
