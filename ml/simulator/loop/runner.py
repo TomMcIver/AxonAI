@@ -33,10 +33,11 @@ from ml.simulator.loop.explanation_style import (
     ExplanationStyleConfig,
     select_explanation_style,
 )
-from ml.simulator.misconception.detector import MisconceptionDetector
+from ml.simulator.loop.llm_tutor import LLMTutor
 from ml.simulator.loop.quiz import select_next_item, simulate_response
 from ml.simulator.loop.revise import ReviseRecord, select_revision_concepts
 from ml.simulator.loop.teach import TeachRecord, teach
+from ml.simulator.misconception.detector import MisconceptionDetector
 from ml.simulator.psychometrics.bkt import BKTParams
 from ml.simulator.student.dynamics import apply_forgetting, apply_practice
 from ml.simulator.student.profile import AttemptRecord, StudentProfile
@@ -82,6 +83,9 @@ class TermRunner:
     # B5: misconception detector. When set, _detector_hint_for delegates
     # here instead of returning None.
     misconception_detector: MisconceptionDetector | None = None
+    # B7: LLM tutor. When set, the teach step generates an explanation
+    # in the B6-selected style and stores it in TeachRecord.llm_explanation.
+    llm_tutor: LLMTutor | None = None
 
     def run(self) -> Iterator[Event]:
         rng = np.random.default_rng(self.seed)
@@ -99,7 +103,14 @@ class TermRunner:
             # Teach.
             next_concept = self._pick_next_teach_concept(profile)
             if next_concept is not None:
-                profile, teach_rec = teach(profile, next_concept, now)
+                teach_style = select_explanation_style(
+                    profile, next_concept, config=self.explanation_style_config
+                )
+                profile, teach_rec = teach(
+                    profile, next_concept, now,
+                    explanation_style=teach_style,
+                    llm_tutor=self.llm_tutor,
+                )
                 yield teach_rec
 
             # Quiz on newly-taught concept.
@@ -163,7 +174,6 @@ class TermRunner:
     ) -> tuple[StudentProfile, AttemptRecord, dict[int, float]]:
         # Pick the explanation style BEFORE the attempt is resolved — the
         # tutor decides how to frame the item from prior state alone.
-        # Detector hint stays None until B5 wires the detector in.
         explanation_style = select_explanation_style(
             profile,
             item.concept_id,
@@ -174,7 +184,6 @@ class TermRunner:
         current_rating = item_ratings.get(item.item_id, INITIAL_ITEM_ELO)
         bkt = self.bkt_params_by_concept.get(item.concept_id)
         if bkt is None:
-            # Should not normally happen — fall back to a neutral prior.
             bkt = BKTParams(p_init=0.2, p_transit=0.1, p_slip=0.1, p_guess=0.25)
         new_profile, new_rating = apply_practice(
             profile,
