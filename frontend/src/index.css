@@ -102,6 +102,16 @@ body {
   background: var(--surface-app);
   color: var(--text-primary);
   line-height: 1.6;
+  overflow-x: hidden;
+}
+
+#root,
+.app-shell,
+.marketing-root,
+.lp2-root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 /* App chrome: light mode */
@@ -1422,6 +1432,38 @@ html body {
 
   .persona-panel {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .marketing-container,
+  .lp2-wrap {
+    width: calc(100% - 1rem);
+  }
+
+  .marketing-nav-inner,
+  .lp2-nav-inner {
+    min-height: auto;
+    padding: 0.6rem 0;
+  }
+
+  .comparison-table {
+    overflow-x: auto;
+  }
+
+  .comparison-table .row {
+    min-width: 540px;
+  }
+
+  .cta-form {
+    border-radius: 12px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
