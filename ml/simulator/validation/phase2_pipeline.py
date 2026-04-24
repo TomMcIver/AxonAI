@@ -217,9 +217,9 @@ def _check_is_simulated_invariant(
     all_attempts: list[AttemptRecord],
     all_teach: list[TeachRecord],
 ) -> bool:
-    """All attempt records must have explanation_style set; teach records too."""
-    attempts_ok = all(a.explanation_style is not None for a in all_attempts)
-    teach_ok = all(t.explanation_style is not None for t in all_teach)
+    """Every record must carry is_simulated=True (the literal field, not a proxy)."""
+    attempts_ok = all(a.is_simulated is True for a in all_attempts)
+    teach_ok = all(t.is_simulated is True for t in all_teach)
     return attempts_ok and teach_ok
 
 
