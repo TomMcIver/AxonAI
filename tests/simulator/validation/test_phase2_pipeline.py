@@ -86,17 +86,18 @@ class TestCheckIsSimulatedInvariant:
         teach = [_teach(style="hint")]
         assert _check_is_simulated_invariant(attempts, teach) is True
 
-    def test_attempt_missing_style_fails(self):
+    def test_attempt_is_simulated_false_fails(self):
         a = AttemptRecord(
             concept_id=1, item_id=1, is_correct=True,
             time=datetime(2024, 1, 1), response_time_ms=1000,
-            explanation_style=None,
+            explanation_style="hint", is_simulated=False,
         )
         assert _check_is_simulated_invariant([a], []) is False
 
-    def test_teach_missing_style_fails(self):
+    def test_teach_is_simulated_false_fails(self):
         t = TeachRecord(student_id=0, concept_id=1,
-                        time=datetime(2024, 1, 1), explanation_style=None)
+                        time=datetime(2024, 1, 1), explanation_style="hint",
+                        is_simulated=False)
         assert _check_is_simulated_invariant([], [t]) is False
 
     def test_empty_lists_passes(self):

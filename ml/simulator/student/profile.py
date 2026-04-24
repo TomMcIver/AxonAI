@@ -43,6 +43,8 @@ class AttemptRecord:
     # (see `ml.simulator.misconception.response_model`). None when the
     # student was correct, or when the item has no distractor metadata.
     triggered_misconception_id: Optional[int] = None
+    # Invariant: always True for simulator-generated records.
+    is_simulated: bool = True
 
 
 @dataclass

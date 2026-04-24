@@ -30,6 +30,8 @@ class TeachRecord:
     explanation_style: str | None = None
     # B7: LLM-generated explanation text (None when no tutor or API failure).
     llm_explanation: str | None = None
+    # Invariant: always True for simulator-generated records.
+    is_simulated: bool = True
 
 
 def teach(
