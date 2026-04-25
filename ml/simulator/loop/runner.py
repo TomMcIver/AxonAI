@@ -34,7 +34,7 @@ from ml.simulator.loop.explanation_style import (
     select_explanation_style,
 )
 from ml.simulator.loop.llm_tutor import LLMTutor
-from ml.simulator.loop.quiz import select_next_item, simulate_response
+from ml.simulator.loop.quiz import select_item_for_concept, simulate_response
 from ml.simulator.loop.revise import ReviseRecord, select_revision_concepts
 from ml.simulator.loop.teach import TeachRecord, teach
 from ml.simulator.misconception.detector import MisconceptionDetector
@@ -89,6 +89,8 @@ class TermRunner:
     # B2 response model: "misconception_weighted" (v2) or "uniform" (v1).
     # Threaded into `simulate_response` on every quiz/revise attempt.
     response_model: str = "misconception_weighted"
+    # `zpd` = band-based selection; `random` = uniform in concept bank (e.g. no_tutor ablation).
+    item_selection: str = "zpd"
 
     def run(self) -> Iterator[Event]:
         rng = np.random.default_rng(self.seed)
@@ -119,7 +121,13 @@ class TermRunner:
             # Quiz on newly-taught concept.
             if next_concept is not None:
                 for _ in range(self.quiz_items_per_session):
-                    item = select_next_item(profile, self.item_bank, next_concept)
+                    item = select_item_for_concept(
+                        profile,
+                        self.item_bank,
+                        next_concept,
+                        mode=self.item_selection,
+                        rng=rng,
+                    )
                     if item is None:
                         break
                     profile, record, item_ratings = self._attempt(
@@ -138,7 +146,13 @@ class TermRunner:
                 )
                 for concept_id in to_revise:
                     for _ in range(self.revise_items_per_concept):
-                        item = select_next_item(profile, self.item_bank, concept_id)
+                        item = select_item_for_concept(
+                            profile,
+                            self.item_bank,
+                            concept_id,
+                            mode=self.item_selection,
+                            rng=rng,
+                        )
                         if item is None:
                             break
                         profile, record, item_ratings = self._attempt(
