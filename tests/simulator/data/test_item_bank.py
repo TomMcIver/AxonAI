@@ -12,6 +12,7 @@ from ml.simulator.data.item_bank import (
     Item,
     ItemBank,
     build_item_bank,
+    load_verified_assistments_eedi_map,
 )
 
 
@@ -31,33 +32,38 @@ def item_params() -> pd.DataFrame:
 def responses() -> pd.DataFrame:
     return pd.DataFrame(
         [
-            {"user_id": 1, "problem_id": 10, "skill_id": 7},
-            {"user_id": 2, "problem_id": 10, "skill_id": 7},
-            {"user_id": 3, "problem_id": 10, "skill_id": 8},  # minority
-            {"user_id": 1, "problem_id": 11, "skill_id": 8},
-            {"user_id": 1, "problem_id": 12, "skill_id": 9},
-            {"user_id": 2, "problem_id": 12, "skill_id": 9},
+            {"user_id": 1, "problem_id": 10, "problem_log_id": 10010, "skill_id": 7},
+            {"user_id": 2, "problem_id": 10, "problem_log_id": 10010, "skill_id": 7},
+            {"user_id": 3, "problem_id": 10, "problem_log_id": 10010, "skill_id": 8},  # minority
+            {"user_id": 1, "problem_id": 11, "problem_log_id": 10011, "skill_id": 8},
+            {"user_id": 1, "problem_id": 12, "problem_log_id": 10012, "skill_id": 9},
+            {"user_id": 2, "problem_id": 12, "problem_log_id": 10012, "skill_id": 9},
             # item 99 has only untagged rows — should not resolve to a concept
-            {"user_id": 1, "problem_id": 99, "skill_id": -1},
+            {"user_id": 1, "problem_id": 99, "problem_log_id": 10099, "skill_id": -1},
         ]
     )
 
 
 @pytest.fixture
 def eedi_frames():
-    # Only item 10 has Eedi overlap.
+    # Eedi questions 10 and 2000: crosswalk can map assist 10 -> 2000.
     options = pd.DataFrame(
         [
             {"QuestionId": 10, "Option": "A", "OptionText": "right", "IsCorrect": True},
             {"QuestionId": 10, "Option": "B", "OptionText": "wrongB", "IsCorrect": False},
             {"QuestionId": 10, "Option": "C", "OptionText": "wrongC", "IsCorrect": False},
             {"QuestionId": 10, "Option": "D", "OptionText": "wrongD", "IsCorrect": False},
+            {"QuestionId": 2000, "Option": "A", "OptionText": "r2", "IsCorrect": True},
+            {"QuestionId": 2000, "Option": "B", "OptionText": "b2000", "IsCorrect": False},
+            {"QuestionId": 2000, "Option": "C", "OptionText": "c2000", "IsCorrect": False},
+            {"QuestionId": 2000, "Option": "D", "OptionText": "d2000", "IsCorrect": False},
         ]
     )
     distractor_map = pd.DataFrame(
         [
             {"QuestionId": 10, "Option": "B", "MisconceptionId": 1672},
             {"QuestionId": 10, "Option": "D", "MisconceptionId": 2142},
+            {"QuestionId": 2000, "Option": "B", "MisconceptionId": 99},
         ]
     )
     return SimpleNamespace(
@@ -141,3 +147,49 @@ class TestBuildItemBank:
         bad = pd.DataFrame({"user_id": [0]})
         with pytest.raises(KeyError):
             build_item_bank(item_params, bad)
+
+    def test_verified_crosswalk_maps_different_eedi_id(
+        self, item_params, responses, eedi_frames
+    ) -> None:
+        """Assist 10 uses Eedi Question 2000 via map; only mapped items in bank when flagged."""
+        xw = {10: 2000}
+        bank = build_item_bank(
+            item_params,
+            responses,
+            eedi_frames=eedi_frames,
+            assist_to_eedi_verified=xw,
+            only_items_in_verified_map=True,
+        )
+        assert {i.item_id for i in bank.items()} == {10}
+        d0 = {d.option_text: d for d in bank.get(10).distractors}
+        assert d0["b2000"].misconception_id == 99
+        assert len(d0) == 3
+
+    def test_load_verified_crosswalk_filters_and_aliases(self, tmp_path) -> None:
+        f = tmp_path / "x.csv"
+        f.write_text(
+            "problem_id,eedi_question_id,verified\n"
+            "10,100,true\n"
+            "10,200,false\n"  # duplicate assist id: first wins
+            "11,101,no\n"
+            "12,102,yes\n",
+            encoding="utf-8",
+        )
+        m = load_verified_assistments_eedi_map(f)
+        assert m == {10: 100, 12: 102}
+
+    def test_verified_crosswalk_problem_log_id_remaps_to_problem_id(
+        self, item_params, responses, eedi_frames
+    ) -> None:
+        # Crosswalk ids are problem_log_id-like, not calibrated item_id/problem_id.
+        xw = {10010: 2000}
+        bank = build_item_bank(
+            item_params,
+            responses,
+            eedi_frames=eedi_frames,
+            assist_to_eedi_verified=xw,
+            only_items_in_verified_map=True,
+        )
+        assert {i.item_id for i in bank.items()} == {10}
+        by_text = {d.option_text: d for d in bank.get(10).distractors}
+        assert by_text["b2000"].misconception_id == 99

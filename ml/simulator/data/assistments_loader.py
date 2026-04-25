@@ -45,6 +45,7 @@ DEFAULT_MIN_RESPONSES_PER_ITEM = 150
 _PASSTHROUGH_COLUMNS = [
     "user_id",
     "problem_id",
+    "problem_log_id",
     "correct",
     "skill_id",
     "skill_name",

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import math
+import traceback
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,7 +29,11 @@ from ml.simulator.data.assistments_loader import (
 )
 from ml.simulator.data.concept_graph import ConceptGraph
 from ml.simulator.data.eedi_misconceptions_loader import load as load_eedi
-from ml.simulator.data.item_bank import ItemBank, build_item_bank
+from ml.simulator.data.item_bank import (
+    ItemBank,
+    build_item_bank,
+    load_verified_assistments_eedi_map,
+)
 from ml.simulator.psychometrics.bkt import BKTParams, BKTState
 from ml.simulator.student.misconceptions import SusceptibilitySampler
 from ml.simulator.student.profile import StudentProfile
@@ -60,6 +65,10 @@ _BKT_PARAMS = REPO / "data" / "processed" / "real_bkt_params.parquet"
 _ID_MAP = REPO / "data" / "processed" / "eedi_misconception_id_map.json"
 # Optional: save a copy with `from ml.simulator.data.assistments_loader import load_responses, cache_processed` after first S3 load.
 _CACHED_ASSIST = REPO / "data" / "processed" / "assistments_responses.parquet"
+# Human- or QC-approved ASSISTments problem_id → Eedi QuestionId; verified-only rows.
+_VERIFIED_CROSSWALK = (
+    REPO / "data" / "processed" / "gate_a_eedi_verified_crosswalk.csv"
+)
 
 
 @dataclass
@@ -74,6 +83,9 @@ class RealAblationProvenance:
     item_params_path: str
     bkt_path: str
     id_map_path: str | None
+    verified_crosswalk_path: str | None
+    n_rows_verified_crosswalk: int
+    use_verified_crosswalk_bank: bool
     error: str | None = None
 
 
@@ -133,7 +145,9 @@ def _bkt_map_for_skills(bkt_path: Path, skills: list[int]) -> dict[int, BKTParam
     return m
 
 
-def _select_skills(bank: ItemBank, n: int) -> list[int]:
+def _select_skills(
+    bank: ItemBank, n: int, prefer_items_with_distractors: bool = True
+) -> list[int]:
     from collections import Counter
 
     with_e: Counter[int] = Counter()
@@ -142,13 +156,18 @@ def _select_skills(bank: ItemBank, n: int) -> list[int]:
         all_c[it.concept_id] += 1
         if it.distractors:
             with_e[it.concept_id] += 1
-    ranked: list[int] = [k for k, _ in with_e.most_common(10_000)]
-    if len(ranked) < n:
-        for k, _ in all_c.most_common(10_000):
-            if k not in ranked:
-                ranked.append(k)
-            if len(ranked) >= n:
-                break
+    if prefer_items_with_distractors:
+        ranked: list[int] = [k for k, _ in with_e.most_common(10_000)]
+        if len(ranked) < n:
+            for k, _ in all_c.most_common(10_000):
+                if k not in ranked:
+                    ranked.append(k)
+                if len(ranked) >= n:
+                    break
+    else:
+        # For verified-crosswalk runs, rank by total verified items per skill,
+        # not by whether Eedi distractor tags are present.
+        ranked = [k for k, _ in all_c.most_common(10_000)]
     if len(ranked) < 2:
         return ranked
     return sorted(ranked[:n])
@@ -278,11 +297,22 @@ def run_investor_ablation_real(
     bkt_path: Path = _BKT_PARAMS,
     assist_csv: str = ASSIST_CSV,
     eedi_s3: str = EEDI_S3,
+    verified_crosswalk_path: Path = _VERIFIED_CROSSWALK,
 ) -> RealAblationResult | None:
+    print("[real_ablation] starting run_investor_ablation_real", flush=True)
     eedi_s3 = eedi_s3.rstrip("/") + "/"
     if not item_params_path.is_file():
         return None
     item_params = pd.read_parquet(item_params_path)
+    print(
+        f"[real_ablation] Gate A item params columns: {list(item_params.columns)}",
+        flush=True,
+    )
+    print(
+        "[real_ablation] Gate A item params first5:\n"
+        f"{item_params.head(5).to_string(index=False)}",
+        flush=True,
+    )
     for col in ("item_id", "a", "b"):
         if col not in item_params.columns:
             return None
@@ -309,11 +339,168 @@ def run_investor_ablation_real(
     print("[real_ablation] loading Eedi (S3 prefix)…", flush=True)
     eedi = load_eedi(questions_path=eedi_s3)
 
-    bank0 = build_item_bank(item_params, responses, eedi_frames=eedi)
+    use_xw = False
+    n_xw = 0
+    assist_eedi: dict[int, int] | None = None
+    if verified_crosswalk_path.is_file():
+        try:
+            xw_df = pd.read_csv(verified_crosswalk_path, low_memory=False)
+            xw_cols = {str(c).strip().lower(): str(c).strip() for c in xw_df.columns}
+            xw_a_col = next(
+                (
+                    xw_cols[k]
+                    for k in (
+                        "assistments_problem_id",
+                        "assistments_item_id",
+                        "problem_id",
+                        "item_id",
+                    )
+                    if k in xw_cols
+                ),
+                None,
+            )
+            if xw_a_col is not None:
+                print(
+                    f"[real_ablation] crosswalk first5 {xw_a_col}: "
+                    f"{xw_df[xw_a_col].head(5).tolist()}",
+                    flush=True,
+                )
+            assist_eedi = load_verified_assistments_eedi_map(verified_crosswalk_path)
+            n_xw = len(assist_eedi)
+            gate_ids = set(
+                pd.to_numeric(item_params["item_id"], errors="coerce")
+                .dropna()
+                .astype(int)
+                .tolist()
+            )
+            crosswalk_ids = set(int(k) for k in assist_eedi.keys())
+            direct_overlap = len(crosswalk_ids & gate_ids)
+            print(
+                f"[real_ablation] crosswalk->GateA direct overlap on item_id: "
+                f"{direct_overlap}/{len(crosswalk_ids)}",
+                flush=True,
+            )
+            if direct_overlap == 0:
+                print(
+                    "[real_ablation] no direct overlap; crosswalk IDs likely reference a "
+                    "different ASSISTments id namespace (for example problem_log_id).",
+                    flush=True,
+                )
+            if "problem_log_id" in responses.columns:
+                bridge = responses[["problem_log_id", "problem_id"]].copy()
+                bridge["problem_log_id"] = pd.to_numeric(
+                    bridge["problem_log_id"], errors="coerce"
+                )
+                bridge["problem_id"] = pd.to_numeric(
+                    bridge["problem_id"], errors="coerce"
+                )
+                bridge = bridge.dropna(subset=["problem_log_id", "problem_id"])
+                if not bridge.empty:
+                    bridge["problem_log_id"] = bridge["problem_log_id"].astype(int)
+                    bridge["problem_id"] = bridge["problem_id"].astype(int)
+                    modal = (
+                        bridge.groupby(["problem_log_id", "problem_id"])
+                        .size()
+                        .reset_index(name="n")
+                        .sort_values(
+                            ["problem_log_id", "n", "problem_id"],
+                            ascending=[True, False, True],
+                        )
+                        .drop_duplicates("problem_log_id", keep="first")
+                    )
+                    log_to_problem = dict(
+                        zip(
+                            modal["problem_log_id"].astype(int),
+                            modal["problem_id"].astype(int),
+                        )
+                    )
+                    mapped = {log_to_problem[k] for k in crosswalk_ids if k in log_to_problem}
+                    mapped_overlap = len(mapped & gate_ids)
+                    print(
+                        f"[real_ablation] overlap after problem_log_id->problem_id remap: "
+                        f"{mapped_overlap}/{len(crosswalk_ids)}",
+                        flush=True,
+                    )
+            else:
+                print(
+                    "[real_ablation] responses has no problem_log_id column; cannot test "
+                    "problem_log_id->problem_id remap on this input",
+                    flush=True,
+                )
+            if n_xw > 0:
+                use_xw = True
+                print(
+                    f"[real_ablation] using verified crosswalk: {verified_crosswalk_path} "
+                    f"({n_xw} assist->Eedi rows); bank = intersection with Gate A + modal skill",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"[real_ablation] crosswalk {verified_crosswalk_path} has no "
+                    f"verified rows; falling back to legacy problem_id=QuestionId join",
+                    flush=True,
+                )
+        except (OSError, KeyError, ValueError) as ex:
+            print(
+                f"[real_ablation] could not read crosswalk ({ex}); using legacy ID join",
+                flush=True,
+            )
+    else:
+        print(
+            f"[real_ablation] no file at {verified_crosswalk_path}; using legacy ID join",
+            flush=True,
+        )
+
+    if use_xw and assist_eedi is not None:
+        bank0 = build_item_bank(
+            item_params,
+            responses,
+            eedi_frames=eedi,
+            assist_to_eedi_verified=assist_eedi,
+            only_items_in_verified_map=True,
+        )
+    else:
+        bank0 = build_item_bank(item_params, responses, eedi_frames=eedi)
     n_e = sum(1 for it in bank0.items() if it.distractors)
-    if len(bank0) < 20:
+    print(
+        f"[real_ablation] build bank complete: bank0={len(bank0)}, with_distractors={n_e}",
+        flush=True,
+    )
+    min_bank_items = 5 if use_xw else 20
+    if len(bank0) < min_bank_items:
+        print(
+            f"[real_ablation] bank too small for run: {len(bank0)} < {min_bank_items} "
+            f"(use_verified_crosswalk_bank={use_xw})",
+            flush=True,
+        )
         return None
-    sk = _select_skills(bank0, n_concepts)
+    sk = _select_skills(
+        bank0,
+        n_concepts,
+        prefer_items_with_distractors=not use_xw,
+    )
+    print(
+        f"[real_ablation] select skills complete: selected={len(sk)} -> {sk}",
+        flush=True,
+    )
+    if use_xw:
+        skill_counts: dict[int, int] = {
+            int(c): int(len(bank0.items_for_concept(c))) for c in sk
+        }
+        print(
+            f"[real_ablation] verified-crosswalk selected skill counts: {skill_counts}",
+            flush=True,
+        )
+    else:
+        legacy_tagged_counts: dict[int, int] = {}
+        for c in sk:
+            legacy_tagged_counts[int(c)] = int(
+                sum(1 for it in bank0.items_for_concept(c) if it.distractors)
+            )
+        print(
+            f"[real_ablation] legacy selected skill tagged counts: {legacy_tagged_counts}",
+            flush=True,
+        )
     if len(sk) < 2:
         return None
     bank = _subsample_bank(bank0, sk, max_items_per, seed)
@@ -321,6 +508,16 @@ def run_investor_ablation_real(
     bkt = _bkt_map_for_skills(bkt_path, sk)
     id_list = _load_id_map()
     mids = _extract_misconception_ids(id_list, bank)
+    xw_relp: str | None
+    if verified_crosswalk_path.is_file():
+        try:
+            xw_relp = str(
+                verified_crosswalk_path.resolve().relative_to(REPO.resolve())
+            )
+        except (OSError, ValueError):
+            xw_relp = str(verified_crosswalk_path)
+    else:
+        xw_relp = None
     prov = RealAblationProvenance(
         n_items_in_bank0=len(bank0),
         n_items_with_eedi=n_e,
@@ -332,17 +529,30 @@ def run_investor_ablation_real(
         item_params_path=str(item_params_path),
         bkt_path=str(bkt_path) if bkt_path.is_file() else "(BKT defaults)",
         id_map_path=str(_ID_MAP) if _ID_MAP.is_file() else None,
+        verified_crosswalk_path=xw_relp,
+        n_rows_verified_crosswalk=n_xw,
+        use_verified_crosswalk_bank=use_xw,
         error=None,
     )
     print(
-        f"[real_ablation] bank0={len(bank0)} items, Eedi-on-join={n_e}; using {len(bank)} in {len(sk)} skills",
+        f"[real_ablation] bank0={len(bank0)} items, with distractor tags={n_e}; using {len(bank)} in {len(sk)} skills",
         flush=True,
     )
     profiles = build_profiles(n_students, sk, seed, mids)
+    print(
+        f"[real_ablation] build profiles complete: n_profiles={len(profiles)}",
+        flush=True,
+    )
 
+    print("[real_ablation] simulate cohort start: v1_uniform", flush=True)
     c_v1 = simulate_cohort("v1_uniform", bank, g, bkt, profiles, n_sessions, seed, "uniform", False, "zpd")
+    print("[real_ablation] simulate cohort complete: v1_uniform", flush=True)
+    print("[real_ablation] simulate cohort start: v2_misconception_only", flush=True)
     c_v2 = simulate_cohort("v2_misconception_only", bank, g, bkt, profiles, n_sessions, seed, "misconception_weighted", True, "zpd")
+    print("[real_ablation] simulate cohort complete: v2_misconception_only", flush=True)
+    print("[real_ablation] simulate cohort start: no_tutor_control", flush=True)
     c_nt = simulate_cohort("no_tutor_control", bank, g, bkt, profiles, n_sessions, seed, "uniform", False, "random")
+    print("[real_ablation] simulate cohort complete: no_tutor_control", flush=True)
     c_full = CohortResult(
         "v2_full (learning; tutor/rewriter not in sim path)",
         c_v2.n_students,
@@ -366,10 +576,22 @@ def run_investor_ablation_real(
     rep.p_paired_t_v2full_vs_v1 = p_v1
     rep.p_paired_t_v2full_vs_notutor = p_nt
     hl = _headline_lifts(c_v1, c_v2)
+    if use_xw and n_e > 0 and n_e == len(bank0):
+        xw_note = (
+            f"With the verified crosswalk, all {n_e} bank0 items reference Eedi distractor/misconception "
+            f"metadata (tags may still be empty if Eedi has no options for that QuestionId). "
+        )
+    elif use_xw:
+        xw_note = "Verified crosswalk: bank is restricted to mapped items; "
+    else:
+        xw_note = (
+            "Legacy join uses rare problem_id=QuestionId overlap; most items have empty distractors. "
+        )
     interp = (
-        "Differences v1↔v2 on Elo/retention can appear if wrong-answer paths use extra random draws, "
-        "so subsequent Bernoulli outcomes diverge. If lifts stay ~0% while Eedi is present, 2PL correctness "
-        "remains the dominant state update; the headline +55% / −25% / +19% is **not** supported in sim."
+        xw_note
+        + "Differences v1 to v2 on Elo/retention can appear if wrong-answer paths use extra random draws, "
+        "so subsequent Bernoulli outcomes diverge. If lifts stay around 0% while v2 is active, 2PL correctness "
+        "remains the dominant state update; a strong investor-style headline is **not** supported in sim."
     )
     return RealAblationResult(
         report=rep,
@@ -402,11 +624,28 @@ def _write_real_md(r: RealAblationResult, path: Path) -> None:
         f"- **BKT map:** `{bkt_s}`",
         f"- **Eedi (distractor→misconception):** `{p.eedi_s3}`",
         f"- **ASSISTments (skill join):** `{p.assist_csv}`",
-        f"- **Pre-subsample bank0:** {p.n_items_in_bank0} items; **with Eedi distractors (QuestionId=problem_id overlap):** {p.n_items_with_eedi}",
+        f"- **Verified crosswalk file:** `{p.verified_crosswalk_path or 'not on disk'}`; **use verified-only bank:** {p.use_verified_crosswalk_bank} (**{p.n_rows_verified_crosswalk}** assist to Eedi rows loaded)",
+        f"- **Pre-subsample bank0:** {p.n_items_in_bank0} items; **with non-empty distractor lists (tags optional per option):** {p.n_items_with_eedi}",
         f"- **Subsample used in sim:** {p.n_items_subsample} items; **concepts (sorted chain):** `{p.concept_ids}`",
-        f"- **Sparse Eedi overlap:** on this dataset only **{p.n_items_with_eedi}** matched items carry tagged distractors; most practice draws use ASSISTments-only items with *empty* `distractors` — so the weighted distractor model rarely runs. Expect **v1_uniform ≈ v2_misconception** on Elo unless overlap grows.",
+    ]
+    if p.use_verified_crosswalk_bank and p.verified_crosswalk_path:
+        lines += [
+            (
+                "- **Eedi join mode:** `gate_a_eedi_verified_crosswalk.csv` (verified only). "
+                "Each bank item takes distractor and misconception fields from the **mapped** Eedi "
+                "QuestionId (not identity problem_id=QuestionId)."
+            ),
+        ]
+    else:
+        lines += [
+            (
+                "- **Eedi join mode:** legacy (QuestionId = ASSISTments `problem_id` if equal). "
+                "On this release overlap is small; most items have empty `distractors` unless a crosswalk is used."
+            ),
+        ]
+    lines += [
         f"- **Misconception IDs in sampler (count):** {p.n_misconception_ids_for_sampler}; id map: {p.id_map_path or 'tags from items + Eedi only'}",
-        f"- *Graph:* linear chain `skill[0]→…→skill[n-1]` in sorted skill_id order (ablation control, not curriculum truth).",
+        f"- *Graph:* linear chain `skill[0] -> ... -> skill[n-1]` in sorted skill_id order (ablation control, not curriculum truth).",
         "",
         "## 1. Headline: v2 – v1 (paired, same 500 students)",
         f"- Elo gain/hr, %Δ vs v1: **{h.get('elo_gain_pct_v2_over_v1', float('nan')):.4f}**",
@@ -460,15 +699,12 @@ def main() -> int:
     jf = REPO / "validation" / "phase_2" / "ablation_results.json"
     r = run_investor_ablation_real()
     if r is None:
-        out.write_text(
-            f"""# Real-bank ablation — not run
-Missing or insufficient Gate A data at `{_ITEM_PARAMS}`.
-Generate with: `python -m ml.simulator.calibration.run_real` (requires ASSISTments S3 + disk under `data/processed/`).
-""",
-            encoding="utf-8",
+        traceback.print_exc()
+        raise RuntimeError(
+            "run_investor_ablation_real() returned None. "
+            "This triggers the stub writer path in main(). "
+            "Likely causes: missing/invalid Gate A item params, bank too small (<20), or too few selected skills (<2)."
         )
-        print("Wrote stub to", out)
-        return 1
     _write_real_md(r, out)
     d: dict[str, Any] = r.report.to_dict()
     d["source"] = "real_bank_eedi"
