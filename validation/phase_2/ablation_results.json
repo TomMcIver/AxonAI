@@ -3,31 +3,31 @@
   "n_sessions": 60,
   "conditions": {
     "v1_uniform": {
-      "mean_elo_gain_per_hr": -124.33318659035675,
-      "median_time_to_mastery_attempts": 263.0,
-      "mean_retention_7d": 0.3802513659006114,
-      "mean_retention_30d": 0.2620656778973471,
+      "mean_elo_gain_per_hr": -118.98627463153669,
+      "median_time_to_mastery_attempts": 67.0,
+      "mean_retention_7d": 0.35791389899190446,
+      "mean_retention_30d": 0.26485930311282413,
       "n": 500
     },
     "v2_misconception_only": {
-      "mean_elo_gain_per_hr": -124.33318659035675,
-      "median_time_to_mastery_attempts": 263.0,
-      "mean_retention_7d": 0.3802513659006114,
-      "mean_retention_30d": 0.2620656778973471,
+      "mean_elo_gain_per_hr": -118.98627463153669,
+      "median_time_to_mastery_attempts": 67.0,
+      "mean_retention_7d": 0.35791389899190446,
+      "mean_retention_30d": 0.26485930311282413,
       "n": 500
     },
     "v2_full": {
-      "mean_elo_gain_per_hr": -124.33318659035675,
-      "median_time_to_mastery_attempts": 263.0,
-      "mean_retention_7d": 0.3802513659006114,
-      "mean_retention_30d": 0.2620656778973471,
+      "mean_elo_gain_per_hr": -118.98627463153669,
+      "median_time_to_mastery_attempts": 67.0,
+      "mean_retention_7d": 0.35791389899190446,
+      "mean_retention_30d": 0.26485930311282413,
       "n": 500
     },
     "no_tutor_control": {
-      "mean_elo_gain_per_hr": -365.05184958836236,
-      "median_time_to_mastery_attempts": null,
-      "mean_retention_7d": 0.03442881430628933,
-      "mean_retention_30d": 0.017752108105442713,
+      "mean_elo_gain_per_hr": -152.30738583613785,
+      "median_time_to_mastery_attempts": 94.0,
+      "mean_retention_7d": 0.32053720087278076,
+      "mean_retention_30d": 0.23769771619923918,
       "n": 500
     }
   },
@@ -38,36 +38,31 @@
     "retention_30d": 1.0
   },
   "p_paired_t_v2full_vs_notutor": {
-    "elo_gain_per_hr": 1.0689911408016437e-188,
-    "time_to_mastery": 1.0,
-    "retention_7d": 5.597632217306145e-202,
-    "retention_30d": 2.4626170610616383e-193
+    "elo_gain_per_hr": 0.03701366785334948,
+    "time_to_mastery": 0.00812229476353951,
+    "retention_7d": 4.262657072604453e-05,
+    "retention_30d": 0.00019562864008137307
   },
   "source": "real_bank_eedi",
   "provenance": {
-    "n_items_in_bank0": 4211,
-    "n_items_with_eedi": 37,
-    "n_items_subsample": 212,
+    "n_items_in_bank0": 6,
+    "n_items_with_eedi": 6,
+    "n_items_subsample": 6,
     "concept_ids": [
-      5,
-      75,
-      77,
-      79,
-      82,
-      84,
-      92,
-      93,
-      95,
-      103,
-      106,
-      278
+      25,
+      280,
+      281,
+      346
     ],
-    "n_misconception_ids_for_sampler": 58,
+    "n_misconception_ids_for_sampler": 9,
     "assist_csv": "s3://axonai-datasets-924300129944/assistments/2012-2013-data-with-predictions-4-final.csv",
     "eedi_s3": "s3://axonai-datasets-924300129944/eedi_mining_misconceptions/",
     "item_params_path": "data/processed/real_item_params.parquet",
     "bkt_path": "data/processed/real_bkt_params.parquet",
     "id_map_path": null,
+    "verified_crosswalk_path": "data\\processed\\gate_a_eedi_verified_crosswalk.csv",
+    "n_rows_verified_crosswalk": 21,
+    "use_verified_crosswalk_bank": true,
     "error": null
   },
   "headline_lifts": {
@@ -75,5 +70,5 @@
     "ttm_pct_faster_median": 0.0,
     "retention7_pct_lift": 0.0
   },
-  "headline_interpretation": "Differences v1\u2194v2 on Elo/retention can appear if wrong-answer paths use extra random draws, so subsequent Bernoulli outcomes diverge. If lifts stay ~0% while Eedi is present, 2PL correctness remains the dominant state update; the headline +55% / \u221225% / +19% is **not** supported in sim."
+  "headline_interpretation": "With the verified crosswalk, all 6 bank0 items reference Eedi distractor/misconception metadata (tags may still be empty if Eedi has no options for that QuestionId). Differences v1 to v2 on Elo/retention can appear if wrong-answer paths use extra random draws, so subsequent Bernoulli outcomes diverge. If lifts stay around 0% while v2 is active, 2PL correctness remains the dominant state update; a strong investor-style headline is **not** supported in sim."
 }

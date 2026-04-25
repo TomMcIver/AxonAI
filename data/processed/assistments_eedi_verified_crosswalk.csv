@@ -1,0 +1,350 @@
+assistments_item_id,eedi_question_id,similarity_score,verified,topic,assistments_text,eedi_text
+140059,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+647776,67,0.8080469369888306,false,REJECT: different numbers sqrt(9) vs sqrt(10),the square root of 10,What is the square root of nine?
+655353,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+635208,275,0.7725088000297546,false,REJECT: subtraction vs division mismatch,0.09/50,\( 50.09-0.1= \)
+635208,1085,0.7580516338348389,true,Decimal division,0.09/50,\( 50.09 \div 0.1= \)
+318127,17,0.7543097734451294,true,Sum of odd/even numbers proof,The sum of two even numbers is always an even number.,Which of these shows part of the proof that the sum of two odd numbers is even?
+640944,765,0.8529731035232544,true,Triangular prism identification,Triangular Prism,Which of the following shapes is a triangular prism?
+641172,765,0.8529731035232544,true,Triangular prism identification,Triangular Prism,Which of the following shapes is a triangular prism?
+576939,1303,0.8602834939956665,true,Isosceles triangle properties,Isosceles Triangle,An isosceles triangle must have ...
+576939,1832,0.8602834939956665,true,Isosceles triangle properties,Isosceles Triangle,An isosceles triangle must have ...
+576939,650,0.804817259311676,true,Isosceles triangle description,Isosceles Triangle,Which description describes an isosceles triangle?
+140062,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+655343,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+563981,1565,0.7623013257980347,true,Adjacent angles on straight line,Adjacent Angles,Adjacent angles on a straight line sum to...
+140071,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+558007,111,0.7578150033950806,true,Quadrilateral regular polygon,Quadrilateral,Which quadrilateral below is a regular polygon?
+140070,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+569208,559,0.792385458946228,true,Equilateral shape properties,Equilateral,An equilateral shape must have...
+608073,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+608076,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+618270,111,0.7578150033950806,true,Quadrilateral regular polygon,quadrilateral,Which quadrilateral below is a regular polygon?
+662438,598,0.765056848526001,true,Decimal to percentage,15.5%,Write \( 0.15 \) as a percentage.
+510045,598,0.765056848526001,true,Decimal to percentage,15.5%,Write \( 0.15 \) as a percentage.
+624728,765,0.8529731035232544,true,Triangular prism identification,triangular prism,Which of the following shapes is a triangular prism?
+58706,1693,0.7796640396118164,true,Simplify fraction 5/15,5/15 = c/7,\( \frac{5}{15}= \)
+140074,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+522203,1404,0.7595647573471069,true,Cube number 3^3,2*(3^3),\( 3^{3}=? \)
+134706,302,0.7541776895523071,true,Simplify rational expression,(x+5)(x+5),"Write the following as simply as possible:
+\(
+\frac{(x+3)(x+5)}{(x+3)(x+10)}
+\)"
+765953,72,0.8267847299575806,true,y-axis equation,Y-Axis,What is the equation of the \( y \) axis?
+558099,559,0.7929025292396545,true,Equilateral shape properties,A. Equilateral,An equilateral shape must have...
+140060,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+527059,1588,0.7792061567306519,true,Rotational symmetry order,rotational symmetry,Which shape has the lowest order of rotational symmetry?
+527059,1226,0.7721434831619263,true,Rotational symmetry order,rotational symmetry,Which shape has the highest order of rotational symmetry?
+527059,734,0.7524811029434204,true,Rotational symmetry order 2,rotational symmetry,Which shape has rotational symmetry order \( 2 \) ?
+668011,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+140065,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+140064,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+750063,1294,0.8150279521942139,false,REJECT: subtraction vs multiplication mismatch,(-8)(-8)(-8),\( (-6)-(-8)= \)
+675282,383,0.767704427242279,true,Substitution h=15,h=15,"When \( h=15 \)
+
+\(
+\frac{h}{3}=
+\)"
+686046,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+602197,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+140073,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+541873,111,0.7578150033950806,true,Quadrilateral regular polygon,quadrilateral,Which quadrilateral below is a regular polygon?
+563983,1565,0.7623013257980347,true,Adjacent angles on straight line,Adjacent Angles,Adjacent angles on a straight line sum to...
+616938,72,0.826178252696991,true,y-axis equation,y axis,What is the equation of the \( y \) axis?
+639470,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+297731,765,0.8529731035232544,true,Triangular prism identification,triangular prism,Which of the following shapes is a triangular prism?
+140072,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+668012,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+686006,1303,0.8602834939956665,true,Isosceles triangle properties,isosceles triangle,An isosceles triangle must have ...
+686006,1832,0.8602834939956665,true,Isosceles triangle properties,isosceles triangle,An isosceles triangle must have ...
+686006,650,0.804817259311676,true,Isosceles triangle description,isosceles triangle,Which description describes an isosceles triangle?
+655347,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+458026,559,0.792385458946228,true,Equilateral shape properties,Equilateral,An equilateral shape must have...
+461423,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+527226,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+655350,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+699691,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+655333,342,0.9226085543632507,true,Obtuse angle identification,Obtuse angle,Which of the following is an obtuse angle?
+544441,860,0.7985946536064148,false,REJECT: subtraction vs multiplication mismatch,(-5)(-5)(-5),\( (-3)-5= \)
+544441,436,0.7941521406173706,false,REJECT: addition vs multiplication mismatch,(-5)(-5)(-5),\( (-5)+(-2)= \)
+544441,1183,0.7855838537216187,true,Negative number multiplication,(-5)(-5)(-5),\( 5 \times(-4)= \)
+655354,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+557150,302,0.7865558862686157,true,Simplify rational expression,(x+3)(x+5),"Write the following as simply as possible:
+\(
+\frac{(x+3)(x+5)}{(x+3)(x+10)}
+\)"
+140067,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+517568,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+582763,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+765956,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+750064,1294,0.8150279521942139,false,REJECT: subtraction vs multiplication mismatch,(-8)(-8)(-8),\( (-6)-(-8)= \)
+668004,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+140061,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+660858,748,0.8068910837173462,true,Hexagonal prism identification,hexagonial prism,Which of the following shapes is a hexagonal prism?
+655332,342,0.9226085543632507,true,Obtuse angle identification,Obtuse angle,Which of the following is an obtuse angle?
+411590,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+563117,810,0.7571834325790405,true,Time unit conversion 1.5 hours,1 and 1.5 hours,\( 1.5 \) hours \( = _______\) minutes
+533970,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+632600,1183,0.7624621391296387,true,Negative number multiplication,(-4)^5,\( 5 \times(-4)= \)
+632600,1491,0.757309079170227,true,Powers with negative base,(-4)^5,\( (-2)^{4}= \)
+134710,302,0.7541776895523071,true,Simplify rational expression,(x+5)(x+5),"Write the following as simply as possible:
+\(
+\frac{(x+3)(x+5)}{(x+3)(x+10)}
+\)"
+172482,1707,0.763788640499115,true,Area formula rectangle (misconception match),Area = (base + height)/2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+655352,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+527056,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+411589,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+297729,213,0.773826539516449,true,Reciprocal concept,Multiply each side by the reciprocal of 2/3.,What is the reciprocal of \( -\frac{1}{3} \) ?
+655355,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+134826,302,0.7541776895523071,true,Simplify rational expression,(x+5)(x+5),"Write the following as simply as possible:
+\(
+\frac{(x+3)(x+5)}{(x+3)(x+10)}
+\)"
+668001,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+555029,1183,0.7557590007781982,true,Negative number multiplication,-4 and 5,\( 5 \times(-4)= \)
+44048,559,0.7557481527328491,true,Equilateral shape properties,B. equilateral,An equilateral shape must have...
+605482,1565,0.7623013257980347,true,Adjacent angles on straight line,adjacent angles,Adjacent angles on a straight line sum to...
+652120,111,0.7578150033950806,true,Quadrilateral regular polygon,Quadrilateral,Which quadrilateral below is a regular polygon?
+522206,267,0.7635129690170288,true,Powers of powers,(3^3)*(5^2),\( \left(5^{4}\right)^{3}= \)
+522206,1404,0.7503032088279724,true,Cube number 3^3,(3^3)*(5^2),\( 3^{3}=? \)
+171168,1707,0.7510252594947815,true,Area formula rectangle (misconception match),Area = base x height /2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+672300,267,0.8096859455108643,true,Powers of powers,(5^4)(3^6),\( \left(5^{4}\right)^{3}= \)
+664268,1183,0.7624621391296387,true,Negative number multiplication,(-4)^5,\( 5 \times(-4)= \)
+664268,1491,0.757309079170227,true,Powers with negative base,(-4)^5,\( (-2)^{4}= \)
+455226,1817,0.7563254237174988,true,Powers of decimals,(0.99^3),\( 0.01^{3}= \)
+461438,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+706918,552,0.7561713457107544,true,Number of solutions to equation,two solutions,"One of these equations has exactly one solution.
+Which is it?"
+706918,1158,0.7561713457107544,true,Number of solutions to equation,two solutions,"One of these equations has exactly one solution.
+Which is it?"
+649612,1183,0.7557590007781982,true,Negative number multiplication,-4 and 5,\( 5 \times(-4)= \)
+140069,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+140068,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+706919,552,0.7561713457107544,true,Number of solutions to equation,two solutions,"One of these equations has exactly one solution.
+Which is it?"
+706919,1158,0.7561713457107544,true,Number of solutions to equation,two solutions,"One of these equations has exactly one solution.
+Which is it?"
+527143,72,0.8267844915390015,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+667381,323,0.8382477760314941,true,Factorise x2+15x+36,x^2 + 15x + 36,Factorise \( x^{2}+15 x+36 \) Factorise \( x^{2}+15 x+36 \)
+602335,1294,0.7584742307662964,false,REJECT: subtraction vs multiplication mismatch,(-3)-6,\( (-6)-(-8)= \)
+494814,1832,0.7615681886672974,true,Isosceles triangle properties,Isosceles Isosceles,An isosceles triangle must have ...
+494814,1303,0.7615681886672974,true,Isosceles triangle properties,Isosceles Isosceles,An isosceles triangle must have ...
+671647,245,0.8158187866210938,true,Percentage increase,increase by 150%,Increase \( 160 \) by \( 30 \% \)
+671647,1743,0.7652151584625244,true,Compound percentage increase,increase by 150%,"I increase \( £ 150 \) by \( 60 \% \).
+Then, I increase the new amount by \( 10 \% \).
+What percentage of the original amount do I have now?"
+140063,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+171261,1707,0.763788640499115,true,Area formula rectangle (misconception match),Area = (base + height)/2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+655356,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+528006,765,0.8529731035232544,true,Triangular prism identification,triangular prism,Which of the following shapes is a triangular prism?
+513425,1195,0.7583646774291992,true,2x3^2 order of operations,2*(3^2),\( 2 \times 3^{2}= \)
+554202,148,0.754403829574585,false,REJECT: different operations,multiply 1/4,"Convert this to a fraction:
+\( 1.4 \)"
+406900,302,0.8274670243263245,true,Simplify rational expression,(x + 3) / (x + 5),"Write the following as simply as possible:
+\(
+\frac{(x+3)(x+5)}{(x+3)(x+10)}
+\)"
+639725,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+511988,765,0.7674418687820435,true,Triangular prism identification,C) rectangular prism,Which of the following shapes is a triangular prism?
+461422,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+552502,1294,0.7799723148345947,false,REJECT: subtraction vs multiplication mismatch,-8-(-12),\( (-6)-(-8)= \)
+23211,559,0.792385458946228,true,Equilateral shape properties,Equilateral,An equilateral shape must have...
+668019,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+602597,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+683704,342,0.9226085543632507,true,Obtuse angle identification,obtuse angle,Which of the following is an obtuse angle?
+172456,1707,0.7510252594947815,true,Area formula rectangle (misconception match),Area = base x height /2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+657560,765,0.8529731035232544,true,Triangular prism identification,triangular prism,Which of the following shapes is a triangular prism?
+171219,1707,0.7510252594947815,true,Area formula rectangle (misconception match),Area = base x height /2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+701137,111,0.7536379098892212,true,Quadrilateral regular polygon,quadrialateral,Which quadrilateral below is a regular polygon?
+655351,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+406975,302,0.7610481977462769,true,Simplify rational expression,(x + 6) / (x + 5),"Write the following as simply as possible:
+\(
+\frac{(x+3)(x+5)}{(x+3)(x+10)}
+\)"
+668010,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+618275,1334,0.7822234630584717,true,Hexagon identification,hexagon,Which of the following shapes is a hexagon?
+750070,436,0.773975133895874,false,REJECT: addition vs multiplication mismatch,(-5)(-5)(-5)(-5)(-5)(-5),\( (-5)+(-2)= \)
+750070,1789,0.7629935145378113,true,Negative number multiplication,(-5)(-5)(-5)(-5)(-5)(-5),"\(
+(-20) \times(-5)=2 \times(-10) \times(-5)
+\)
+Is this..."
+750070,1449,0.7621573209762573,false,REJECT: order of operations vs repeated multiplication mismatch,(-5)(-5)(-5)(-5)(-5)(-5),\( -4+(-5) \times 3= \)
+602583,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+280638,552,0.7561713457107544,true,Number of solutions to equation,Two Solutions,"One of these equations has exactly one solution.
+Which is it?"
+280638,1158,0.7561713457107544,true,Number of solutions to equation,Two Solutions,"One of these equations has exactly one solution.
+Which is it?"
+765955,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+625985,1491,0.7879469394683838,true,Powers with negative base,(-4^2),\( (-2)^{4}= \)
+513531,267,0.7642542123794556,true,Powers of powers,(2^3)*(5^3),\( \left(5^{4}\right)^{3}= \)
+280634,552,0.7561713457107544,true,Number of solutions to equation,Two Solutions,"One of these equations has exactly one solution.
+Which is it?"
+280634,1158,0.7561713457107544,true,Number of solutions to equation,Two Solutions,"One of these equations has exactly one solution.
+Which is it?"
+566562,559,0.792385458946228,true,Equilateral shape properties,Equilateral,An equilateral shape must have...
+667993,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+668009,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+280640,552,0.7561713457107544,true,Number of solutions to equation,Two Solutions,"One of these equations has exactly one solution.
+Which is it?"
+280640,1158,0.7561713457107544,true,Number of solutions to equation,Two Solutions,"One of these equations has exactly one solution.
+Which is it?"
+406837,302,0.8244631886482239,true,Simplify rational expression,(x + 5) / (x + 3),"Write the following as simply as possible:
+\(
+\frac{(x+3)(x+5)}{(x+3)(x+10)}
+\)"
+171258,1707,0.763788640499115,true,Area formula rectangle (misconception match),Area = (base + height)/2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+439803,1079,0.7763926982879639,true,Square root of 16,16 √6,What is the square root of sixteen?
+719075,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+554164,148,0.754403829574585,false,REJECT: different operations,multiply 1/4,"Convert this to a fraction:
+\( 1.4 \)"
+615894,1190,0.7608484625816345,true,Solve linear equation,p = -10,"Solve the equation:
+\(
+-5=p+10
+\)"
+679624,278,0.763439416885376,true,Inequality number line,-3 < x < 1,Which number line represents \( -3<x \leq 1 \) ?
+679624,909,0.7600817680358887,true,Inequality number line,-3 < x < 1,Which number line represents \( -1 \leq x<3 \) ?
+668017,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+668016,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+406968,302,0.7648845911026001,true,Simplify rational expression,(x + 3) / (x + 9),"Write the following as simply as possible:
+\(
+\frac{(x+3)(x+5)}{(x+3)(x+10)}
+\)"
+560523,1183,0.7981848120689392,true,Negative number multiplication,(-5)*4,\( 5 \times(-4)= \)
+622245,574,0.7666137218475342,true,Net of square-based pyramid,square pyramid,Which diagram is the net for a square based pyramid?
+171207,1707,0.763788640499115,true,Area formula rectangle (misconception match),Area = (base + height)/2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+172500,1707,0.7510252594947815,true,Area formula rectangle (misconception match),Area = base x height /2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+686969,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+406976,302,0.7610481977462769,true,Simplify rational expression,(x + 6) / (x + 5),"Write the following as simply as possible:
+\(
+\frac{(x+3)(x+5)}{(x+3)(x+10)}
+\)"
+172503,1707,0.7510252594947815,true,Area formula rectangle (misconception match),Area = base x height /2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+406868,302,0.7527552247047424,true,Simplify rational expression,−( (x+5)*(x+4) ) / (x^2+9x+20),"Write the following as simply as possible:
+\(
+\frac{(x+3)(x+5)}{(x+3)(x+10)}
+\)"
+668018,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+554203,148,0.754403829574585,false,REJECT: different operations,multiply 1/4,"Convert this to a fraction:
+\( 1.4 \)"
+33974,1303,0.7670468091964722,true,Isosceles triangle properties,B. They are both isosceles triangles.,An isosceles triangle must have ...
+33974,1832,0.7670468091964722,true,Isosceles triangle properties,B. They are both isosceles triangles.,An isosceles triangle must have ...
+237681,1491,0.7927381992340088,true,Powers with negative base,(-3)^4,\( (-2)^{4}= \)
+747137,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+568282,765,0.8529731035232544,true,Triangular prism identification,Triangular prism,Which of the following shapes is a triangular prism?
+668002,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+280644,552,0.7561713457107544,true,Number of solutions to equation,Two Solutions,"One of these equations has exactly one solution.
+Which is it?"
+280644,1158,0.7561713457107544,true,Number of solutions to equation,Two Solutions,"One of these equations has exactly one solution.
+Which is it?"
+411591,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+602584,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+884,606,0.8793030977249146,true,Square root of 81,Square root of 81,Which of the following is the square root of \( 81 \) ?
+668013,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+461437,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+611273,264,0.7600913643836975,true,Inequality representation,x is less than or equal to 6,"Which of the following shows "" \( x \) is greater than or equal to \( 6 \) ""?"
+625987,1491,0.8110123872756958,true,Powers with negative base,(-4)^2,\( (-2)^{4}= \)
+161635,1227,0.7736420631408691,true,Factorise quadratic,(7x^2-2x+2),"Step 1: Factorise the following expression
+\(
+2 x^{2}+7 x+3
+\)"
+647035,1320,0.8173799514770508,true,Square root of 36,sqrt(36),Which of the following is the square root of \( 36 \) ?
+243616,1053,0.7568138837814331,true,Factorise x2-x-6,X^2-x-6,"Which answer shows the correct factorisation of:
+\(
+x^{2}-x-6
+\)"
+439734,67,0.7891016006469727,false,REJECT: different numbers sqrt(9) vs sqrt(10),9 √10,What is the square root of nine?
+292888,1373,0.7740678787231445,false,REJECT: expand vs fraction mismatch,(-3m)/(m-5),Multiply out the brackets: \( -3(m-2) \)
+439769,1079,0.7506673336029053,true,Square root of 16,16 √5,What is the square root of sixteen?
+171195,1707,0.7510252594947815,true,Area formula rectangle (misconception match),Area = base x height /2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+495485,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+171321,1707,0.7510252594947815,true,Area formula rectangle (misconception match),Area = base x height /2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+668015,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+638624,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+686963,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+172441,1707,0.7510252594947815,true,Area formula rectangle (misconception match),Area = base x height /2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+172450,1707,0.763788640499115,true,Area formula rectangle (misconception match),Area = (base + height)/2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+171330,1707,0.7510252594947815,true,Area formula rectangle (misconception match),Area = base x height /2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+461420,342,0.7863246202468872,true,Obtuse angle identification,obsuse angle,Which of the following is an obtuse angle?
+33723,559,0.7929025292396545,true,Equilateral shape properties,A. Equilateral,An equilateral shape must have...
+732668,111,0.7578150033950806,true,Quadrilateral regular polygon,Quadrilateral,Which quadrilateral below is a regular polygon?
+688491,853,0.7545157074928284,true,Fractions of quantities,35/( 1 1/4),\( \frac{1}{5} \) of \( 35= \)
+608074,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+659655,1041,0.7775830030441284,true,Unit conversion seconds to hours,3600 seconds,How many hours is \( 3600 \) seconds?
+527984,1079,0.75432288646698,true,Square root of 16,16 sqrt(10,What is the square root of sixteen?
+172459,1707,0.763788640499115,true,Area formula rectangle (misconception match),Area = (base + height)/2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+668014,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+602198,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+171198,1707,0.763788640499115,true,Area formula rectangle (misconception match),Area = (base + height)/2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+718733,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+668008,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+718764,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+686773,606,0.7984004020690918,true,Square root of 81,sqrt(81),Which of the following is the square root of \( 81 \) ?
+738177,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+633697,1334,0.7822234630584717,true,Hexagon identification,Hexagon,Which of the following shapes is a hexagon?
+171333,1707,0.7510252594947815,true,Area formula rectangle (misconception match),Area = base x height /2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+697936,860,0.7706457376480103,false,REJECT: subtraction vs multiplication mismatch,(-5)^-5,\( (-3)-5= \)
+630575,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+630490,1334,0.7822234630584717,true,Hexagon identification,hexagon,Which of the following shapes is a hexagon?
+603332,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+741959,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+171204,1707,0.763788640499115,true,Area formula rectangle (misconception match),Area = (base + height)/2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+630583,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+172509,1707,0.7510252594947815,true,Area formula rectangle (misconception match),Area = base x height /2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+608077,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+686971,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+718611,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+630581,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+625986,1491,0.8110123872756958,true,Powers with negative base,(-4)^2,\( (-2)^{4}= \)
+718769,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+637189,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+687473,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+602598,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+747426,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+171201,1707,0.763788640499115,true,Area formula rectangle (misconception match),Area = (base + height)/2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+657494,765,0.8529731035232544,true,Triangular prism identification,Triangular Prism,Which of the following shapes is a triangular prism?
+603328,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+602579,1436,0.7873091101646423,true,x-axis equation,x axis,What is the equation of the \( x \) axis?
+747134,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+726702,559,0.792385458946228,true,Equilateral shape properties,Equilateral,An equilateral shape must have...
+172432,1707,0.763788640499115,true,Area formula rectangle (misconception match),Area = (base + height)/2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+703684,784,0.7752328515052795,true,Difference of squares x2-64,(x^2)-64,"When factorised, \( x^{2}-64 \) will become..."
+707020,1842,0.7728716135025024,true,Dividing fractions,Dividing by 2/5,"Calculate:
+\(
+\frac{2}{5} \div 2
+\)"
+747432,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+686908,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+731028,111,0.7578150033950806,true,Quadrilateral regular polygon,Quadrilateral,Which quadrilateral below is a regular polygon?
+243619,1053,0.7568138837814331,true,Factorise x2-x-6,X^2-x-6,"Which answer shows the correct factorisation of:
+\(
+x^{2}-x-6
+\)"
+630387,111,0.7578150033950806,true,Quadrilateral regular polygon,quadrilateral,Which quadrilateral below is a regular polygon?
+602193,72,0.826178252696991,true,y-axis equation,y axis,What is the equation of the \( y \) axis?
+668003,342,0.9226085543632507,true,Obtuse angle identification,Obtuse Angle,Which of the following is an obtuse angle?
+511977,1334,0.8146558403968811,true,Hexagon identification,H) hexagon,Which of the following shapes is a hexagon?
+747425,72,0.8267847299575806,true,y-axis equation,y-axis,What is the equation of the \( y \) axis?
+623280,598,0.7630568742752075,true,Decimal to percentage,15.14%,Write \( 0.15 \) as a percentage.
+694474,1512,0.7743567228317261,true,Square root operation,sqrt(8),\( \sqrt{8^{2}}= \)
+686957,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+171177,1707,0.763788640499115,true,Area formula rectangle (misconception match),Area = (base + height)/2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+664701,765,0.8529731035232544,true,Triangular prism identification,triangular prism,Which of the following shapes is a triangular prism?
+704594,1433,0.7652337551116943,true,Adding negative integers,-5+9=4,\( (-9)+(-4)= \)
+697944,292,0.7645727396011353,false,REJECT: different expressions,1/(-3)^6,\( \frac{1}{3} \times(-6)= \)
+747428,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+718768,1436,0.760303258895874,true,x-axis equation,x-axis,What is the equation of the \( x \) axis?
+34339,559,0.7929025292396545,true,Equilateral shape properties,A. Equilateral,An equilateral shape must have...
+706666,1801,0.7576870918273926,true,Solve linear inequality,x + 5 < 3x + 5,"What is the solution to the following inequality?
+\(
+-5<2 x+1<5
+\)"
+171174,1707,0.7510252594947815,true,Area formula rectangle (misconception match),Area = base x height /2,Which of the following formulae gives the area of this rectangle? ![Rectangle with base 3 and height 2x.]()
+237680,1491,0.7927381992340088,true,Powers with negative base,(-3)^4,\( (-2)^{4}= \)
+630579,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+727598,1303,0.8602834939956665,true,Isosceles triangle properties,Isosceles Triangle,An isosceles triangle must have ...
+727598,1832,0.8602834939956665,true,Isosceles triangle properties,Isosceles Triangle,An isosceles triangle must have ...
+727598,650,0.804817259311676,true,Isosceles triangle description,Isosceles Triangle,Which description describes an isosceles triangle?
+686047,559,0.792385458946228,true,Equilateral shape properties,equilateral,An equilateral shape must have...
+657544,1334,0.7867507934570312,true,Hexagon identification,Hexagonal,Which of the following shapes is a hexagon?
+657544,748,0.7850005626678467,true,Hexagonal prism identification,Hexagonal,Which of the following shapes is a hexagonal prism?
