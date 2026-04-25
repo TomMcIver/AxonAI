@@ -207,7 +207,7 @@ export default function StudentDashboard() {
   return (
     <DashboardShell subtitle={`Student · ${student.first_name}'s overview`}>
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Section 1 — Mastery & Progress */}
+        {/* Section 1: Mastery and Progress */}
         <section className="axon-card-subtle p-5 sm:p-6 space-y-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <h2 className="axon-h2 text-base sm:text-lg text-slate-800">Your progress</h2>
@@ -273,13 +273,13 @@ export default function StudentDashboard() {
                 );
               })}
               {weakestFive.length === 0 && (
-                <p className="text-sm text-slate-500">No mastery data yet — your journey starts here.</p>
+                <p className="text-sm text-slate-500">No mastery data yet, your journey starts here.</p>
               )}
             </div>
           </div>
         </section>
 
-        {/* Section 2 — Learning Trend */}
+        {/* Section 2: Learning Trend */}
         <section className="axon-card-subtle p-5 sm:p-6 space-y-4">
           <h2 className="axon-h2 text-base sm:text-lg text-slate-800">Your momentum</h2>
 
@@ -351,7 +351,7 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        {/* Section 3 — Focus Areas */}
+        {/* Section 3: Focus Areas */}
         <section className="axon-card-subtle p-5 sm:p-6 space-y-4">
           <h2 className="axon-h2 text-base sm:text-lg text-slate-800">Where to focus</h2>
           <p className="text-xs text-slate-500">Areas that need attention from your recent work.</p>
@@ -367,13 +367,13 @@ export default function StudentDashboard() {
             ))}
             {focusRows.length === 0 && (
               <p className="rounded-lg border border-emerald-200/60 bg-emerald-50/40 px-3 py-3 text-sm text-slate-700">
-                All clear — keep it up! ✅
+                All clear, keep it up! ✅
               </p>
             )}
           </div>
         </section>
 
-        {/* Section 4 — Recent Sessions */}
+        {/* Section 4: Recent Sessions */}
         <section className="axon-card-subtle p-5 sm:p-6 space-y-3">
           <h2 className="axon-h2 text-base sm:text-lg text-slate-800">Recent AI sessions</h2>
           <p className="text-xs text-slate-500">Tap a row to read the full conversation.</p>
@@ -421,7 +421,7 @@ export default function StudentDashboard() {
               );
             })}
             {recentFive.length === 0 && (
-              <p className="text-sm text-slate-500">No sessions yet — chat with the tutor to get started.</p>
+              <p className="text-sm text-slate-500">No sessions yet, chat with the tutor to get started.</p>
             )}
           </div>
         </section>
