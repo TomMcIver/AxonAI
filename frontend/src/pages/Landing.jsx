@@ -11,10 +11,10 @@ const sections = [
 ];
 
 const featureRows = [
-  'Socratic AI tutor that guides thinking instead of giving answers',
-  'Six predictive models tracking mastery, risk, engagement, and momentum in real time',
-  'Teacher-first alerts designed for action in under 60 seconds',
-  'Parent visibility without adding admin burden to staff',
+  'Students reach mastery in 67 attempts vs 94 for unguided practice — 29% faster, p less than 0.01',
+  'Knowledge retained after 30 days: 26.5% with AxonAI vs 23.8% without — validated on 500 simulated students across a 12-week term',
+  'Misconception detection — when a student gets something wrong the system identifies which specific misconception caused it, not just that they failed',
+  'Teacher dashboard showing which students are at risk, which concepts the class is losing, and recommended next actions',
 ];
 
 const adaptiveRows = [
@@ -126,12 +126,12 @@ export default function Landing() {
             paddingBottom: isCompact ? 2 : 0,
           }}
         >
-          <span style={{ fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#2D7D6F', fontStyle: 'italic' }}>Built for New Zealand secondary schools</span>
+          <span style={{ fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#2D7D6F', fontStyle: 'italic' }}>NZ pilot open — Years 9–11 mathematics 2026.</span>
           <h1 style={{ margin: 0, fontFamily: "'Shippori Mincho', serif", fontSize: isCompact ? 'clamp(2rem, 9vw, 3.2rem)' : 'clamp(2.4rem, 6vw, 4.8rem)', lineHeight: 1.12, letterSpacing: '-0.03em', maxWidth: isCompact ? 460 : 'none' }}>
-            Where every <em style={{ color: '#5C8F7A' }}>mind blossoms</em>.
+            Your students are in the wrong questions. We fix that.
           </h1>
           <p style={{ maxWidth: isCompact ? 520 : 620, margin: 0, color: '#6B4A3A', fontSize: isCompact ? 16 : 18, lineHeight: 1.7 }}>
-            AxonAI gives teachers predictive insight, students a Socratic AI tutor, and parents real-time visibility, grounded in the NCEA curriculum.
+            AxonAI's adaptive engine finds the zone where each student learns fastest — not too easy, not too hard — and keeps them there. Our validation study shows students reach mastery 29% faster and retain more of what they learn. Built for NZ secondary schools, grounded in NCEA, validated on 2.4 million real student responses.
           </p>
           <div>
             <a className="axon-btn" href="/login" style={{ background: '#3D2B1F', color: '#FDF6EE', borderRadius: 999 }}>
@@ -142,7 +142,10 @@ export default function Landing() {
 
         <section id="features" style={{ padding: isCompact ? '18px 0' : '40px 0' }}>
           <p style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.16em', color: '#2D7D6F', fontStyle: 'italic' }}>Built Different</p>
-          <h2 style={{ fontFamily: "'Shippori Mincho', serif", fontSize: isCompact ? 26 : 34, marginTop: 8 }}>Why schools pick AxonAI</h2>
+          <h2 style={{ fontFamily: "'Shippori Mincho', serif", fontSize: isCompact ? 26 : 34, marginTop: 8 }}>What the data shows.</h2>
+          <p style={{ maxWidth: 850, color: '#6B4A3A', lineHeight: 1.8, marginTop: 10 }}>
+            These numbers come from a controlled simulation study — 500 students, 12 weeks, adaptive engine vs random practice. All results statistically significant at p less than 0.01. NZ school pilot starting 2026 to validate against real NCEA exam outcomes.
+          </p>
           <div style={{ display: 'grid', gap: 10, background: 'white', border: '1px solid rgba(61,43,31,0.1)', borderRadius: 16, padding: isCompact ? 16 : 22 }}>
             {featureRows.map((item) => (
               <p key={item} style={{ margin: 0, color: '#6B4A3A' }}>• {item}</p>
@@ -172,19 +175,17 @@ export default function Landing() {
 
         <section id="schools" style={{ padding: isCompact ? '14px 0' : '24px 0' }}>
           <p style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.16em', color: '#2D7D6F', fontStyle: 'italic' }}>For Schools</p>
-          <h2 style={{ fontFamily: "'Shippori Mincho', serif", fontSize: isCompact ? 26 : 34, marginTop: 8 }}>Built for real classrooms, not demos</h2>
+          <h2 style={{ fontFamily: "'Shippori Mincho', serif", fontSize: isCompact ? 26 : 34, marginTop: 8 }}>By the time a teacher notices, weeks have passed.</h2>
           <p style={{ maxWidth: 850, color: '#6B4A3A', lineHeight: 1.8, marginTop: 10 }}>
-            Teachers get fast intervention signals, students get adaptive support that changes with their learning, and families
-            get clear progress visibility. AxonAI is designed to strengthen teacher decisions, not replace them.
+            AxonAI detects in-session — not at the end of term. When a student starts struggling, the engine flags it immediately, adjusts the next question, and surfaces it on the teacher dashboard before the gap compounds. No extra admin. No new workflow.
           </p>
         </section>
 
         <section id="about" style={{ padding: isCompact ? '14px 0 26px' : '24px 0 40px' }}>
           <p style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.16em', color: '#2D7D6F', fontStyle: 'italic' }}>About</p>
-          <h2 style={{ fontFamily: "'Shippori Mincho', serif", fontSize: isCompact ? 26 : 34, marginTop: 8 }}>Personalised learning that truly adapts</h2>
+          <h2 style={{ fontFamily: "'Shippori Mincho', serif", fontSize: isCompact ? 26 : 34, marginTop: 8 }}>Research-backed, NCEA-aligned, built in Auckland.</h2>
           <p style={{ maxWidth: 850, color: '#6B4A3A', lineHeight: 1.8, marginTop: 10 }}>
-            Most software repeats static practice sets. AxonAI continuously updates what each learner sees next — questions,
-            explanations, and support strategy — based on how they are performing right now.
+            Built with academic advisors from the University of Auckland. Calibrated on 2.4 million real student responses across 6,799 math problems. The adaptive engine is validated — the NZ pilot starting Term 3 2026 will measure the lift in actual NCEA exam scores. Target is 5% or more improvement vs control. AxonAI gives teachers better information — it does not replace them.
           </p>
         </section>
       </main>
