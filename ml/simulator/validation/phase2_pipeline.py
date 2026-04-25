@@ -355,7 +355,7 @@ def run_phase2_validation(
     # Acceptance checks.
     inv_passed = _check_is_simulated_invariant(all_attempts, all_teach)
     if not inv_passed:
-        notes.append("is_simulated invariant FAILED: some records missing explanation_style.")
+        notes.append("is_simulated invariant FAILED: some attempt/teach record had is_simulated is not True.")
 
     style_dist = _style_distribution(all_attempts)
     all_styles_present = all(style_dist.get(s, 0) > 0 for s in STYLES)
@@ -370,9 +370,11 @@ def run_phase2_validation(
 
     bkt_initial = float(np.mean(initial_bkt_means)) if initial_bkt_means else 0.0
     bkt_final = float(np.mean(final_bkt_means)) if final_bkt_means else 0.0
-    bkt_threshold = (
-        _BKT_MIN_GROWTH_FULL if n_students >= _FULL_N_STUDENTS else _BKT_MIN_GROWTH_DRY
-    )
+    bkt_threshold = _BKT_MIN_GROWTH_DRY
+    if n_students >= _FULL_N_STUDENTS or (
+        n_students >= 500 and n_sessions >= 40
+    ):
+        bkt_threshold = _BKT_MIN_GROWTH_FULL
     bkt_growth_passed = (bkt_final - bkt_initial) >= bkt_threshold
 
     # Learning curve is informational only: ZPD-adaptive systems naturally dip
@@ -458,7 +460,11 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="B11 Phase 2 integration validation")
-    parser.add_argument("--full", action="store_true", help="Run at full scale")
+    parser.add_argument("--full", action="store_true", help="Run at full scale (3000×70×10×10)")
+    parser.add_argument("--n-students", type=int, default=None, help="Override cohort size (e.g. 500)")
+    parser.add_argument("--n-sessions", type=int, default=None, help="Override session count (e.g. 60)")
+    parser.add_argument("--n-concepts", type=int, default=None, help="Override concept count (default: dry 3 or full 10)")
+    parser.add_argument("--n-items-per-concept", type=int, default=None, help="Override items per concept")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
@@ -476,6 +482,14 @@ if __name__ == "__main__":
             n_concepts=_DRY_RUN_N_CONCEPTS,
             n_items_per_concept=_DRY_RUN_N_ITEMS_PER_CONCEPT,
         )
+    if args.n_students is not None:
+        kwargs["n_students"] = args.n_students
+    if args.n_sessions is not None:
+        kwargs["n_sessions"] = args.n_sessions
+    if args.n_concepts is not None:
+        kwargs["n_concepts"] = args.n_concepts
+    if args.n_items_per_concept is not None:
+        kwargs["n_items_per_concept"] = args.n_items_per_concept
 
     report = run_phase2_validation(seed=args.seed, **kwargs)
     out = Path("validation/phase_2/b11_integration_report.md")

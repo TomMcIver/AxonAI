@@ -51,7 +51,7 @@ function badgeClassForPct(pct) {
 
 const QUICK_PROMPTS = [
   'Can you explain this to me?',
-  "I'm stuck — can we go through it step by step?",
+  "I'm stuck, can we go through it step by step?",
   'Give me a hint without telling me the answer',
 ];
 
@@ -265,7 +265,7 @@ export default function AITutorPage() {
           <p className="axon-label mb-1">Concepts</p>
           <h2 className="axon-h2 text-base text-slate-800">Your topics</h2>
           <p className="mb-3 text-xs leading-relaxed text-slate-500">
-            Weakest first — tap one to focus the tutor (optional).
+            Weakest first, tap one to focus the tutor (optional).
           </p>
           <input
             type="search"
@@ -314,7 +314,7 @@ export default function AITutorPage() {
               <div className="min-w-0">
                 <h1 className="axon-h2 text-base text-slate-800 sm:text-lg">AxonAI Tutor</h1>
                 <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                  Same bubbles as AI learning sessions. Use Insert math for fractions and symbols — sent as LaTeX.
+                  Same bubbles as AI learning sessions. Use Insert math for fractions and symbols, sent as LaTeX.
                 </p>
               </div>
               {activeConcept && (
@@ -423,7 +423,7 @@ export default function AITutorPage() {
                   <Sigma className="h-3.5 w-3.5" aria-hidden />
                   Insert math
                 </button>
-                <span className="text-slate-400">Fractions, roots, powers — inserts LaTeX into your message.</span>
+                <span className="text-slate-400">Fractions, roots, powers, inserts LaTeX into your message.</span>
               </div>
               <div className="flex items-end gap-2">
                 <div
@@ -457,10 +457,10 @@ export default function AITutorPage() {
                       const mir = mirrorRef.current;
                       if (mir) mir.scrollTop = e.currentTarget.scrollTop;
                     }}
-                    placeholder="Type here — math shows as you type (use $…$ for LaTeX). Enter sends, Shift+Enter new line."
+                    placeholder="Type here, math shows as you type (use $…$ for LaTeX). Enter sends, Shift+Enter new line."
                     className="math-composer-overlay absolute inset-0 z-10 box-border resize-none overflow-y-auto border-0 bg-transparent px-3 py-2.5 font-sans text-sm leading-relaxed text-transparent outline-none shadow-none placeholder:text-slate-400 placeholder:opacity-100 selection:bg-teal-200/35 disabled:opacity-60"
                     spellCheck={false}
-                    aria-label="Message — equations render in place as you type"
+                    aria-label="Message, equations render in place as you type"
                   />
                 </div>
                 <button

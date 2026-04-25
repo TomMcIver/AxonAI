@@ -63,6 +63,29 @@ def select_next_item(
     return best
 
 
+def select_item_for_concept(
+    profile: StudentProfile,
+    item_bank: ItemBank,
+    concept_id: int,
+    *,
+    mode: str = "zpd",
+    rng: np.random.Generator | None = None,
+    lower: float = ZPD_LOWER,
+    upper: float = ZPD_UPPER,
+) -> Optional[Item]:
+    """Pick an item for a concept. `zpd` matches the legacy band; `random` is uniform in-bank (ablation)."""
+    if mode not in ("zpd", "random"):
+        raise ValueError(f"mode must be 'zpd' or 'random', got {mode!r}")
+    items = item_bank.items_for_concept(concept_id)
+    if not items:
+        return None
+    if mode == "random":
+        if rng is None:
+            raise ValueError("rng is required when mode is 'random'")
+        return items[int(rng.integers(0, len(items)))]
+    return select_next_item(profile, item_bank, concept_id, lower, upper)
+
+
 def simulate_response(
     profile: StudentProfile,
     item: Item,

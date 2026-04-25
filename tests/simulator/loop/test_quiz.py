@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from ml.simulator.data.item_bank import Item, ItemBank
-from ml.simulator.loop.quiz import select_next_item, simulate_response
+from ml.simulator.loop.quiz import select_item_for_concept, select_next_item, simulate_response
 from ml.simulator.psychometrics.bkt import BKTState
 from ml.simulator.student.profile import StudentProfile
 
@@ -68,6 +68,33 @@ class TestSelectNextItem:
         # b=-5.0 gives 0.993, closer to 0.85 than the others are to 0.60.
         assert picked is not None
         assert picked.item_id == 11
+
+
+class TestSelectItemForConcept:
+    def test_random_is_deterministic_with_seed(self) -> None:
+        items = [
+            Item(item_id=10, concept_id=1, a=1.0, b=-0.4),
+            Item(item_id=11, concept_id=1, a=1.0, b=-1.0),
+        ]
+        bank = _bank(items)
+        p = _profile({1: 0.0})
+        rng = np.random.default_rng(7)
+        a1 = select_item_for_concept(p, bank, 1, mode="random", rng=rng)
+        rng = np.random.default_rng(7)
+        a2 = select_item_for_concept(p, bank, 1, mode="random", rng=rng)
+        assert a1 is not None and a2 is not None
+        assert a1.item_id == a2.item_id
+
+    def test_zpd_matches_select_next(self) -> None:
+        items = [
+            Item(item_id=10, concept_id=1, a=1.0, b=-0.4),
+            Item(item_id=11, concept_id=1, a=1.0, b=-1.0),
+        ]
+        bank = _bank(items)
+        p = _profile({1: 0.0})
+        r = select_item_for_concept(p, bank, 1, mode="zpd", rng=None)
+        assert r is not None
+        assert r.item_id == select_next_item(p, bank, 1).item_id
 
 
 class TestSimulateResponse:

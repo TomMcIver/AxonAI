@@ -119,7 +119,12 @@ def _eedi_distractor_lookup(eedi_frames) -> dict[int, tuple[Distractor, ...]]:
     for _, row in wrong.iterrows():
         qid = int(row["QuestionId"])
         option = str(row["Option"])
-        text = str(row["OptionText"]) if "OptionText" in wrong.columns else ""
+        if "OptionText" in wrong.columns and pd.notna(row.get("OptionText")):
+            text = str(row["OptionText"])
+        elif "Text" in wrong.columns and pd.notna(row.get("Text")):
+            text = str(row["Text"])
+        else:
+            text = ""
         misc = misc_by_qo.get((qid, option))
         out.setdefault(qid, []).append(
             Distractor(option_text=text, misconception_id=misc)
