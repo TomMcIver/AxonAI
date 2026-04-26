@@ -811,6 +811,14 @@ class RiskPredictionRequest(BaseModel):
     student_id: int
 
 
+class QuizSubmitRequest(BaseModel):
+    student_id: int
+    quiz_question_id: int
+    student_answer: str
+    concept_id: int
+    time_taken_seconds: Optional[float] = None
+
+
 VALID_EXPLANATION_STYLES = {
     "worked_example",
     "socratic",
@@ -911,6 +919,123 @@ def _call_anthropic_explain(system_prompt: str, user_prompt: str, api_key: str) 
     if not explanation:
         raise RuntimeError("Anthropic returned empty explanation content")
     return explanation
+
+
+@app.post("/quiz/submit")
+def submit_quiz_answer(req: QuizSubmitRequest):
+    detected_misconception: Optional[str] = None
+    misconception_confidence: Optional[float] = None
+
+    with get_db() as cur:
+        cur.execute(
+            """
+            SELECT id, concept_id, question_text, correct_answer
+            FROM quiz_questions
+            WHERE id = %s
+            """,
+            (req.quiz_question_id,),
+        )
+        question = cur.fetchone()
+        if not question:
+            raise HTTPException(status_code=404, detail="Quiz question not found")
+
+        correct_answer = question.get("correct_answer")
+        student_answer = req.student_answer.strip()
+        is_correct = student_answer == (correct_answer or "").strip()
+
+        cur.execute(
+            """
+            UPDATE quiz_questions
+            SET student_answer = %s,
+                is_correct = %s,
+                time_taken_seconds = %s
+            WHERE id = %s
+            """,
+            (student_answer, is_correct, req.time_taken_seconds, req.quiz_question_id),
+        )
+
+        if not is_correct:
+            concept_name = None
+            cur.execute("SELECT name FROM concepts WHERE id = %s", (req.concept_id,))
+            concept_row = cur.fetchone()
+            if concept_row:
+                concept_name = concept_row.get("name")
+
+            # Detector failures must never break quiz submission.
+            try:
+                from misconception_adapter import detect_misconception
+
+                detected_misconception, misconception_confidence = detect_misconception(
+                    question_text=question.get("question_text"),
+                    wrong_answer=student_answer,
+                    concept_name=concept_name or "",
+                )
+            except Exception as exc:
+                logger.warning("Misconception adapter import/call failed: %s", exc)
+                detected_misconception = None
+                misconception_confidence = None
+
+            if (
+                detected_misconception
+                and misconception_confidence is not None
+                and float(misconception_confidence) > 0.5
+            ):
+                misconception_confidence = float(misconception_confidence)
+                cur.execute(
+                    """
+                    SELECT id
+                    FROM student_concept_flags
+                    WHERE student_id = %s
+                      AND concept_id = %s
+                      AND flag_type = 'misconception'
+                      AND flag_detail = %s
+                      AND is_active = true
+                    LIMIT 1
+                    """,
+                    (req.student_id, req.concept_id, detected_misconception),
+                )
+                existing_flag = cur.fetchone()
+
+                if existing_flag:
+                    cur.execute(
+                        """
+                        UPDATE student_concept_flags
+                        SET raised_at = NOW()
+                        WHERE id = %s
+                        """,
+                        (existing_flag["id"],),
+                    )
+                else:
+                    cur.execute(
+                        """
+                        INSERT INTO student_concept_flags (
+                            student_id,
+                            concept_id,
+                            flag_type,
+                            flag_detail,
+                            root_cause_concept_id,
+                            raised_at,
+                            is_active,
+                            recommended_intervention
+                        ) VALUES (%s, %s, 'misconception', %s, %s, NOW(), true, NULL)
+                        """,
+                        (
+                            req.student_id,
+                            req.concept_id,
+                            detected_misconception,
+                            req.concept_id,
+                        ),
+                    )
+            else:
+                detected_misconception = None
+                misconception_confidence = None
+
+    return {
+        "is_correct": is_correct,
+        "correct_answer": correct_answer,
+        "detected_misconception": detected_misconception,
+        "misconception_confidence": misconception_confidence,
+    }
 
 @app.post("/predict/risk")
 def predict_risk(req: RiskPredictionRequest):
