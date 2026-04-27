@@ -14,6 +14,7 @@ const DEMO_STUDENT_ID = 1;
 
 function SessionBubble({ role, children, extra }) {
   const fromStudent = role === 'user';
+  const label = fromStudent ? 'You' : role === 'tutor' ? 'AxonAI tutor' : 'AI Tutor';
   const bubbleClass =
     'max-w-[85%] rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 text-sm ' +
     (fromStudent
@@ -26,7 +27,7 @@ function SessionBubble({ role, children, extra }) {
           fromStudent ? 'text-amber-900/80' : 'text-slate-400'
         }`}
       >
-        {fromStudent ? 'You' : 'AI Tutor'}
+        {label}
       </p>
       {children}
       {extra}
@@ -223,14 +224,24 @@ export default function AITutorPage() {
         if (data?.conversation_id != null) {
           setActiveConversationId(data.conversation_id);
         }
-        setMessages((m) => [
-          ...m,
-          {
-            role: 'ai',
-            content: data?.response ?? '',
-            lightbulb: Boolean(data?.lightbulb_detected),
-          },
-        ]);
+        setMessages((m) => {
+          const next = [
+            ...m,
+            {
+              role: 'ai',
+              content: data?.response ?? '',
+              lightbulb: Boolean(data?.lightbulb_detected),
+            },
+          ];
+          if (data?.tutor_explanation) {
+            next.push({
+              role: 'tutor',
+              content: data.tutor_explanation,
+              lightbulb: false,
+            });
+          }
+          return next;
+        });
         refreshPriorChats();
       } catch (e) {
         console.error(e);
