@@ -573,7 +573,37 @@ function renderMirrorWithCaret(segments, caret, len) {
 /**
  * Last resort: small text segment still contains raw \\frac / \\lim; never KaTeX an English paragraph.
  */
-function TextSpan({ text }) {
+function renderBasicMarkdownInline(text) {
+  const source = String(text ?? '');
+  if (!source) return source;
+
+  const out = [];
+  let pos = 0;
+  let key = 0;
+  const pattern = /\*\*([^*]+)\*\*|\*([^*]+)\*/g;
+  let match;
+
+  while ((match = pattern.exec(source)) !== null) {
+    const full = match[0];
+    const start = match.index;
+    const end = start + full.length;
+    if (start > pos) out.push(source.slice(pos, start));
+
+    if (match[1] != null) {
+      out.push(<strong key={`md-${key++}`}>{match[1]}</strong>);
+    } else if (match[2] != null) {
+      out.push(<em key={`md-${key++}`}>{match[2]}</em>);
+    } else {
+      out.push(full);
+    }
+    pos = end;
+  }
+
+  if (pos < source.length) out.push(source.slice(pos));
+  return out.length ? out : source;
+}
+
+function TextSpan({ text, renderMarkdown = false }) {
   const { html, asBlock } = useMemo(() => {
     const t = text ?? '';
     if (!t || !/\\[a-zA-Z]{2,}/.test(t)) return { html: null, asBlock: false };
@@ -592,7 +622,7 @@ function TextSpan({ text }) {
     return { html: h, asBlock: display };
   }, [text]);
 
-  if (!html) return <span>{text}</span>;
+  if (!html) return <span>{renderMarkdown ? renderBasicMarkdownInline(text) : text}</span>;
   const inner = <span dangerouslySetInnerHTML={{ __html: html }} />;
   if (asBlock) {
     return (
@@ -606,7 +636,7 @@ function TextSpan({ text }) {
  * Single flowing block (whitespace-pre-wrap) for overlay editors where the textarea
  * must align with rendered math — same segments as MessageBody but no paragraph splits.
  */
-export function MessageBodyFlat({ content }) {
+export function MessageBodyFlat({ content, renderMarkdown = false }) {
   const segments = useMemo(() => segmentMessageContent(content), [content]);
 
   const nodes = useMemo(() => {
@@ -622,7 +652,7 @@ export function MessageBodyFlat({ content }) {
         );
       }
       if (seg.type === 'text') {
-        return <TextSpan key={`t-${idx}`} text={seg.value} />;
+        return <TextSpan key={`t-${idx}`} text={seg.value} renderMarkdown={renderMarkdown} />;
       }
       if (seg.type === 'inline') {
         return (
@@ -664,7 +694,7 @@ export function MessageBodyComposerMirror({ content, caretOffset }) {
   );
 }
 
-export function MessageBody({ content }) {
+export function MessageBody({ content, renderMarkdown = false }) {
   const segments = useMemo(() => segmentMessageContent(content), [content]);
 
   const blocks = useMemo(() => {
@@ -696,7 +726,7 @@ export function MessageBody({ content }) {
       }
       if (seg.type === 'text') {
         line.push(
-          <TextSpan key={`t-${idx}`} text={seg.value} />,
+          <TextSpan key={`t-${idx}`} text={seg.value} renderMarkdown={renderMarkdown} />,
         );
         return;
       }
@@ -800,7 +830,7 @@ export default function ConversationThread({ conversationId, studentId = null, o
                 }`}>
                   {fromStudent ? 'You' : 'AI Tutor'}
                 </p>
-                <MessageBody content={msg.content} />
+                <MessageBody content={msg.content} renderMarkdown={!fromStudent} />
                 {msg.lightbulb_moment && (
                   <span className="inline-block mt-1.5 text-xs bg-amber-50 text-amber-700 border border-amber-200/50 px-2 py-0.5 rounded-full">
                     Lightbulb moment

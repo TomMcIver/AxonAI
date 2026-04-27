@@ -403,7 +403,7 @@ export default function AITutorPage() {
                     ) : null
                   }
                 >
-                  <MessageBody content={msg.content} />
+                  <MessageBody content={msg.content} renderMarkdown={msg.role !== 'user'} />
                 </SessionBubble>
               </div>
             ))}
