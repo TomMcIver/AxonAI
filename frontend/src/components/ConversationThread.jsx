@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import katex from 'katex';
+import { BlockMath, InlineMath } from 'react-katex';
 import { getConversationMessages } from '../api/axonai';
 import LoadingSpinner from './LoadingSpinner';
 import 'katex/dist/katex.min.css';
@@ -603,6 +604,79 @@ function renderBasicMarkdownInline(text) {
   return out.length ? out : source;
 }
 
+// Render message text with KaTeX using $$...$$ (block) and \(...\) / $...$ (inline).
+// Also drops empty math delimiters and strips stray lone "$" characters.
+function renderMathContent(text) {
+  const source = String(text ?? '');
+  if (!source) return null;
+
+  const segments = [];
+  const pattern = /(\$\$[\s\S]*?\$\$|\\\([\s\S]*?\\\)|\$(?:\\.|[^$\\])+\$)/g;
+  let last = 0;
+  let match;
+
+  while ((match = pattern.exec(source)) !== null) {
+    const start = match.index;
+    if (start > last) {
+      segments.push({ type: 'text', value: source.slice(last, start) });
+    }
+
+    const token = match[0];
+    if (token.startsWith('$$')) {
+      const math = token.slice(2, -2).trim();
+      if (math) segments.push({ type: 'block', value: math });
+    } else if (token.startsWith('\\(')) {
+      const math = token.slice(2, -2).trim();
+      if (math) segments.push({ type: 'inline', value: math });
+    } else if (token.startsWith('$')) {
+      const math = token.slice(1, -1).trim();
+      if (math) segments.push({ type: 'inline', value: math });
+    }
+
+    last = start + token.length;
+  }
+
+  if (last < source.length) {
+    segments.push({ type: 'text', value: source.slice(last) });
+  }
+
+  const stripLoneDollar = (s) => {
+    let out = '';
+    for (let i = 0; i < s.length; i += 1) {
+      const ch = s[i];
+      if (ch !== '$') {
+        out += ch;
+        continue;
+      }
+      const prev = i > 0 ? s[i - 1] : '';
+      const next = i + 1 < s.length ? s[i + 1] : '';
+      if (prev === '\\' || next === '$') {
+        out += ch;
+      }
+      // Else: drop lone delimiter dollar.
+    }
+    return out;
+  };
+
+  return segments.map((seg, idx) => {
+    if (seg.type === 'block') {
+      return (
+        <div key={`mk-b-${idx}`} className="my-2 overflow-x-auto py-1">
+          <BlockMath math={seg.value} />
+        </div>
+      );
+    }
+    if (seg.type === 'inline') {
+      return <InlineMath key={`mk-i-${idx}`} math={seg.value} />;
+    }
+    return (
+      <span key={`mk-t-${idx}`}>
+        {renderBasicMarkdownInline(stripLoneDollar(seg.value))}
+      </span>
+    );
+  });
+}
+
 function TextSpan({ text, renderMarkdown = false }) {
   const { html, asBlock } = useMemo(() => {
     const t = text ?? '';
@@ -695,58 +769,15 @@ export function MessageBodyComposerMirror({ content, caretOffset }) {
 }
 
 export function MessageBody({ content, renderMarkdown = false }) {
-  const segments = useMemo(() => segmentMessageContent(content), [content]);
-
-  const blocks = useMemo(() => {
-    const out = [];
-    let line = [];
-
-    function flushLine(key) {
-      if (line.length === 0) return;
-      out.push(
-        <p key={key} className="whitespace-pre-wrap break-words [word-break:break-word]">
-          {line}
-        </p>,
-      );
-      line = [];
-    }
-
-    segments.forEach((seg, idx) => {
-      if (seg.type === 'block') {
-        flushLine(`l-${idx}`);
-        out.push(
-          <div key={`b-${idx}`} className="my-2 overflow-x-auto py-1">
-            <div
-              className="katex-display text-center"
-              dangerouslySetInnerHTML={{ __html: renderKatexHtml(seg.value, true) }}
-            />
-          </div>,
-        );
-        return;
-      }
-      if (seg.type === 'text') {
-        line.push(
-          <TextSpan key={`t-${idx}`} text={seg.value} renderMarkdown={renderMarkdown} />,
-        );
-        return;
-      }
-      if (seg.type === 'inline') {
-        line.push(
-          <span
-            key={`i-${idx}`}
-            className="katex-wrap mx-0.5 inline-block align-baseline"
-            dangerouslySetInnerHTML={{ __html: renderKatexHtml(seg.value, false) }}
-          />,
-        );
-      }
-    });
-    flushLine('end');
+  const rendered = useMemo(() => {
+    const out = renderMathContent(content);
+    if (renderMarkdown) return out;
     return out;
-  }, [segments]);
+  }, [content, renderMarkdown]);
 
   return (
     <div className="conversation-math space-y-1.5 text-sm leading-relaxed [&_.katex]:text-[0.98em] [&_.katex-display]:my-1">
-      {blocks}
+      {rendered}
     </div>
   );
 }
