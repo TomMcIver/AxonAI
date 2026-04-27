@@ -26,9 +26,9 @@ EXPLANATION_PROMPT_TEMPLATES = {
             "You explain clearly and support confidence without giving away the next answer directly."
         ),
         "user": (
-            "A student is learning about {concept_name}. They have attempted this concept {attempt_count} times. "
-            "Their misconception is: '{misconception}'. Provide a short worked example that demonstrates the correct method. "
-            "Keep it to 3-4 sentences and do not solve a specific pending class question for them."
+            "You are learning about {concept_name}. You have attempted this concept {attempt_count} times. "
+            "Your misconception is: '{misconception}'. Provide a short worked example that demonstrates the correct method. "
+            "Keep it to 3-4 sentences and do not solve a specific pending class question."
         ),
     },
     "socratic": {
@@ -37,8 +37,8 @@ EXPLANATION_PROMPT_TEMPLATES = {
             "Use Socratic questioning to guide thinking without directly giving final answers."
         ),
         "user": (
-            "A student is learning about {concept_name}. They have attempted this concept {attempt_count} times. "
-            "Their misconception is: '{misconception}'. Ask 2 short guiding questions, then provide a brief hint. "
+            "You are learning about {concept_name}. You have attempted this concept {attempt_count} times. "
+            "Your misconception is: '{misconception}'. Ask 2 short guiding questions, then provide a brief hint. "
             "Keep the response to 3-4 sentences."
         ),
     },
@@ -48,9 +48,9 @@ EXPLANATION_PROMPT_TEMPLATES = {
             "You explain concepts clearly and never give away the answer to the next question."
         ),
         "user": (
-            "A student is learning about {concept_name}. They have attempted this {attempt_count} times and are still getting it wrong. "
-            "Their specific misconception is: '{misconception}'. Explain why this belief is incorrect using a clear counterexample. "
-            "Keep it to 3-4 sentences. Do not solve any specific question for them."
+            "You are learning about {concept_name}. You have attempted this {attempt_count} times and are still getting it wrong. "
+            "Your specific misconception is: '{misconception}'. Explain why this belief is incorrect using a clear counterexample. "
+            "Keep it to 3-4 sentences. Do not solve any specific pending class question."
         ),
     },
     "analogy": {
@@ -59,8 +59,8 @@ EXPLANATION_PROMPT_TEMPLATES = {
             "Use age-appropriate analogies grounded in everyday NZ student experience."
         ),
         "user": (
-            "A student is learning about {concept_name}. They have attempted this concept {attempt_count} times. "
-            "Their misconception is: '{misconception}'. Explain the concept using one simple analogy and then map the analogy "
+            "You are learning about {concept_name}. You have attempted this concept {attempt_count} times. "
+            "Your misconception is: '{misconception}'. Explain the concept using one simple analogy and then map the analogy "
             "back to the math idea. Keep it to 3-4 sentences."
         ),
     },
@@ -70,8 +70,8 @@ EXPLANATION_PROMPT_TEMPLATES = {
             "Break hard ideas into prerequisite sub-skills in a calm, stepwise way."
         ),
         "user": (
-            "A student is learning about {concept_name}. They have attempted this concept {attempt_count} times. "
-            "Their misconception is: '{misconception}'. Decompose this into 2-3 prerequisite ideas they should check first, "
+            "You are learning about {concept_name}. You have attempted this concept {attempt_count} times. "
+            "Your misconception is: '{misconception}'. Decompose this into 2-3 prerequisite ideas you should check first, "
             "then give one concise next step. Keep it to 3-4 sentences."
         ),
     },

@@ -1332,83 +1332,58 @@ def student_chat(student_id: int, body: StudentChatBody):
 
                 student_is_stuck = _message_indicates_stuck(user_msg) or has_active_current_flag
                 if student_is_stuck:
-                    cur.execute(
-                        """
-                        SELECT concept_id, flag_detail
-                        FROM student_concept_flags
-                        WHERE student_id = %s
-                          AND is_active = true
-                        ORDER BY raised_at DESC NULLS LAST, id DESC
-                        LIMIT 1
-                        """,
-                        (student_id,),
-                    )
-                    latest_flag = cur.fetchone()
-                    tutor_concept_id = latest_flag["concept_id"] if latest_flag else current_concept_id
-                    misconception = (
-                        (latest_flag["flag_detail"] or "").strip()
-                        if latest_flag and latest_flag.get("flag_detail")
-                        else None
-                    )
-
-                    if tutor_concept_id is None:
+                    if current_concept_id is not None:
                         cur.execute(
                             """
-                            SELECT column_name
-                            FROM information_schema.columns
-                            WHERE table_schema = 'public'
-                              AND table_name = 'student_learning_profiles'
-                              AND column_name IN (
-                                  'last_interacted_concept_id',
-                                  'most_recent_concept_id',
-                                  'recent_concept_id',
-                                  'last_concept_id',
-                                  'current_concept_id'
-                              )
-                            ORDER BY ordinal_position
+                            SELECT concept_id, flag_detail
+                            FROM student_concept_flags
+                            WHERE student_id = %s
+                              AND concept_id = %s
+                              AND is_active = true
+                            ORDER BY raised_at DESC NULLS LAST, id DESC
                             LIMIT 1
-                            """
-                        )
-                        fallback_col = cur.fetchone()
-                        if fallback_col:
-                            col_name = fallback_col["column_name"]
-                            cur.execute(
-                                f"SELECT {col_name} AS concept_id FROM student_learning_profiles WHERE student_id = %s LIMIT 1",
-                                (student_id,),
-                            )
-                            fallback_row = cur.fetchone()
-                            tutor_concept_id = fallback_row["concept_id"] if fallback_row else None
-
-                    tutor_concept_name = None
-                    if tutor_concept_id is not None:
-                        cur.execute("SELECT name FROM concepts WHERE id = %s", (tutor_concept_id,))
-                        concept_name_row = cur.fetchone()
-                        tutor_concept_name = concept_name_row["name"] if concept_name_row else None
-
-                    if tutor_concept_id is not None and tutor_concept_name:
-                        cur.execute(
-                            """
-                            SELECT COUNT(*)
-                            FROM messages m
-                            JOIN conversations c ON c.id = m.conversation_id
-                            WHERE m.student_id = %s
-                              AND m.sender = 'student'
-                              AND c.concept_id = %s
                             """,
-                            (student_id, tutor_concept_id),
+                            (student_id, current_concept_id),
                         )
-                        attempt_count = max(1, int(cur.fetchone()["count"] or 0))
-                        explanation_style = _select_explanation_style(user_msg, misconception)
-                        tutor_explanation, tutor_cache_hit, _model_used = generate_tutor_explanation(
-                            cur=cur,
-                            student_id=student_id,
-                            concept_id=int(tutor_concept_id),
-                            concept_name=str(tutor_concept_name),
-                            misconception=misconception,
-                            explanation_style=explanation_style,
-                            attempt_count=attempt_count,
-                            year_level=year_level,
-                        )
+                        latest_flag = cur.fetchone()
+                        if latest_flag:
+                            tutor_concept_id = latest_flag["concept_id"]
+                            misconception = (
+                                (latest_flag["flag_detail"] or "").strip()
+                                if latest_flag and latest_flag.get("flag_detail")
+                                else None
+                            )
+
+                            tutor_concept_name = None
+                            if tutor_concept_id is not None:
+                                cur.execute("SELECT name FROM concepts WHERE id = %s", (tutor_concept_id,))
+                                concept_name_row = cur.fetchone()
+                                tutor_concept_name = concept_name_row["name"] if concept_name_row else None
+
+                            if tutor_concept_id is not None and tutor_concept_name:
+                                cur.execute(
+                                    """
+                                    SELECT COUNT(*)
+                                    FROM messages m
+                                    JOIN conversations c ON c.id = m.conversation_id
+                                    WHERE m.student_id = %s
+                                      AND m.sender = 'student'
+                                      AND c.concept_id = %s
+                                    """,
+                                    (student_id, tutor_concept_id),
+                                )
+                                attempt_count = max(1, int(cur.fetchone()["count"] or 0))
+                                explanation_style = _select_explanation_style(user_msg, misconception)
+                                tutor_explanation, tutor_cache_hit, _model_used = generate_tutor_explanation(
+                                    cur=cur,
+                                    student_id=student_id,
+                                    concept_id=int(tutor_concept_id),
+                                    concept_name=str(tutor_concept_name),
+                                    misconception=misconception,
+                                    explanation_style=explanation_style,
+                                    attempt_count=attempt_count,
+                                    year_level=year_level,
+                                )
             except Exception as tutor_exc:
                 logger.warning("student_chat tutor augmentation failed: %s", tutor_exc)
                 tutor_explanation = None
