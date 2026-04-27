@@ -78,6 +78,40 @@ EXPLANATION_PROMPT_TEMPLATES = {
 }
 
 
+# Research-grounded explanation style selector (first match wins):
+# 1) First attempt on concept -> worked_example (Sweller: reduce extraneous load on first exposure).
+# 2) Attempt count >= 3 -> decompose_to_prerequisites (Gagne: prerequisite gaps likely).
+# 3) Active misconception flagged -> contrast_with_misconception (Chi: refutational text).
+# 4) Stuck + low mastery (elo < 1000) -> worked_example (Kirschner: explicit instruction for novices).
+# 5) Stuck + mid mastery (1000 <= elo < 1400) -> socratic (Vygotsky: ZPD scaffolding).
+# 6) Abstract concept category -> analogy (Gentner: analogical mapping).
+# 7) Last message asks "why" -> socratic.
+# 8) Default -> worked_example.
+def select_explanation_style(student_state: dict) -> str:
+    attempt_count = int(student_state.get("attempt_count") or 0)
+    elo_rating = float(student_state.get("elo_rating") or 0)
+    stuck = bool(student_state.get("stuck"))
+    has_active_misconception = bool(student_state.get("has_active_misconception"))
+    concept_category = str(student_state.get("concept_category") or "").strip().lower()
+    last_message = str(student_state.get("last_message") or "").lower()
+
+    if attempt_count <= 1:
+        return "worked_example"
+    if attempt_count >= 3:
+        return "decompose_to_prerequisites"
+    if has_active_misconception:
+        return "contrast_with_misconception"
+    if stuck and elo_rating < 1000:
+        return "worked_example"
+    if stuck and 1000 <= elo_rating < 1400:
+        return "socratic"
+    if concept_category == "abstract":
+        return "analogy"
+    if "why" in last_message:
+        return "socratic"
+    return "worked_example"
+
+
 def get_tutor_cache_key(concept_id: int, misconception: Optional[str], explanation_style: str) -> str:
     normalized_misconception = (misconception or "").strip().lower()
     raw = f"{concept_id}|{normalized_misconception}|{explanation_style}"
