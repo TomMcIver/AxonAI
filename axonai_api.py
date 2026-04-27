@@ -968,7 +968,7 @@ def get_concept_explanation(concept_id: int):
     with get_db() as cur:
         cur.execute(
             """
-            SELECT id, name
+            SELECT id, name, year_level_introduced
             FROM concepts
             WHERE id = %s
             """,
@@ -988,10 +988,40 @@ def get_concept_explanation(concept_id: int):
         )
         explanation = cur.fetchone()
         if not explanation:
-            raise HTTPException(
-                status_code=404,
-                detail="No explanation available for this concept yet.",
+            generated_text, _cache_hit, _model_used = generate_tutor_explanation(
+                cur=cur,
+                student_id=1,
+                concept_id=int(concept["id"]),
+                concept_name=str(concept["name"]),
+                misconception=None,
+                explanation_style="worked_example",
+                attempt_count=1,
+                year_level=int(concept.get("year_level_introduced") or 10),
             )
+            cur.execute(
+                """
+                INSERT INTO concept_explanations (
+                    concept_id,
+                    explanation_text,
+                    worked_example,
+                    common_misconception,
+                    year_level
+                ) VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (concept_id) DO UPDATE SET
+                    explanation_text = EXCLUDED.explanation_text,
+                    worked_example = EXCLUDED.worked_example,
+                    updated_at = NOW()
+                RETURNING explanation_text, worked_example, common_misconception, year_level
+                """,
+                (
+                    concept_id,
+                    generated_text,
+                    generated_text,
+                    None,
+                    int(concept.get("year_level_introduced") or 10),
+                ),
+            )
+            explanation = cur.fetchone()
 
     return {
         "concept_id": int(concept["id"]),

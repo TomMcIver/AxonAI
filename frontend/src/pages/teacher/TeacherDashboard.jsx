@@ -90,7 +90,18 @@ function MasteryRing({ value, label, size = 72, strokeWidth = 7 }) {
 
 /* ── NEEDS ATTENTION CARDS ── */
 
-function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, pillColor, body, recommendation, actions }) {
+function AlertCard({
+  name,
+  severity,
+  icon: IconComponent,
+  borderColor,
+  pillBg,
+  pillColor,
+  body,
+  recommendation,
+  recommendedAction,
+  actions,
+}) {
   return (
     <div style={{
       background: 'rgba(255, 255, 255, 0.5)',
@@ -138,6 +149,27 @@ function AlertCard({ name, severity, icon: IconComponent, borderColor, pillBg, p
           </button>
         ))}
       </div>
+      {recommendedAction && (
+        <div className="mt-3">
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontFamily: "'Inter', sans-serif",
+              fontWeight: 600,
+              fontSize: 12,
+              color: '#0f766e',
+              background: 'rgba(20, 184, 166, 0.10)',
+              border: '1px solid rgba(20, 184, 166, 0.25)',
+              borderRadius: 999,
+              padding: '5px 10px',
+            }}
+          >
+            Recommended Action: {recommendedAction}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -150,6 +182,25 @@ const RECOMMENDATIONS = [
 ];
 
 function NeedsAttentionSection({ students, navigate }) {
+  function resolveRecommendedAction(student) {
+    const riskState = String(
+      student.risk_state ?? student.riskState ?? student.primary_risk_state ?? student.at_risk_reason ?? ''
+    )
+      .trim()
+      .toLowerCase();
+    if (riskState.includes('low mastery') || riskState.includes('low_mastery')) return 'Review prerequisites';
+    if (riskState.includes('stuck')) return 'Check tutor chat';
+    if (riskState.includes('inactive') || riskState.includes('inactivity')) return 'Send check-in';
+
+    const mastery = Number(student.avg_mastery || 0);
+    const flags = Number(student.active_flags || 0);
+    const engagement = Number(student.overall_engagement_score || 0);
+    if (mastery < 0.5) return 'Review prerequisites';
+    if (flags > 0) return 'Check tutor chat';
+    if (engagement < 0.35) return 'Send check-in';
+    return 'Review prerequisites';
+  }
+
   const eligible = (students || [])
     .filter(s => s.overall_risk_score > 0.2 || (s.active_flags && s.active_flags > 0))
     .sort((a, b) => (b.overall_risk_score || 0) - (a.overall_risk_score || 0));
@@ -210,6 +261,7 @@ function NeedsAttentionSection({ students, navigate }) {
               pillColor={pillColor}
               body={body}
               recommendation={RECOMMENDATIONS[idx % RECOMMENDATIONS.length]}
+              recommendedAction={resolveRecommendedAction(student)}
               actions={[
                 { label: 'View Profile', primary: false, onClick: () => navigate(`/teacher/student/${student.student_id}`) },
                 { label: 'Start Intervention', primary: true, onClick: () => navigate(`/teacher/student/${student.student_id}`) },
