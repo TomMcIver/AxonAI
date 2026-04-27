@@ -1344,7 +1344,7 @@ def student_chat(student_id: int, body: StudentChatBody):
                         (student_id,),
                     )
                     latest_flag = cur.fetchone()
-                    tutor_concept_id = latest_flag["concept_id"] if latest_flag else None
+                    tutor_concept_id = latest_flag["concept_id"] if latest_flag else current_concept_id
                     misconception = (
                         (latest_flag["flag_detail"] or "").strip()
                         if latest_flag and latest_flag.get("flag_detail")
@@ -1473,17 +1473,17 @@ def tutor_explain(body: dict):
                     year_level=year_level,
                 )
             except RuntimeError as e:
-                if "ANTHROPIC_API_KEY" in str(e):
+                if "OPENAI_API_KEY" in str(e):
                     raise HTTPException(
                         status_code=503,
-                        detail="AI tutor not configured — contact admin to add ANTHROPIC_API_KEY",
+                        detail="AI tutor not configured — contact admin to add OPENAI_API_KEY",
                     )
-                raise HTTPException(status_code=502, detail=f"Anthropic API error: {str(e)}")
+                raise HTTPException(status_code=502, detail=f"OpenAI API error: {str(e)}")
             except urllib.error.HTTPError as e:
                 body = e.read().decode("utf-8", errors="replace")
-                raise HTTPException(status_code=502, detail=f"Anthropic API error: {e.code} {body}")
+                raise HTTPException(status_code=502, detail=f"OpenAI API error: {e.code} {body}")
             except Exception as e:
-                raise HTTPException(status_code=502, detail=f"Anthropic API error: {str(e)}")
+                raise HTTPException(status_code=502, detail=f"OpenAI API error: {str(e)}")
 
         return {
             "explanation": explanation,

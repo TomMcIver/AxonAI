@@ -7,9 +7,9 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import urllib.request
 from typing import Optional, Tuple
 
+from openai import OpenAI
 
 VALID_EXPLANATION_STYLES = {
     "worked_example",
@@ -84,32 +84,19 @@ def get_tutor_cache_key(concept_id: int, misconception: Optional[str], explanati
     return hashlib.md5(raw.encode("utf-8")).hexdigest()
 
 
-def call_anthropic_explain(system_prompt: str, user_prompt: str, api_key: str) -> str:
-    payload = json.dumps(
-        {
-            "model": "claude-haiku-4-5",
-            "max_tokens": 300,
-            "system": system_prompt,
-            "messages": [{"role": "user", "content": user_prompt}],
-        }
-    ).encode("utf-8")
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
-        method="POST",
+def call_openai_explain(system_prompt: str, user_prompt: str, api_key: str) -> str:
+    response = OpenAI(api_key=api_key).chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        max_tokens=300,
     )
-    with urllib.request.urlopen(req, timeout=60) as response:
-        body = json.loads(response.read().decode("utf-8"))
-    content = body.get("content", [])
-    parts = [part.get("text", "") for part in content if isinstance(part, dict) and part.get("type") == "text"]
-    explanation = "".join(parts).strip()
+    content = response.choices[0].message.content if response.choices else None
+    explanation = (content or "").strip()
     if not explanation:
-        raise RuntimeError("Anthropic returned empty explanation content")
+        raise RuntimeError("OpenAI returned empty explanation content")
     return explanation
 
 
@@ -139,12 +126,13 @@ def generate_tutor_explanation(
         (cache_key,),
     )
     cached = cur.fetchone()
-    if cached and cached[0]:
-        return str(cached[0]), True, "cache"
+    cached_content = cached.get("content") if cached else None
+    if cached_content:
+        return str(cached_content), True, "cache"
 
-    anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not anthropic_api_key or not anthropic_api_key.strip():
-        raise RuntimeError("ANTHROPIC_API_KEY is not set")
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key or not api_key.strip():
+        raise RuntimeError("AI tutor not configured — contact admin to add OPENAI_API_KEY")
 
     misconception_text = misconception if misconception else "none provided"
     template = EXPLANATION_PROMPT_TEMPLATES[explanation_style]
@@ -161,8 +149,8 @@ def generate_tutor_explanation(
         year_level=year_level,
     )
 
-    model_used = "claude-haiku-4-5"
-    explanation = call_anthropic_explain(system_prompt, user_prompt, anthropic_api_key.strip())
+    model_used = "gpt-4o-mini"
+    explanation = call_openai_explain(system_prompt, user_prompt, api_key.strip())
 
     cur.execute(
         """
@@ -176,7 +164,7 @@ def generate_tutor_explanation(
     )
     conv = cur.fetchone()
     if conv:
-        conversation_id = conv[0]
+        conversation_id = conv["id"]
     else:
         cur.execute(
             """
@@ -187,13 +175,13 @@ def generate_tutor_explanation(
             """,
             (student_id, 1, concept_id, 0, False),
         )
-        conversation_id = cur.fetchone()[0]
+        conversation_id = cur.fetchone()["id"]
 
     cur.execute(
         "SELECT COALESCE(MAX(message_index), 0) AS mx FROM messages WHERE conversation_id = %s",
         (conversation_id,),
     )
-    message_index = int(cur.fetchone()[0] or 0) + 1
+    message_index = int(cur.fetchone()["mx"] or 0) + 1
 
     cur.execute(
         """
