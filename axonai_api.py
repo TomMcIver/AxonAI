@@ -1054,14 +1054,37 @@ def _parse_chat_response_and_stuck(raw_output: str) -> tuple[str, bool]:
     return conversational_response, stuck_value
 
 
-def _select_explanation_style(message: str, misconception: Optional[str]) -> str:
+# Explanation style selector (research-grounded, auditable, first-match-wins):
+# 1) Many attempts (>=4) -> decompose_to_prerequisites (Vygotsky ZPD).
+# 2) Misconception + multiple attempts (>=2) -> contrast_with_misconception (Chi et al., 1994).
+# 3) Misconception + first attempt -> worked_example (Sweller worked example effect).
+# 4) Prior session on concept + early attempts (<=2) -> socratic (King, 1994 prior knowledge activation).
+# 5) Student asks for example/show me -> worked_example (Zimmerman, 2002 self-regulation).
+# 6) Student asks "why" -> socratic (Chin & Osborne, 2008).
+# 7) First attempt with no misconception -> concrete_before_abstract (Bruner CPA model).
+# 8) Default -> worked_example (Sweller, Van Merrienboer & Paas, 1998).
+def _select_explanation_style(
+    message: str,
+    misconception: Optional[str],
+    attempt_count: int = 1,
+    had_prior_session: bool = False,
+) -> str:
     text = (message or "").lower()
-    if misconception:
+
+    if attempt_count >= 4:
+        return "decompose_to_prerequisites"
+    if misconception is not None and attempt_count >= 2:
         return "contrast_with_misconception"
+    if misconception is not None and attempt_count == 1:
+        return "worked_example"
+    if had_prior_session and attempt_count <= 2:
+        return "socratic"
     if "example" in text or "show me" in text:
         return "worked_example"
     if "why" in text:
         return "socratic"
+    if attempt_count <= 1 and misconception is None:
+        return "concrete_before_abstract"
     return "worked_example"
 
 
@@ -1601,7 +1624,23 @@ def student_chat(student_id: int, body: StudentChatBody):
                                     (student_id, tutor_concept_id),
                                 )
                                 attempt_count = max(1, int(cur.fetchone()["count"] or 0))
-                                explanation_style = _select_explanation_style(user_msg, misconception)
+                                cur.execute(
+                                    """
+                                    SELECT COUNT(*) AS n
+                                    FROM conversations
+                                    WHERE student_id = %s
+                                      AND concept_id = %s
+                                    """,
+                                    (student_id, tutor_concept_id),
+                                )
+                                concept_conversation_count = int(cur.fetchone()["n"] or 0)
+                                had_prior_session = concept_conversation_count > 1
+                                explanation_style = _select_explanation_style(
+                                    user_msg,
+                                    misconception,
+                                    attempt_count=attempt_count,
+                                    had_prior_session=had_prior_session,
+                                )
                                 tutor_explanation, tutor_cache_hit, _model_used = generate_tutor_explanation(
                                     cur=cur,
                                     student_id=student_id,
