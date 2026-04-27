@@ -963,6 +963,46 @@ def get_concepts(subject: str):
     }
 
 
+@app.get("/concepts/{concept_id}/explanation")
+def get_concept_explanation(concept_id: int):
+    with get_db() as cur:
+        cur.execute(
+            """
+            SELECT id, name
+            FROM concepts
+            WHERE id = %s
+            """,
+            (concept_id,),
+        )
+        concept = cur.fetchone()
+        if not concept:
+            raise HTTPException(status_code=404, detail="Concept not found")
+
+        cur.execute(
+            """
+            SELECT explanation_text, worked_example, common_misconception, year_level
+            FROM concept_explanations
+            WHERE concept_id = %s
+            """,
+            (concept_id,),
+        )
+        explanation = cur.fetchone()
+        if not explanation:
+            raise HTTPException(
+                status_code=404,
+                detail="No explanation available for this concept yet.",
+            )
+
+    return {
+        "concept_id": int(concept["id"]),
+        "concept_name": concept["name"],
+        "explanation_text": explanation["explanation_text"],
+        "worked_example": explanation["worked_example"],
+        "common_misconception": explanation["common_misconception"],
+        "year_level": explanation["year_level"],
+    }
+
+
 # =============================================================================
 # LIVE PREDICTIONS
 # =============================================================================
