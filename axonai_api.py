@@ -30,7 +30,7 @@ Endpoints:
     POST /predict/mastery                     → Live mastery prediction
 """
 
-import os, json, logging, urllib.request, urllib.error, ssl
+import os, json, logging, urllib.request, urllib.error, ssl, re
 from datetime import datetime, timezone
 from contextlib import contextmanager
 from typing import Optional
@@ -826,22 +826,33 @@ class StudentChatBody(BaseModel):
     conversation_id: Optional[int] = None
 
 
-STUCK_KEYWORDS = (
-    "stuck",
-    "don't understand",
-    "confused",
-    "help",
-    "explain",
-    "why",
-    "how does",
-    "what is",
-    "i don't get",
-)
+_STRUCTURED_PARSE_FAILURES = {}
 
 
-def _message_indicates_stuck(message: str) -> bool:
-    text = (message or "").lower()
-    return any(keyword in text for keyword in STUCK_KEYWORDS)
+def _parse_chat_response_and_stuck(raw_output: str) -> tuple[str, bool]:
+    text = (raw_output or "").strip()
+    if not text:
+        raise ValueError("Empty model response")
+
+    # Find the final JSON-like block for stuck status, e.g. {stuck: true}.
+    matches = list(re.finditer(r"\{[\s\S]*?\}", text))
+    if not matches:
+        raise ValueError("No structured block found")
+
+    last = matches[-1]
+    json_like = last.group(0)
+    conversational_response = text[: last.start()].strip()
+    if not conversational_response:
+        raise ValueError("Missing conversational response before structured block")
+
+    normalized = re.sub(r"^\{\s*stuck\s*:\s*", '{"stuck": ', json_like.strip(), flags=re.IGNORECASE)
+    normalized = re.sub(r"\s+\}", "}", normalized)
+    parsed = json.loads(normalized)
+    stuck_value = parsed.get("stuck")
+    if not isinstance(stuck_value, bool):
+        raise ValueError("Structured block missing boolean stuck field")
+
+    return conversational_response, stuck_value
 
 
 def _select_explanation_style(message: str, misconception: Optional[str]) -> str:
@@ -866,7 +877,8 @@ Pedagogy:
 - If after 2–3 exchanges in this conversation they are clearly still stuck, give one clear, explicit explanation they can follow.
 - Stay focused on NCEA Mathematics and Biology curriculum (Years 7–13). Politely redirect off-topic questions back to learning.
 
-You are helpful, encouraging, and concise."""
+You are helpful, encouraging, and concise.
+After your tutoring response, you must also output a JSON block on a new line in this exact format with no other text around it: {{stuck: true}} or {{stuck: false}}. Set stuck to true if the student seems confused, lost, stuck, uncertain, or is asking for help understanding something. Set stuck to false if they are engaged, curious, or making progress."""
 
 
 def _trim_openai_messages(msgs: list) -> list:
@@ -1238,7 +1250,24 @@ def student_chat(student_id: int, body: StudentChatBody):
                 openai_messages.append({"role": "assistant", "content": row["content"] or ""})
         openai_messages.append({"role": "user", "content": user_msg})
 
-        ai_reply = _call_openai_chat_messages(openai_messages)
+        raw_ai_output = _call_openai_chat_messages(openai_messages)
+        logger.warning("student_chat raw_openai_output: %s", raw_ai_output)
+        parse_session_key = str(existing_conv_id) if existing_conv_id is not None else f"student:{student_id}"
+        parse_fail_count = int(_STRUCTURED_PARSE_FAILURES.get(parse_session_key, 0))
+        try:
+            ai_reply, student_is_stuck = _parse_chat_response_and_stuck(raw_ai_output)
+            _STRUCTURED_PARSE_FAILURES[parse_session_key] = 0
+        except Exception as parse_exc:
+            parse_fail_count += 1
+            _STRUCTURED_PARSE_FAILURES[parse_session_key] = parse_fail_count
+            ai_reply = (raw_ai_output or "").strip()
+            student_is_stuck = False
+            logger.warning("student_chat structured parse failed (%s): %s", parse_fail_count, parse_exc)
+            if parse_fail_count > 1:
+                logger.warning("student_chat falling back to keyword detection for session %s", parse_session_key)
+                lowered = user_msg.lower()
+                student_is_stuck = ("help" in lowered) or ("stuck" in lowered)
+        logger.warning("student_chat parsed_student_is_stuck: %s", student_is_stuck)
         tutor_explanation = None
         tutor_cache_hit = False
 
@@ -1330,7 +1359,7 @@ def student_chat(student_id: int, body: StudentChatBody):
                     )
                     has_active_current_flag = cur.fetchone() is not None
 
-                student_is_stuck = _message_indicates_stuck(user_msg) or has_active_current_flag
+                student_is_stuck = student_is_stuck
                 if student_is_stuck:
                     if current_concept_id is not None:
                         cur.execute(
