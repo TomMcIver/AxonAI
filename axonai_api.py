@@ -549,6 +549,259 @@ def student_pedagogy(student_id: int):
 # AI INSIGHTS (GPT-4o generated teacher summaries)
 # =============================================================================
 
+def _normalize_mastery_value(raw):
+    if raw is None:
+        return None
+    value = float(raw)
+    if value > 1.0:
+        value = value / 100.0
+    return max(0.0, min(1.0, value))
+
+
+def _build_student_insight_payload(student_id: int):
+    with get_db() as cur:
+        cur.execute(
+            """
+            SELECT s.first_name, s.year_level,
+                   COALESCE(slp.dominant_learning_style, '') AS dominant_learning_style
+            FROM students s
+            LEFT JOIN student_learning_profiles slp ON slp.student_id = s.id
+            WHERE s.id = %s
+            LIMIT 1
+            """,
+            (student_id,),
+        )
+        student_row = cur.fetchone()
+        if not student_row:
+            raise HTTPException(404, f"Student {student_id} not found")
+
+        cur.execute(
+            """
+            SELECT cms.concept_id, c.name AS concept_name, cms.mastery_score, cms.confidence
+            FROM concept_mastery_states cms
+            LEFT JOIN concepts c ON c.id = cms.concept_id
+            WHERE cms.student_id = %s
+            """,
+            (student_id,),
+        )
+        mastery_rows = cur.fetchall()
+        mastery_points = []
+        for row in mastery_rows:
+            score01 = _normalize_mastery_value(row.get("mastery_score"))
+            if score01 is None:
+                continue
+            mastery_points.append(
+                {
+                    "concept_id": row.get("concept_id"),
+                    "concept_name": row.get("concept_name") or f"concept_{row.get('concept_id')}",
+                    "mastery_score": score01,
+                    "confidence": row.get("confidence"),
+                }
+            )
+
+        avg_mastery = (
+            sum(p["mastery_score"] for p in mastery_points) / len(mastery_points)
+            if mastery_points
+            else 0.0
+        )
+        weakest = sorted(mastery_points, key=lambda x: x["mastery_score"])[:3]
+        strongest = sorted(mastery_points, key=lambda x: x["mastery_score"], reverse=True)[:3]
+
+        cur.execute(
+            """
+            SELECT scf.concept_id, c.name AS concept_name, scf.flag_type
+            FROM student_concept_flags scf
+            LEFT JOIN concepts c ON c.id = scf.concept_id
+            WHERE scf.student_id = %s
+              AND scf.is_active = true
+            ORDER BY scf.created_at DESC
+            """,
+            (student_id,),
+        )
+        active_flag_rows = cur.fetchall()
+        active_flags = [
+            {
+                "concept_id": r.get("concept_id"),
+                "concept_name": r.get("concept_name") or f"concept_{r.get('concept_id')}",
+                "flag_type": r.get("flag_type"),
+            }
+            for r in active_flag_rows
+        ]
+
+        cur.execute(
+            """
+            SELECT COUNT(*)::int AS total_conversations,
+                   COALESCE(SUM(CASE WHEN lightbulb_moment_detected THEN 1 ELSE 0 END), 0)::int AS lightbulb_count,
+                   MAX(id) AS latest_conversation_id
+            FROM conversations
+            WHERE student_id = %s
+            """,
+            (student_id,),
+        )
+        conv_stats = cur.fetchone() or {}
+
+        latest_conversation_id = conv_stats.get("latest_conversation_id")
+        recent_concept_id = None
+        if latest_conversation_id is not None:
+            cur.execute(
+                "SELECT concept_id FROM conversations WHERE id = %s LIMIT 1",
+                (latest_conversation_id,),
+            )
+            latest_concept_row = cur.fetchone()
+            if latest_concept_row:
+                recent_concept_id = latest_concept_row.get("concept_id")
+
+        cur.execute(
+            """
+            SELECT COUNT(*)::int AS total_messages
+            FROM messages m
+            JOIN conversations c ON c.id = m.conversation_id
+            WHERE c.student_id = %s
+            """,
+            (student_id,),
+        )
+        message_stats = cur.fetchone() or {}
+
+    weakest_concepts = [
+        {"concept": w["concept_name"], "score": round(w["mastery_score"], 4)}
+        for w in weakest
+    ]
+    strongest_concepts = [
+        {"concept": s["concept_name"], "score": round(s["mastery_score"], 4)}
+        for s in strongest
+    ]
+
+    weakest_mastery_probability = None
+    if weakest:
+        confidence = weakest[0].get("confidence")
+        if confidence is not None:
+            weakest_mastery_probability = _normalize_mastery_value(confidence)
+
+    return {
+        "student_id": student_id,
+        "first_name": student_row.get("first_name") or "Student",
+        "year_level": int(student_row.get("year_level") or 0),
+        "learning_style": student_row.get("dominant_learning_style") or None,
+        "avg_mastery": float(avg_mastery),
+        "weakest_concepts": weakest_concepts,
+        "strongest_concepts": strongest_concepts,
+        "active_flags": active_flags,
+        "active_flag_count": len(active_flags),
+        "total_conversations": int(conv_stats.get("total_conversations") or 0),
+        "total_messages": int(message_stats.get("total_messages") or 0),
+        "most_recent_concept_id": recent_concept_id,
+        "lightbulb_count": int(conv_stats.get("lightbulb_count") or 0),
+        "weakest_mastery_probability": weakest_mastery_probability,
+    }
+
+
+def _generate_insight_from_payload(payload: dict):
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key or not api_key.strip():
+        raise HTTPException(status_code=503, detail="tutor unavailable")
+
+    first_name = payload["first_name"]
+    year_level = payload["year_level"] or "unknown"
+    avg_mastery = payload["avg_mastery"]
+    weakest_concepts = payload["weakest_concepts"]
+    strongest_concepts = payload["strongest_concepts"]
+    active_flags = payload["active_flags"]
+    total_conversations = payload["total_conversations"]
+    lightbulb_count = payload["lightbulb_count"]
+    learning_style = payload["learning_style"] or "unknown"
+
+    system_prompt = """You are an educational AI analyst for AxonAI, a New Zealand secondary school math tutor.
+You generate concise, data-grounded teacher insights. Every claim you make must be directly supported by the datapoints provided. Do not invent biographical details, personality traits, or lifestyle assumptions. Do not mention hobbies, family, or extracurricular activities. Base all outputs strictly on learning data."""
+
+    user_prompt = f"""
+Generate a teacher insight report for {first_name} (Year {year_level}).
+
+REAL DATAPOINTS (base everything on these):
+- Overall mastery: {avg_mastery:.0%}
+- Weakest concepts: {weakest_concepts}
+- Strongest concepts: {strongest_concepts}
+- Active learning flags: {active_flags}
+- Total AI tutor sessions: {total_conversations}
+- Lightbulb moments detected: {lightbulb_count}
+- Dominant learning style: {learning_style}
+
+Return a JSON object with exactly these fields:
+{{
+  "summary": "2-3 sentence overview grounded in the mastery data",
+  "risk_narrative": "1-2 sentences on specific learning risks based on flags and weak concepts only",
+  "recommended_interventions": "2-3 specific teaching actions tied directly to the weak concepts and flags above",
+  "teaching_approach_advice": "1-2 sentences on how to approach this student based on learning style and session data"
+}}
+
+Return only valid JSON. No preamble. No markdown.
+""".strip()
+
+    body = json.dumps(
+        {
+            "model": "gpt-4o-mini",
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "temperature": 0.2,
+            "max_tokens": 600,
+        }
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key.strip()}",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except Exception as exc:
+        logger.exception("generate-insights openai call failed: %s", exc)
+        raise HTTPException(status_code=503, detail="tutor unavailable")
+
+    content = (
+        result.get("choices", [{}])[0]
+        .get("message", {})
+        .get("content", "")
+    )
+    try:
+        parsed = json.loads(content)
+    except Exception as exc:
+        logger.exception("generate-insights invalid json: %s ; raw=%s", exc, content)
+        raise HTTPException(status_code=503, detail="tutor unavailable")
+
+    required = ["summary", "risk_narrative", "recommended_interventions", "teaching_approach_advice"]
+    if not all(k in parsed for k in required):
+        logger.exception("generate-insights missing fields: %s", parsed)
+        raise HTTPException(status_code=503, detail="tutor unavailable")
+
+    for field in ["summary", "risk_narrative", "teaching_approach_advice"]:
+        if not isinstance(parsed[field], str) or not parsed[field].strip():
+            logger.exception("generate-insights invalid field %s: %r", field, parsed.get(field))
+            raise HTTPException(status_code=503, detail="tutor unavailable")
+
+    interventions_raw = parsed["recommended_interventions"]
+    if isinstance(interventions_raw, list):
+        interventions_value = json.dumps(interventions_raw)
+    elif isinstance(interventions_raw, str) and interventions_raw.strip():
+        interventions_value = interventions_raw.strip()
+    else:
+        logger.exception("generate-insights invalid recommended_interventions: %r", interventions_raw)
+        raise HTTPException(status_code=503, detail="tutor unavailable")
+
+    return {
+        "summary": parsed["summary"].strip(),
+        "risk_narrative": parsed["risk_narrative"].strip(),
+        "recommended_interventions": interventions_value,
+        "teaching_approach_advice": parsed["teaching_approach_advice"].strip(),
+        "model_used": "gpt-4o-mini",
+    }
+
+
 @app.get("/student/{student_id}/ai-insights")
 def get_ai_insights(student_id: int):
     with get_db() as cur:
@@ -563,88 +816,108 @@ def get_ai_insights(student_id: int):
         row = cur.fetchone()
     if not row:
         return {"insights": None}
-    return {"insights": _clean(row)}
+    clean = _clean(row)
+    return {
+        "insights": {
+            "summary": clean.get("student_summary"),
+            "risk_narrative": clean.get("risk_narrative"),
+            "recommended_interventions": clean.get("recommended_interventions"),
+            "teaching_approach_advice": clean.get("teaching_approach_advice"),
+            "generated_at": clean.get("generated_at"),
+            "model_used": clean.get("model_used"),
+        }
+    }
 
 
 @app.post("/student/{student_id}/generate-insights")
 def generate_insights_endpoint(student_id: int):
-    """Generate GPT-4o AI insights for a student and save to database"""
-    try:
-        # Step 1: Get student data
-        with get_db() as cur:
-            cur.execute("""
-                SELECT first_name, last_name FROM students WHERE id = %s
-            """, (student_id,))
-            student_row = cur.fetchone()
-            
-        if not student_row:
-            raise HTTPException(404, f"Student {student_id} not found")
-        
-        fname = student_row["first_name"]
-        lname = student_row["last_name"]
-        
-        # Step 2: Call GPT-4o with minimal context
-        prompt = f"""Generate 4 JSON fields for {fname} {lname}:
-Return ONLY this JSON (no markdown):
-{{"student_summary":"Brief summary", "risk_narrative":"Risk assessment", "recommended_interventions":"Suggestions", "teaching_approach_advice":"Teaching tips"}}"""
+    payload = _build_student_insight_payload(student_id)
+    generated = _generate_insight_from_payload(payload)
 
-        api_key = os.environ.get('OPENAI_API_KEY')
-        payload = json.dumps({
-            "model": "gpt-4o",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.7,
-            "max_tokens": 500
-        }).encode('utf-8')
-        
-        req = urllib.request.Request(
-            'https://api.openai.com/v1/chat/completions',
-            data=payload,
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {api_key}'
-            },
-            method='POST'
+    with get_db() as cur:
+        cur.execute("SELECT id FROM teacher_ai_insights WHERE student_id = %s", (student_id,))
+        exists = cur.fetchone()
+        now = datetime.now(timezone.utc).isoformat()
+
+        if exists:
+            cur.execute(
+                """
+                UPDATE teacher_ai_insights
+                SET student_summary = %s,
+                    risk_narrative = %s,
+                    recommended_interventions = %s,
+                    teaching_approach_advice = %s,
+                    model_used = %s,
+                    generated_at = %s
+                WHERE student_id = %s
+                """,
+                (
+                    generated["summary"],
+                    generated["risk_narrative"],
+                    generated["recommended_interventions"],
+                    generated["teaching_approach_advice"],
+                    generated["model_used"],
+                    now,
+                    student_id,
+                ),
+            )
+        else:
+            cur.execute(
+                """
+                INSERT INTO teacher_ai_insights (
+                    student_id, teacher_id, class_id, student_summary,
+                    risk_narrative, recommended_interventions, teaching_approach_advice,
+                    model_used, generated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    student_id,
+                    1,
+                    1,
+                    generated["summary"],
+                    generated["risk_narrative"],
+                    generated["recommended_interventions"],
+                    generated["teaching_approach_advice"],
+                    generated["model_used"],
+                    now,
+                ),
+            )
+
+        cur.execute(
+            """
+            SELECT student_summary, risk_narrative, recommended_interventions, teaching_approach_advice, generated_at, model_used
+            FROM teacher_ai_insights
+            WHERE student_id = %s
+            ORDER BY generated_at DESC
+            LIMIT 1
+            """,
+            (student_id,),
         )
-        
-        with urllib.request.urlopen(req, timeout=60) as response:
-            result = json.loads(response.read().decode('utf-8'))
-            text = result['choices'][0]['message']['content']
-            start = text.find('{')
-            end = text.rfind('}') + 1
-            insights = json.loads(text[start:end])
-        
-        # Step 3: Save to database
-        with get_db() as cur:
-            cur.execute("SELECT id FROM teacher_ai_insights WHERE student_id = %s", (student_id,))
-            exists = cur.fetchone()
-            now = datetime.now(timezone.utc).isoformat()
-            
-            if exists:
-                cur.execute("""UPDATE teacher_ai_insights SET 
-                    student_summary=%s, risk_narrative=%s, 
-                    recommended_interventions=%s, teaching_approach_advice=%s,
-                    model_used='gpt-4o', generated_at=%s 
-                    WHERE student_id=%s""",
-                    (insights.get('student_summary'), insights.get('risk_narrative'), 
-                     insights.get('recommended_interventions'), insights.get('teaching_approach_advice'), 
-                     now, student_id))
-            else:
-                cur.execute("""INSERT INTO teacher_ai_insights 
-                    (student_id, teacher_id, class_id, student_summary, risk_narrative, recommended_interventions, 
-                     teaching_approach_advice, model_used, generated_at) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'gpt-4o', %s)""",
-                    (student_id, 1, 1, insights.get('student_summary'), insights.get('risk_narrative'),
-                     insights.get('recommended_interventions'), insights.get('teaching_approach_advice'), now))
-        
-        return {
-            'success': True,
-            'student': f"{fname} {lname}",
-            'message': f"{'Updated' if exists else 'Inserted'} insights for student {student_id}",
-            'insights': insights
-        }
-    
-    except Exception as e:
-        raise HTTPException(500, str(e))
+        saved = _clean(cur.fetchone() or {})
+
+    return {
+        "student_id": student_id,
+        "insights": {
+            "summary": saved.get("student_summary"),
+            "risk_narrative": saved.get("risk_narrative"),
+            "recommended_interventions": saved.get("recommended_interventions"),
+            "teaching_approach_advice": saved.get("teaching_approach_advice"),
+            "generated_at": saved.get("generated_at"),
+            "model_used": saved.get("model_used"),
+        },
+        "datapoints_used": {
+            "avg_mastery": payload["avg_mastery"],
+            "weakest_concepts": payload["weakest_concepts"],
+            "strongest_concepts": payload["strongest_concepts"],
+            "active_flag_count": payload["active_flag_count"],
+            "total_conversations": payload["total_conversations"],
+            "total_messages": payload["total_messages"],
+            "lightbulb_count": payload["lightbulb_count"],
+            "most_recent_concept_id": payload["most_recent_concept_id"],
+            "weakest_mastery_probability": payload["weakest_mastery_probability"],
+        },
+    }
 
 
 @app.delete("/students/{student_id}/data")
