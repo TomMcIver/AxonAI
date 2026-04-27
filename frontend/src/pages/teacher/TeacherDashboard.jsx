@@ -128,15 +128,17 @@ function AlertCard({
       <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 15, lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 12px 0' }}>
         {body}
       </p>
-      <div className="flex items-start gap-2 mb-4" style={{
-        padding: '10px 12px', background: 'rgba(20, 184, 166, 0.06)', backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(20, 184, 166, 0.12)', borderRadius: 10,
-      }}>
-        <Sparkles size={14} style={{ color: 'var(--primary-500)', flexShrink: 0, marginTop: 3 }} />
-        <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: 'var(--text-secondary)', margin: 0 }}>
-          {recommendation}
-        </p>
-      </div>
+      {recommendation ? (
+        <div className="flex items-start gap-2 mb-4" style={{
+          padding: '10px 12px', background: 'rgba(20, 184, 166, 0.06)', backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(20, 184, 166, 0.12)', borderRadius: 10,
+        }}>
+          <Sparkles size={14} style={{ color: 'var(--primary-500)', flexShrink: 0, marginTop: 3 }} />
+          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 14, lineHeight: 1.5, color: 'var(--text-secondary)', margin: 0 }}>
+            {recommendation}
+          </p>
+        </div>
+      ) : null}
       <div className="flex items-center gap-3">
         {actions.map((action, i) => (
           <button
@@ -174,32 +176,7 @@ function AlertCard({
   );
 }
 
-const RECOMMENDATIONS = [
-  'Focused review of prerequisite concepts before continuing the current unit. Consider a 1:1 check-in.',
-  'Engagement has been declining. Recommend pastoral care referral and a change of learning approach.',
-  'Multiple misconception flags suggest foundational gaps. Try scaffolded practice on earlier topics.',
-  'Consider pairing with a peer mentor and adjusting task difficulty to rebuild confidence.',
-];
-
 function NeedsAttentionSection({ students, navigate }) {
-  function resolveRecommendedAction(student) {
-    const riskState = String(
-      student.risk_state ?? student.riskState ?? student.primary_risk_state ?? student.at_risk_reason ?? ''
-    )
-      .trim()
-      .toLowerCase();
-    if (riskState.includes('low mastery') || riskState.includes('low_mastery')) return 'Review prerequisites';
-    if (riskState.includes('stuck')) return 'Check tutor chat';
-    if (riskState.includes('inactive') || riskState.includes('inactivity')) return 'Send check-in';
-
-    const mastery = Number(student.avg_mastery || 0);
-    const flags = Number(student.active_flags || 0);
-    const engagement = Number(student.overall_engagement_score || 0);
-    if (mastery < 0.5) return 'Review prerequisites';
-    if (flags > 0) return 'Check tutor chat';
-    if (engagement < 0.35) return 'Send check-in';
-    return 'Review prerequisites';
-  }
 
   const eligible = (students || [])
     .filter(s => s.overall_risk_score > 0.2 || (s.active_flags && s.active_flags > 0))
@@ -221,7 +198,7 @@ function NeedsAttentionSection({ students, navigate }) {
       <section>
         {sectionHeading}
         <div className="axon-card-subtle p-5 sm:p-6">
-          <p className="text-sm text-slate-500">All students on track!</p>
+          <p className="text-sm text-slate-500">No students currently flagged.</p>
         </div>
       </section>
     );
@@ -260,8 +237,8 @@ function NeedsAttentionSection({ students, navigate }) {
               pillBg={pillBg}
               pillColor={pillColor}
               body={body}
-              recommendation={RECOMMENDATIONS[idx % RECOMMENDATIONS.length]}
-              recommendedAction={resolveRecommendedAction(student)}
+              recommendation={student.recommended_interventions || student.ai_recommendation || null}
+              recommendedAction={null}
               actions={[
                 { label: 'View Profile', primary: false, onClick: () => navigate(`/teacher/student/${student.student_id}`) },
                 { label: 'Start Intervention', primary: true, onClick: () => navigate(`/teacher/student/${student.student_id}`) },

@@ -50,12 +50,6 @@ function badgeClassForPct(pct) {
   return 'bg-rose-100 text-rose-800 border-rose-200/80';
 }
 
-const QUICK_PROMPTS = [
-  'Can you explain this to me?',
-  "I'm stuck, can we go through it step by step?",
-  'Give me a hint without telling me the answer',
-];
-
 function mapApiMessagesToUi(msgs) {
   if (!Array.isArray(msgs)) return [];
   return msgs.map((m) => {
@@ -249,7 +243,7 @@ export default function AITutorPage() {
           ...m,
           {
             role: 'ai',
-            content: "Sorry, I couldn't reach the tutor just now. Please try again.",
+            content: 'Unable to connect. Please try again.',
             lightbulb: false,
           },
         ]);
@@ -373,21 +367,6 @@ export default function AITutorPage() {
           </div>
 
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-4 sm:px-5">
-            {messages.length === 0 && !loading && (
-              <div className="flex flex-wrap gap-2">
-                {QUICK_PROMPTS.map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => send(q)}
-                    className="rounded-lg border border-slate-200 bg-white/50 px-3 py-2 text-left text-xs text-slate-700 transition-colors hover:bg-white/80"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            )}
-
             {messages.map((msg, idx) => (
               <div
                 key={`${msg.role}-${idx}-${msg.content.slice(0, 12)}`}

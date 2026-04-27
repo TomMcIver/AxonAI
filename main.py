@@ -260,17 +260,11 @@ def student_chat(student_id: int, body: StudentChatBody):
     """
     Socratic tutor turn: OpenAI reply + persist conversation + user/AI message rows.
     If conversation_id is set, loads prior messages and sends full context to the model.
-    On any failure returns 200 with a friendly message so the SPA does not crash.
     """
-    fallback = {
-        "response": "Sorry, I'm having trouble right now. Please try again in a moment.",
-        "conversation_id": None,
-        "lightbulb_detected": False,
-    }
     try:
         user_msg = (body.message or "").strip()
         if not user_msg:
-            return JSONResponse(status_code=200, content=fallback)
+            return JSONResponse(status_code=503, content={"error": "tutor unavailable", "detail": "please try again"})
 
         concept_id: Optional[int] = body.concept_id
         existing_conv_id: Optional[int] = body.conversation_id
@@ -340,7 +334,7 @@ def student_chat(student_id: int, body: StudentChatBody):
                     VALUES (%s, %s, %s, %s, %s, %s)
                     RETURNING id
                     """,
-                    (student_id, 1, concept_id, 0.75, False, 2),
+                    (student_id, 1, concept_id, None, False, 2),
                 )
                 conv_row = cur.fetchone()
                 if not conv_row:
@@ -404,11 +398,10 @@ def student_chat(student_id: int, body: StudentChatBody):
         return {
             "response": ai_reply,
             "conversation_id": conversation_id,
-            "lightbulb_detected": False,
         }
     except Exception as e:
         logger.exception("student_chat failed: %s", e)
-        return JSONResponse(status_code=200, content=fallback)
+        return JSONResponse(status_code=503, content={"error": "tutor unavailable", "detail": "please try again"})
 
 
 try:

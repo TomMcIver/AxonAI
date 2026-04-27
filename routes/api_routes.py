@@ -27,33 +27,18 @@ def send_chat_message():
 
         user_id = session.get('user_id')
 
-        # For mock users (negative IDs), return a demo response
+        # For mock users (negative IDs), return a neutral transport error
         if not user_id or user_id < 0:
-            return jsonify({
-                'success': True,
-                'message': message,
-                'response': _demo_response(message),
-                'timestamp': datetime.now().isoformat()
-            })
+            return jsonify({'error': 'tutor unavailable', 'detail': 'please try again'}), 503
 
         user = User.query.get(user_id)
         if not user:
-            return jsonify({
-                'success': True,
-                'message': message,
-                'response': _demo_response(message),
-                'timestamp': datetime.now().isoformat()
-            })
+            return jsonify({'error': 'tutor unavailable', 'detail': 'please try again'}), 503
 
         # Check enrollment
         class_obj = Class.query.get(class_id)
         if not class_obj or user not in class_obj.users:
-            return jsonify({
-                'success': True,
-                'message': message,
-                'response': _demo_response(message),
-                'timestamp': datetime.now().isoformat()
-            })
+            return jsonify({'error': 'tutor unavailable', 'detail': 'please try again'}), 503
 
         # Try AI service
         if ai_service:
@@ -69,13 +54,7 @@ def send_chat_message():
             except Exception:
                 pass
 
-        # Fallback demo response
-        return jsonify({
-            'success': True,
-            'message': message,
-            'response': _demo_response(message),
-            'timestamp': datetime.now().isoformat()
-        })
+        return jsonify({'error': 'tutor unavailable', 'detail': 'please try again'}), 503
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -106,31 +85,3 @@ def get_chat_history(class_id):
         return jsonify({'messages': []})
 
 
-def _demo_response(message):
-    """Generate a simple demo response when AI service is unavailable"""
-    msg_lower = message.lower()
-
-    if any(w in msg_lower for w in ['explain', 'what is', 'what are', 'how does']):
-        return (
-            "Great question! Let me break this down for you. "
-            "This concept involves understanding the fundamental principles and how they connect to what we've been learning. "
-            "Would you like me to go through a specific example, or would you prefer a step-by-step walkthrough?"
-        )
-    elif any(w in msg_lower for w in ['practice', 'problem', 'exercise', 'quiz']):
-        return (
-            "Here's a practice problem for you:\n\n"
-            "Try solving this step by step, and let me know if you need hints along the way. "
-            "Remember to show your work so I can help identify any areas where you might need extra practice."
-        )
-    elif any(w in msg_lower for w in ['mistake', 'wrong', 'error', 'help']):
-        return (
-            "No worries - mistakes are how we learn! "
-            "Let's look at this together. Can you walk me through your thinking? "
-            "That way I can pinpoint exactly where things went off track and we can work through it step by step."
-        )
-    else:
-        return (
-            "I understand your question. Let me think about the best way to help you with this. "
-            "Could you provide a bit more context so I can give you the most helpful explanation? "
-            "For example, are you working on a specific assignment, or is this a general concept question?"
-        )

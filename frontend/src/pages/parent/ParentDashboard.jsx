@@ -9,22 +9,11 @@ import { useTimedProgress } from '../../hooks/useTimedProgress';
 const DASH_FILL_MS = 4200;
 
 function StatusIndicator({ score }) {
-  if (score < 0.2) return (
-    <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ color: 'var(--mastered)', background: 'var(--mastered-bg)', border: '1px solid color-mix(in srgb, var(--mastered) 35%, white)' }}>
-      <span className="text-2xl">&#10003;</span>
-      <span className="font-medium">Your child is on track</span>
-    </div>
-  );
-  if (score < 0.4) return (
-    <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ color: 'var(--needs-attention)', background: 'var(--needs-attention-bg)', border: '1px solid color-mix(in srgb, var(--needs-attention) 35%, white)' }}>
-      <span className="text-2xl">&#9888;</span>
-      <span className="font-medium">Some areas need attention</span>
-    </div>
-  );
+  if (!score?.label && !score?.narrative) return null;
   return (
-    <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ color: 'var(--at-risk)', background: 'var(--at-risk-bg)', border: '1px solid color-mix(in srgb, var(--at-risk) 35%, white)' }}>
-      <span className="text-2xl">&#9888;</span>
-      <span className="font-medium">Your child may need additional support</span>
+    <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ color: 'var(--text-primary)', background: 'var(--surface-muted)', border: '1px solid var(--border-soft)' }}>
+      {score.label ? <span className="font-medium">{score.label}</span> : null}
+      {score.narrative ? <span className="text-sm text-slate-600">{score.narrative}</span> : null}
     </div>
   );
 }
@@ -122,7 +111,10 @@ export default function ParentDashboard() {
     wellbeing = {},
     summary = {},
   } = dashboard;
-  const riskScore = profile?.overall_risk_score ?? 0.5;
+  const riskStatus = {
+    label: profile?.risk_label ?? null,
+    narrative: profile?.risk_narrative ?? null,
+  };
   const concepts = mastery?.concepts || [];
   const mathConcepts = concepts.filter(c => c.subject === 'Mathematics');
   const bioConcepts = concepts.filter(c => c.subject === 'Biology');
@@ -131,17 +123,8 @@ export default function ParentDashboard() {
   const bioMastery = bioConcepts.length ? bioConcepts.reduce((s, c) => s + n(c.mastery_score), 0) / bioConcepts.length : 0;
   const bestApproach = pedagogy?.approaches?.[0];
 
-  const trendMessage = profile?.overall_mastery_trend === 'improving'
-    ? `${student.first_name} is improving across their subjects`
-    : profile?.overall_mastery_trend === 'declining'
-    ? `${student.first_name} may need some extra support right now`
-    : `${student.first_name} is maintaining steady progress`;
-
-  const engagementMessage = (profile?.overall_engagement_score ?? 0) >= 0.7
-    ? `${student.first_name} is highly engaged with their learning`
-    : (profile?.overall_engagement_score ?? 0) >= 0.4
-    ? `${student.first_name} is moderately engaged with their learning`
-    : `${student.first_name} could benefit from more encouragement to engage`;
+  const trendNarrative = summary?.trend_narrative ?? null;
+  const engagementNarrative = summary?.engagement_narrative ?? null;
 
   const attendanceColor =
     (wellbeing?.attendance_percentage ?? 0) >= 90
@@ -167,13 +150,13 @@ export default function ParentDashboard() {
               </p>
             </div>
           </div>
-          <StatusIndicator score={riskScore} />
+          <StatusIndicator score={riskStatus} />
         </div>
 
         <div className="axon-card-subtle p-5 sm:p-6 space-y-4">
           <div>
             <h3 className="text-sm font-semibold text-slate-700 mb-1">Overall progress</h3>
-            <p className="text-xs text-slate-500">{trendMessage}</p>
+            {trendNarrative ? <p className="text-xs text-slate-500">{trendNarrative}</p> : null}
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-slate-500 w-16">Overall</span>
@@ -211,7 +194,7 @@ export default function ParentDashboard() {
 
         <div className="axon-card-subtle p-5 sm:p-6 space-y-3">
           <h3 className="text-sm font-semibold text-slate-700">Engagement at a glance</h3>
-          <p className="text-xs text-slate-500">{engagementMessage}</p>
+          {engagementNarrative ? <p className="text-xs text-slate-500">{engagementNarrative}</p> : null}
           <div className="grid grid-cols-3 gap-3 text-center text-[0.75rem]">
             <div>
               <p className="text-base font-semibold" style={{ color: 'var(--mastered)' }}>{summary?.conversations?.total_conversations ?? '-'}</p>

@@ -8,7 +8,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import {
   getStudentDashboard,
   getStudentMastery,
@@ -60,12 +59,6 @@ function focusCardClass(flagType) {
     default:
       return 'border-slate-300/60 bg-slate-50/50';
   }
-}
-
-function normalizeTrend(raw) {
-  const t = (raw || '').toLowerCase();
-  if (t === 'degrading') return 'declining';
-  return t;
 }
 
 export default function StudentDashboard() {
@@ -188,7 +181,7 @@ export default function StudentDashboard() {
   }
 
   const { student, profile = {}, summary = {} } = dashboard;
-  const trendKey = normalizeTrend(profile?.overall_mastery_trend);
+  const trendLabel = profile?.trend_label ?? null;
   /** Prefer server-reported AI conversation totals; otherwise use conversations payload (capped by fetch limit). */
   const aiChatCount =
     summary?.conversations?.total_conversations ??
@@ -283,24 +276,9 @@ export default function StudentDashboard() {
         <section className="axon-card-subtle p-5 sm:p-6 space-y-4">
           <h2 className="axon-h2 text-base sm:text-lg text-slate-800">Your momentum</h2>
 
-          {trendKey === 'improving' && (
-            <div className="flex items-center gap-2 text-emerald-700">
-              <TrendingUp className="h-5 w-5 shrink-0" aria-hidden />
-              <span className="text-sm font-medium">On a roll 🔥</span>
-            </div>
-          )}
-          {trendKey === 'declining' && (
-            <div className="flex items-center gap-2 text-amber-700">
-              <TrendingDown className="h-5 w-5 shrink-0" aria-hidden />
-              <span className="text-sm font-medium">Needs focus</span>
-            </div>
-          )}
-          {trendKey !== 'improving' && trendKey !== 'declining' && (
-            <div className="flex items-center gap-2 text-slate-600">
-              <Minus className="h-5 w-5 shrink-0" aria-hidden />
-              <span className="text-sm font-medium">Holding steady</span>
-            </div>
-          )}
+          {trendLabel ? (
+            <div className="text-sm font-medium text-slate-700">{trendLabel}</div>
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             <span className="inline-flex items-center rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-700">
@@ -367,7 +345,7 @@ export default function StudentDashboard() {
             ))}
             {focusRows.length === 0 && (
               <p className="rounded-lg border border-emerald-200/60 bg-emerald-50/40 px-3 py-3 text-sm text-slate-700">
-                All clear, keep it up! ✅
+                No focus areas flagged.
               </p>
             )}
           </div>
@@ -421,7 +399,7 @@ export default function StudentDashboard() {
               );
             })}
             {recentFive.length === 0 && (
-              <p className="text-sm text-slate-500">No sessions yet, chat with the tutor to get started.</p>
+              <p className="text-sm text-slate-500">No sessions recorded yet.</p>
             )}
           </div>
         </section>

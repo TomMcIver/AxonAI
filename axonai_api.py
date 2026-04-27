@@ -37,6 +37,7 @@ from typing import Optional
 
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 import psycopg2
@@ -968,8 +969,9 @@ def get_concept_explanation(concept_id: int):
     with get_db() as cur:
         cur.execute(
             """
-            SELECT id, name, year_level_introduced
-            FROM concepts
+            SELECT c.id, c.name, c.year_level_introduced, s.name AS subject_name
+            FROM concepts c
+            LEFT JOIN subjects s ON s.id = c.subject_id
             WHERE id = %s
             """,
             (concept_id,),
@@ -988,11 +990,14 @@ def get_concept_explanation(concept_id: int):
         )
         explanation = cur.fetchone()
         if not explanation:
+            concept_context_name = str(concept["name"])
+            if concept.get("subject_name"):
+                concept_context_name = f'{concept_context_name} ({concept["subject_name"]})'
             generated_text, _cache_hit, _model_used = generate_tutor_explanation(
                 cur=cur,
                 student_id=1,
                 concept_id=int(concept["id"]),
-                concept_name=str(concept["name"]),
+                concept_name=concept_context_name,
                 misconception=None,
                 explanation_style="worked_example",
                 attempt_count=1,
@@ -1180,6 +1185,7 @@ def submit_quiz_answer(req: QuizSubmitRequest):
                 from misconception_adapter import detect_misconception
 
                 detected_misconception, misconception_confidence = detect_misconception(
+                    student_id=req.student_id,
                     question_text=question.get("question_text"),
                     wrong_answer=student_answer,
                     concept_name=concept_name or "",
@@ -1297,6 +1303,7 @@ def submit_quiz_answer(req: QuizSubmitRequest):
                 from misconception_adapter import detect_misconception
 
                 detected_misconception, misconception_confidence = detect_misconception(
+                    student_id=req.student_id,
                     question_text=question.get("question_text"),
                     wrong_answer=student_answer,
                     concept_name=concept_name or "",
@@ -1399,17 +1406,10 @@ def predict_risk(req: RiskPredictionRequest):
 
 @app.post("/student/{student_id}/chat")
 def student_chat(student_id: int, body: StudentChatBody):
-    fallback = {
-        "response": "Sorry, I'm having trouble right now. Please try again in a moment.",
-        "conversation_id": None,
-        "lightbulb_detected": False,
-        "tutor_explanation": None,
-        "cache_hit": False,
-    }
     try:
         user_msg = (body.message or "").strip()
         if not user_msg:
-            return fallback
+            return JSONResponse(status_code=503, content={"error": "tutor unavailable", "detail": "please try again"})
 
         concept_id = body.concept_id
         existing_conv_id = body.conversation_id
@@ -1500,7 +1500,7 @@ def student_chat(student_id: int, body: StudentChatBody):
                     VALUES (%s, %s, %s, %s, %s, %s)
                     RETURNING id
                     """,
-                    (student_id, 1, concept_id, 0.75, False, 2),
+                    (student_id, 1, concept_id, None, False, 2),
                 )
                 conversation_id = int(cur.fetchone()["id"])
                 cur.execute(
@@ -1608,6 +1608,17 @@ def student_chat(student_id: int, body: StudentChatBody):
                                 tutor_concept_name = concept_name_row["name"] if concept_name_row else None
 
                             if tutor_concept_id is not None and tutor_concept_name:
+                                # Correct concept-scoped attempt count SQL:
+                                # SELECT COUNT(*)
+                                # FROM messages
+                                # WHERE student_id = %s
+                                #   AND sender = 'student'
+                                #   AND conversation_id IN (
+                                #       SELECT id
+                                #       FROM conversations
+                                #       WHERE student_id = %s
+                                #         AND concept_id = %s
+                                #   );
                                 cur.execute(
                                     """
                                     SELECT COUNT(*)
@@ -1685,13 +1696,12 @@ def student_chat(student_id: int, body: StudentChatBody):
         return {
             "response": ai_reply,
             "conversation_id": conversation_id,
-            "lightbulb_detected": False,
             "tutor_explanation": tutor_explanation,
             "cache_hit": tutor_cache_hit,
         }
     except Exception as e:
         logger.exception("student_chat failed: %s", e)
-        return fallback
+        return JSONResponse(status_code=503, content={"error": "tutor unavailable", "detail": "please try again"})
 
 
 @app.post("/tutor/explain")
