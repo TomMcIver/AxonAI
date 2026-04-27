@@ -35,7 +35,7 @@ from datetime import datetime, timezone
 from contextlib import contextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -77,6 +77,11 @@ DB_CONFIG = {
     "port": 5432,
     "sslmode": "require",
 }
+
+
+class StudentDataDeletionRequest(BaseModel):
+    confirm_delete: Optional[bool] = None
+
 
 @contextmanager
 def get_db():
@@ -639,6 +644,160 @@ Return ONLY this JSON (no markdown):
     
     except Exception as e:
         raise HTTPException(500, str(e))
+
+
+@app.delete("/students/{student_id}/data")
+def delete_student_data(student_id: int, body: StudentDataDeletionRequest = Body(...)):
+    if body.confirm_delete is not True:
+        raise HTTPException(
+            status_code=400,
+            detail="Set confirm_delete to true to proceed. This action is permanent and cannot be undone.",
+        )
+
+    def _table_exists(cur, table_name: str) -> bool:
+        cur.execute("SELECT to_regclass(%s) IS NOT NULL AS exists", (f"public.{table_name}",))
+        row = cur.fetchone()
+        return bool(row and row["exists"])
+
+    def _column_exists(cur, table_name: str, column_name: str) -> bool:
+        cur.execute(
+            """
+            SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = %s
+                  AND column_name = %s
+            ) AS exists
+            """,
+            (table_name, column_name),
+        )
+        row = cur.fetchone()
+        return bool(row and row["exists"])
+
+    rows_deleted = {}
+    deleted_at = datetime.now(timezone.utc).isoformat()
+
+    try:
+        with get_db() as cur:
+            cur.execute(
+                "SELECT id, is_demo_student FROM students WHERE id = %s",
+                (student_id,),
+            )
+            student_row = cur.fetchone()
+            if not student_row:
+                raise HTTPException(status_code=404, detail="Student not found")
+
+            ordered_tables = [
+                "student_concept_flags",
+                "student_learning_profiles",
+                "messages",
+                "conversations",
+                "quiz_questions",
+                "teacher_ai_insights",
+                "pedagogical_memory",
+                "grade",
+            ]
+
+            for table_name in ordered_tables:
+                if not _table_exists(cur, table_name):
+                    continue
+
+                deleted_count = 0
+                if table_name == "quiz_questions":
+                    has_student_id = _column_exists(cur, "quiz_questions", "student_id")
+                    has_conversation_id = _column_exists(cur, "quiz_questions", "conversation_id")
+                    if has_student_id and has_conversation_id:
+                        cur.execute(
+                            """
+                            DELETE FROM quiz_questions q
+                            WHERE q.student_id = %s
+                               OR q.conversation_id IN (
+                                    SELECT c.id FROM conversations c WHERE c.student_id = %s
+                               )
+                            """,
+                            (student_id, student_id),
+                        )
+                        deleted_count = cur.rowcount
+                    elif has_student_id:
+                        cur.execute("DELETE FROM quiz_questions WHERE student_id = %s", (student_id,))
+                        deleted_count = cur.rowcount
+                    elif has_conversation_id:
+                        cur.execute(
+                            """
+                            DELETE FROM quiz_questions
+                            WHERE conversation_id IN (
+                                SELECT id FROM conversations WHERE student_id = %s
+                            )
+                            """,
+                            (student_id,),
+                        )
+                        deleted_count = cur.rowcount
+                elif table_name == "messages":
+                    has_student_id = _column_exists(cur, "messages", "student_id")
+                    has_conversation_id = _column_exists(cur, "messages", "conversation_id")
+                    if has_student_id and has_conversation_id:
+                        cur.execute(
+                            """
+                            DELETE FROM messages m
+                            WHERE m.student_id = %s
+                               OR m.conversation_id IN (
+                                    SELECT c.id FROM conversations c WHERE c.student_id = %s
+                               )
+                            """,
+                            (student_id, student_id),
+                        )
+                        deleted_count = cur.rowcount
+                    elif has_student_id:
+                        cur.execute("DELETE FROM messages WHERE student_id = %s", (student_id,))
+                        deleted_count = cur.rowcount
+                    elif has_conversation_id:
+                        cur.execute(
+                            """
+                            DELETE FROM messages
+                            WHERE conversation_id IN (
+                                SELECT id FROM conversations WHERE student_id = %s
+                            )
+                            """,
+                            (student_id,),
+                        )
+                        deleted_count = cur.rowcount
+                else:
+                    if not _column_exists(cur, table_name, "student_id"):
+                        continue
+                    cur.execute(f"DELETE FROM {table_name} WHERE student_id = %s", (student_id,))
+                    deleted_count = cur.rowcount
+
+                rows_deleted[table_name] = int(deleted_count)
+
+            cur.execute("DELETE FROM students WHERE id = %s", (student_id,))
+            rows_deleted["students"] = int(cur.rowcount)
+
+            if _table_exists(cur, "data_deletion_log"):
+                cur.execute(
+                    """
+                    INSERT INTO data_deletion_log (student_id, deleted_at, deleted_by, rows_deleted)
+                    VALUES (%s, %s, %s, %s::jsonb)
+                    """,
+                    (student_id, deleted_at, "api_request", json.dumps(rows_deleted)),
+                )
+            else:
+                raise RuntimeError("Required table data_deletion_log does not exist")
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("delete_student_data failed for student_id=%s", student_id)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to delete student data. The operation was rolled back.",
+        )
+
+    return {
+        "student_id": int(student_id),
+        "deleted_at": deleted_at,
+        "rows_deleted": rows_deleted,
+        "message": "All student data has been permanently deleted. This action cannot be undone.",
+    }
 
 
 # =============================================================================
